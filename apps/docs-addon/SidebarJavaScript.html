@@ -1,0 +1,401 @@
+<script>
+  /**
+   * SinAI Google Docs Sidebar Client Script
+   */
+
+  document.addEventListener("DOMContentLoaded", () => {
+    // ── DOM References ──
+    const navButtons = document.querySelectorAll(".nav-btn");
+    const panels = document.querySelectorAll(".sidebar-panel");
+    const apiStatusDot = document.querySelector("#sidebar-api-status .status-dot");
+    const apiStatusText = document.querySelector("#sidebar-api-status .status-text");
+
+    // Tools Panel
+    const btnRefreshSelection = document.getElementById("btn-refresh-selection");
+    const selectionPreviewBox = document.getElementById("selection-preview-box");
+    const selectToolMode = document.getElementById("select-tool-mode");
+    const subOptionsStyle = document.getElementById("sub-options-style");
+    const subOptionsSummary = document.getElementById("sub-options-summary");
+    const btnProcessAction = document.getElementById("btn-process-action");
+    const resultContainer = document.getElementById("result-container");
+    const resultOutputText = document.getElementById("result-output-text");
+    const btnCopyResult = document.getElementById("btn-copy-result");
+    const grammarCorrectionsList = document.getElementById("grammar-corrections-list");
+    const btnApplyReplace = document.getElementById("btn-apply-replace");
+    const btnApplyInsert = document.getElementById("btn-apply-insert");
+
+    // Settings Panel
+    const inputApiHost = document.getElementById("input-api-host");
+    const selectDefaultTone = document.getElementById("select-default-tone");
+    const selectDefaultLength = document.getElementById("select-default-length");
+    const inputDefaultHeadlines = document.getElementById("input-default-headlines");
+    const btnSaveSettings = document.getElementById("btn-save-settings");
+
+    // ── Client State ──
+    let activeSelection = "";
+    let activeSettings = {
+      apiHost: "http://obc6jy896hk9b9u1fdzxkwvj.62.171.163.6.sslip.io/api/v1",
+      defaultTone: "formal",
+      defaultLength: "medium",
+      defaultHeadlineCount: 5
+    };
+    let activeToolOptions = {
+      tool: "grammar",
+      tone: "formal",
+      length: "medium"
+    };
+
+    // ── Initialize Addon ──
+    setupNavigation();
+    loadAddonSettings();
+    setupToolEvents();
+    setupSettingsEvents();
+    refreshSelection();
+
+    // ── Tab Navigation ──
+    function setupNavigation() {
+      navButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const targetPanelId = btn.getAttribute("data-panel");
+
+          navButtons.forEach((b) => b.classList.remove("active"));
+          panels.forEach((p) => p.classList.remove("active"));
+
+          btn.classList.add("active");
+          const activePanel = document.getElementById(targetPanelId);
+          if (activePanel) {
+            activePanel.classList.add("active");
+          }
+
+          if (targetPanelId === "panel-tools") {
+            refreshSelection();
+          }
+        });
+      });
+    }
+
+    // ── Load Settings ──
+    function loadAddonSettings() {
+      google.script.run
+        .withSuccessHandler((settings) => {
+          activeSettings = settings;
+
+          // Populate Settings Tab fields
+          inputApiHost.value = settings.apiHost;
+          selectDefaultTone.value = settings.defaultTone;
+          selectDefaultLength.value = settings.defaultLength;
+          inputDefaultHeadlines.value = settings.defaultHeadlineCount;
+
+          // Sync default options
+          activeToolOptions.tone = settings.defaultTone;
+          activeToolStateToggle("tone", settings.defaultTone);
+          
+          activeToolOptions.length = settings.defaultLength;
+          activeToolStateToggle("length", settings.defaultLength);
+
+          checkApiHealth();
+        })
+        .withFailureHandler((err) => {
+          showStatusError("Failed to load settings: " + err);
+        })
+        .loadSettings();
+    }
+
+    function activeToolStateToggle(type, value) {
+      const containerId = type === "tone" ? "sub-options-style" : "sub-options-summary";
+      const container = document.getElementById(containerId);
+      container.querySelectorAll(".seg-item").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-value") === value);
+      });
+    }
+
+    // ── Check API Health ──
+    function checkApiHealth() {
+      apiStatusDot.className = "status-dot warning";
+      apiStatusText.textContent = "Checking...";
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (response && response.success) {
+            apiStatusDot.className = "status-dot success";
+            apiStatusText.textContent = "Connected";
+          } else {
+            apiStatusDot.className = "status-dot error";
+            apiStatusText.textContent = "Offline";
+          }
+        })
+        .withFailureHandler(() => {
+          apiStatusDot.className = "status-dot error";
+          apiStatusText.textContent = "Offline";
+        })
+        .callApiProxy("/health", null, "GET");
+    }
+
+    // ── Document Selection Handling ──
+    btnRefreshSelection.addEventListener("click", refreshSelection);
+
+    function refreshSelection() {
+      selectionPreviewBox.className = "tracker-preview placeholder";
+      selectionPreviewBox.textContent = "තේරාගත් කොටස පරීක්ෂා කරමින්... (Refreshing...)";
+      btnProcessAction.disabled = true;
+
+      google.script.run
+        .withSuccessHandler((text) => {
+          activeSelection = text.trim();
+          
+          if (activeSelection) {
+            selectionPreviewBox.className = "tracker-preview";
+            selectionPreviewBox.textContent = activeSelection;
+            btnProcessAction.disabled = false;
+          } else {
+            selectionPreviewBox.className = "tracker-preview placeholder";
+            selectionPreviewBox.textContent = "කරුණාකර Google Document එකෙහි වචන කිහිපයක් තෝරා Refresh කරන්න...";
+            btnProcessAction.disabled = true;
+          }
+        })
+        .withFailureHandler((err) => {
+          selectionPreviewBox.className = "tracker-preview placeholder";
+          selectionPreviewBox.textContent = "දෝෂයකි: " + err;
+        })
+        .getSelectedText();
+    }
+
+    // ── Tools Tab Operations ──
+    function setupToolEvents() {
+      // Tool selection toggle
+      selectToolMode.addEventListener("change", (e) => {
+        const val = e.target.value;
+        activeToolOptions.tool = val;
+
+        subOptionsStyle.classList.add("hidden");
+        subOptionsSummary.classList.add("hidden");
+
+        if (val === "rewriter") {
+          subOptionsStyle.classList.remove("hidden");
+        } else if (val === "summarizer") {
+          subOptionsSummary.classList.remove("hidden");
+        }
+
+        // Hide previous results on switch
+        resultContainer.classList.add("hidden");
+      });
+
+      // Segmented control button click
+      document.querySelectorAll(".option-segmented .seg-item").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const parent = btn.parentElement;
+          parent.querySelectorAll(".seg-item").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+
+          const val = btn.getAttribute("data-value");
+          if (parent.parentElement.id === "sub-options-style") {
+            activeToolOptions.tone = val;
+          } else if (parent.parentElement.id === "sub-options-summary") {
+            activeToolOptions.length = val;
+          }
+        });
+      });
+
+      // Copy Result
+      btnCopyResult.addEventListener("click", () => {
+        const text = resultOutputText.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          const originalSvg = btnCopyResult.innerHTML;
+          btnCopyResult.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14"><path fill="#10B981" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
+          setTimeout(() => {
+            btnCopyResult.innerHTML = originalSvg;
+          }, 1500);
+        });
+      });
+
+      // Run Analysis
+      btnProcessAction.addEventListener("click", () => {
+        if (!activeSelection) return;
+
+        btnProcessAction.disabled = true;
+        btnProcessAction.classList.add("loading");
+        resultContainer.classList.add("hidden");
+        grammarCorrectionsList.classList.add("hidden");
+        grammarCorrectionsList.innerHTML = "";
+
+        let endpoint = "/grammar/check";
+        let body = { text: activeSelection };
+
+        if (activeToolOptions.tool === "headlines") {
+          endpoint = "/headlines/generate";
+          body = { text: activeSelection, count: activeSettings.defaultHeadlineCount };
+        } else if (activeToolOptions.tool === "rewriter") {
+          endpoint = "/rewrite";
+          body = { text: activeSelection, tone: activeToolOptions.tone };
+        } else if (activeToolOptions.tool === "summarizer") {
+          endpoint = "/summarize";
+          body = { text: activeSelection, length: activeToolOptions.length };
+        }
+
+        google.script.run
+          .withSuccessHandler((response) => {
+            btnProcessAction.disabled = false;
+            btnProcessAction.classList.remove("loading");
+
+            if (response && response.success) {
+              renderResult(activeToolOptions.tool, response.data);
+            } else {
+              showError(response ? response.error : "Failed to connect to API.");
+            }
+          })
+          .withFailureHandler((err) => {
+            btnProcessAction.disabled = false;
+            btnProcessAction.classList.remove("loading");
+            showError("Apps Script Error: " + err.toString());
+          })
+          .callApiProxy(endpoint, body, "POST");
+      });
+
+      // Apply Replace Selection
+      btnApplyReplace.addEventListener("click", () => {
+        let text = resultOutputText.textContent;
+        if (!text) return;
+
+        btnApplyReplace.disabled = true;
+        
+        google.script.run
+          .withSuccessHandler(() => {
+            btnApplyReplace.disabled = false;
+            resultContainer.classList.add("hidden");
+            // Clear selections preview
+            refreshSelection();
+          })
+          .withFailureHandler((err) => {
+            btnApplyReplace.disabled = false;
+            alert("නැවත ප්‍රතිස්ථාපනය අසාර්ථකයි: " + err);
+          })
+          .replaceSelectedText(text);
+      });
+
+      // Apply Insert Cursor
+      btnApplyInsert.addEventListener("click", () => {
+        let text = resultOutputText.textContent;
+        if (!text) return;
+
+        btnApplyInsert.disabled = true;
+        
+        google.script.run
+          .withSuccessHandler(() => {
+            btnApplyInsert.disabled = false;
+            resultContainer.classList.add("hidden");
+          })
+          .withFailureHandler((err) => {
+            btnApplyInsert.disabled = false;
+            alert("ඇතුළත් කිරීම අසාර්ථකයි: " + err);
+          })
+          .insertTextAtCursor(text);
+      });
+    }
+
+    // ── Render Output Result ──
+    function renderResult(tool, data) {
+      resultContainer.classList.remove("hidden");
+      
+      // Control button states depending on tool type
+      if (tool === "headlines" || tool === "summarizer") {
+        // Headlines/summaries are usually appended rather than replacing selected text
+        btnApplyReplace.textContent = "පෙළ ප්‍රතිස්ථාපනය කරන්න";
+        btnApplyInsert.classList.remove("hidden");
+      } else {
+        btnApplyReplace.textContent = "තෝරාගත් පෙළ වෙනස් කරන්න";
+        btnApplyInsert.classList.add("hidden");
+      }
+
+      if (tool === "grammar") {
+        resultOutputText.textContent = data.corrected;
+
+        if (data.corrections && data.corrections.length > 0) {
+          grammarCorrectionsList.classList.remove("hidden");
+          data.corrections.forEach((c) => {
+            const card = document.createElement("div");
+            card.className = "corr-card";
+            card.innerHTML = `
+              <div class="corr-comp">
+                <span class="corr-del">${escapeHtml(c.original)}</span>
+                <span class="corr-arrow">➔</span>
+                <span class="corr-add">${escapeHtml(c.corrected)}</span>
+              </div>
+              <div class="corr-rule">${escapeHtml(c.rule)}</div>
+            `;
+            grammarCorrectionsList.appendChild(card);
+          });
+        } else {
+          grammarCorrectionsList.classList.remove("hidden");
+          grammarCorrectionsList.innerHTML = `<span style="color: #10B981; font-size: 0.75rem; text-align: center; display: block; padding-top: 4px;">👍 ව්‍යාකරණ දෝෂ කිසිවක් හමු නොවීය.</span>`;
+        }
+      } else if (tool === "headlines") {
+        const text = data.headlines.map((h, i) => `${i + 1}. ${h}`).join("\n");
+        resultOutputText.textContent = text;
+      } else if (tool === "rewriter") {
+        resultOutputText.textContent = data.rewritten;
+      } else if (tool === "summarizer") {
+        resultOutputText.textContent = data.summary;
+      }
+    }
+
+    function showError(msg) {
+      resultContainer.classList.remove("hidden");
+      btnApplyInsert.classList.add("hidden");
+      btnApplyReplace.classList.add("hidden");
+      resultOutputText.innerHTML = `<span style="color: #EF4444; font-weight: 500;">ERROR: ${escapeHtml(msg)}</span><br><span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">API URL එක (Settings) පරීක්ෂා කර නැවත උත්සාහ කරන්න.</span>`;
+    }
+
+    // ── Settings Form Submission ──
+    function setupSettingsEvents() {
+      btnSaveSettings.addEventListener("click", () => {
+        const settings = {
+          apiHost: inputApiHost.value.trim() || "http://obc6jy896hk9b9u1fdzxkwvj.62.171.163.6.sslip.io/api/v1",
+          defaultTone: selectDefaultTone.value,
+          defaultLength: selectDefaultLength.value,
+          defaultHeadlineCount: inputDefaultHeadlines.value
+        };
+
+        btnSaveSettings.disabled = true;
+        btnSaveSettings.textContent = "සුරකිමින්... (Saving)";
+
+        google.script.run
+          .withSuccessHandler(() => {
+            btnSaveSettings.disabled = false;
+            btnSaveSettings.textContent = "සුරැකිණි! (Saved)";
+            btnSaveSettings.style.background = "#10B981";
+            
+            activeSettings = {
+              ...activeSettings,
+              apiHost: settings.apiHost,
+              defaultTone: settings.defaultTone,
+              defaultLength: settings.defaultLength,
+              defaultHeadlineCount: parseInt(settings.defaultHeadlineCount, 10)
+            };
+
+            setTimeout(() => {
+              btnSaveSettings.textContent = "සැකසුම් සුරකින්න";
+              btnSaveSettings.style.background = "";
+            }, 1500);
+
+            checkApiHealth();
+          })
+          .withFailureHandler((err) => {
+            btnSaveSettings.disabled = false;
+            btnSaveSettings.textContent = "සුරැකීම අසාර්ථකයි";
+            alert("Error saving settings: " + err);
+          })
+          .saveSettings(settings);
+      });
+    }
+
+    // ── Helper Utility Functions ──
+    function escapeHtml(unsafe) {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  });
+</script>

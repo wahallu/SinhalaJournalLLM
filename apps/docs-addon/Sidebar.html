@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <base target="_top">
+  <!-- Google Fonts for branding and readability -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <?!= include('SidebarStyles'); ?>
+</head>
+<body>
+  <div class="sidebar-wrapper">
+    <!-- Header -->
+    <header class="sidebar-header">
+      <div class="brand-area">
+        <!-- SVG Icon embedded directly since local files are not hosted in Apps Script -->
+        <svg viewBox="0 0 128 128" class="brand-logo">
+          <defs>
+            <linearGradient id="logoBg" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#E63946" />
+              <stop offset="100%" stop-color="#9E0F19" />
+            </linearGradient>
+            <linearGradient id="logoAcc" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#FFFFFF" />
+              <stop offset="100%" stop-color="#FFE3E5" />
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="128" height="128" rx="28" fill="url(#logoBg)" />
+          <path d="M 42,72 C 42,55 58,45 74,48 C 85,50 90,60 88,72 C 86,84 76,88 64,88 C 52,88 44,80 44,72 C 44,66 50,60 58,62 C 64,63 68,68 67,73 C 66,78 62,81 58,80 C 55,79 53,76 54,73" fill="none" stroke="url(#logoAcc)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M 74,47 C 74,32 58,26 48,34" fill="none" stroke="url(#logoAcc)" stroke-width="7" stroke-linecap="round" />
+          <path d="M 88,38 L 91,42 L 95,43 L 91,44 L 90,48 L 87,44 L 83,43 L 87,42 Z" fill="#FFFFFF" />
+        </svg>
+        <div class="brand-info">
+          <h1>SinAI</h1>
+          <span class="sub-brand">Docs Assistant</span>
+        </div>
+      </div>
+      <div class="api-status-badge" id="sidebar-api-status">
+        <span class="status-dot warning"></span>
+        <span class="status-text">Checking</span>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" data-panel="panel-tools">Tools</button>
+      <button class="nav-btn" data-panel="panel-settings">Settings</button>
+      <button class="nav-btn" data-panel="panel-help">Help</button>
+    </nav>
+
+    <!-- Main Content Panels -->
+    <main class="sidebar-main">
+      
+      <!-- 1. TOOLS PANEL -->
+      <section id="panel-tools" class="sidebar-panel active">
+        <div class="selection-tracker">
+          <div class="tracker-header">
+            <span class="tracker-title">තෝරාගත් පෙළ (Selection)</span>
+            <button class="btn-icon" id="btn-refresh-selection" title="ලිපියේ තෝරාගත් කොටස නැවත ලබාගන්න">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+            </button>
+          </div>
+          <div class="tracker-preview placeholder" id="selection-preview-box">
+            කරුණාකර Google Document එකෙහි වචන කිහිපයක් තෝරා Refresh කරන්න...
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="select-tool-mode" class="field-label">ක්‍රියාව (Select Action)</label>
+          <select id="select-tool-mode" class="sidebar-select">
+            <option value="grammar">Grammar Checker (ව්‍යාකරණ)</option>
+            <option value="headlines">Headline Generator (සිරස්තල)</option>
+            <option value="rewriter">Style Rewriter (ශෛලිය)</option>
+            <option value="summarizer">News Summarizer (සාරාංශය)</option>
+          </select>
+        </div>
+
+        <!-- Tool Options Panels -->
+        <div class="options-wrapper">
+          <!-- Style Option -->
+          <div id="sub-options-style" class="sub-option-row hidden">
+            <span class="sub-label">ශෛලිය:</span>
+            <div class="option-segmented">
+              <button class="seg-item active" data-value="formal">නිල</button>
+              <button class="seg-item" data-value="journalistic">මාධ්‍ය</button>
+              <button class="seg-item" data-value="casual">සරල</button>
+            </div>
+          </div>
+          <!-- Summary Option -->
+          <div id="sub-options-summary" class="sub-option-row hidden">
+            <span class="sub-label">දිග:</span>
+            <div class="option-segmented">
+              <button class="seg-item" data-value="short">කෙටි</button>
+              <button class="seg-item active" data-value="medium">මධ්‍යම</button>
+              <button class="seg-item" data-value="long">දීර්ඝ</button>
+            </div>
+          </div>
+        </div>
+
+        <button id="btn-process-action" class="btn-primary w-full" disabled>ක්‍රියාත්මක කරන්න (Analyze)</button>
+
+        <!-- Result Container -->
+        <div id="result-container" class="result-box hidden">
+          <div class="result-header">
+            <h3>ප්‍රතිඵලය (Result)</h3>
+            <div class="result-actions">
+              <button id="btn-copy-result" class="btn-icon" title="Copy to Clipboard">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12V1z"/></svg>
+              </button>
+            </div>
+          </div>
+          
+          <div id="result-output-text" class="result-output"></div>
+          
+          <!-- Detailed explanations for Grammar errors -->
+          <div id="grammar-corrections-list" class="corrections-wrapper hidden"></div>
+
+          <div class="result-insertion-buttons">
+            <button id="btn-apply-replace" class="btn-primary" style="flex: 2;">තෝරාගත් පෙළ වෙනස් කරන්න</button>
+            <button id="btn-apply-insert" class="btn-secondary" style="flex: 1; min-width: 80px;">ඇතුළත් කරන්න</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. SETTINGS PANEL -->
+      <section id="panel-settings" class="sidebar-panel">
+        <h2>සැකසුම් (Settings)</h2>
+        
+        <div class="settings-form">
+          <div class="form-group">
+            <label for="input-api-host" class="field-label">API Base URL</label>
+            <input type="text" id="input-api-host" class="sidebar-input" placeholder="http://obc6jy896hk9b9u1fdzxkwvj.62.171.163.6.sslip.io/api/v1">
+            <p class="field-help">Google Apps Script සේවාදායකයේ සිට API වෙත සම්බන්ධ වීමට අවශ්‍ය ප්‍රවේශ ලිපිනය.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="select-default-tone" class="field-label">පෙරනිමි ශෛලිය (Default Tone)</label>
+            <select id="select-default-tone" class="sidebar-select">
+              <option value="formal">Formal (නිල)</option>
+              <option value="journalistic">Journalistic (ප්‍රවෘත්ති)</option>
+              <option value="casual">Casual (සරල)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="select-default-length" class="field-label">පෙරනිමි සාරාංශ ප්‍රමාණය (Default Length)</label>
+            <select id="select-default-length" class="sidebar-select">
+              <option value="short">Short (කෙටි)</option>
+              <option value="medium">Medium (මධ්‍යම)</option>
+              <option value="long">Long (දීර්ඝ)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="input-default-headlines" class="field-label">පෙරනිමි සිරස්තල ගණන (Headline Count)</label>
+            <input type="number" id="input-default-headlines" class="sidebar-input" min="1" max="10" value="5">
+          </div>
+
+          <button id="btn-save-settings" class="btn-primary w-full">සැකසුම් සුරකින්න</button>
+        </div>
+      </section>
+
+      <!-- 3. HELP PANEL -->
+      <section id="panel-help" class="sidebar-panel">
+        <h2>උදව් සහ උපදෙස් (Help)</h2>
+        
+        <div class="help-card">
+          <h3>භාවිතා කරන ආකාරය:</h3>
+          <ol>
+            <li>ලිපියෙහි සංස්කරණය කිරීමට අවශ්‍ය වාක්‍යය හෝ ඡේදය **හයිලයිට් (Highlight)** කරන්න.</li>
+            <li>සහායකයාගේ **තෝරාගත් පෙළ (Selection)** කොටසෙහි ඇති **Refresh (🔄)** බොත්තම ඔබන්න.</li>
+            <li>භාවිතා කිරීමට බලාපොරොත්තු වන මෙවලම තෝරා **ක්‍රියාත්මක කරන්න** බොත්තම ඔබන්න.</li>
+            <li>ප්‍රතිඵලය සෑහීමකට පත්වේ නම්, **තෝරාගත් පෙළ වෙනස් කරන්න** බොත්තම මඟින් ලිපියෙහි මුල් වචන වෙනුවට නව වචන ආදේශ කරන්න.</li>
+            <li>සිරස්තල හෝ සාරාංශ ලිපියෙහි කර්සරය (Cursor) පවතින ස්ථානයෙන් ඇතුළත් කිරීමට **ඇතුළත් කරන්න** බොත්තම ඔබන්න.</li>
+          </ol>
+        </div>
+
+        <div class="help-card" style="margin-top: 14px;">
+          <h3>දේශීය සර්වර් (Localhost) පරීක්ෂාව:</h3>
+          <p>Google සේවාදායකයේ සිට ඔබේ පරිගණකයේ ක්‍රියාත්මක වන local backend එක (`http://localhost:8000`) ඍජුව සම්බන්ධ කරගත නොහැක.</p>
+          <p>එබැවින් local backend පරීක්ෂා කිරීමට **ngrok** වැනි මෙවලමක් භාවිතයෙන් පොදු URL එකක් (Public tunnel) සාදා එය settings හි ඇතුළත් කරන්න:</p>
+          <code style="display:block; padding: 6px; background: rgba(255,255,255,0.06); font-family: monospace; border-radius: 4px; font-size: 0.72rem; margin-top: 6px; color: #FFE3E5;">ngrok http 8000</code>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <?!= include('SidebarJavaScript'); ?>
+</body>
+</html>

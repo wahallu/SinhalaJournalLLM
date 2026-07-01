@@ -1,0 +1,15 @@
+{
+  "name": "sinai-docs-addon",
+  "version": "1.0.0",
+  "description": "Google Docs Add-on for SinhalaJournalLLM (SinAI)",
+  "scripts": {
+    "login": "clasp login",
+    "create": "clasp create --type document --title \"SinAI Document Assistant\"",
+    "pull": "clasp pull",
+    "push": "clasp push",
+    "watch": "clasp push --watch"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.5.0"
+  }
+}
