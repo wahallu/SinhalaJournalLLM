@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SinAI Assistant</title>
+  <!-- Google Fonts for premium typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <img src="../icons/icon.svg" alt="SinAI Logo" class="app-logo">
+        <div class="brand-info">
+          <h1>SinAI</h1>
+          <span class="sub-brand">SinhalaJournal LLM</span>
+        </div>
+      </div>
+      <div class="api-status" id="api-status-indicator" title="API Status: Checking...">
+        <span class="status-dot warning"></span>
+        <span class="status-text">Checking</span>
+      </div>
+    </header>
+
+    <!-- Tab Panels Container -->
+    <main class="app-main">
+      
+      <!-- 1. DASHBOARD PANEL -->
+      <section id="panel-dashboard" class="tab-panel active">
+        <div class="welcome-banner">
+          <h2>ආයුබෝවන්!</h2>
+          <p>SinAI මාධ්‍යවේදී සහායකයා වෙත සාදරයෙන් පිළිගනිමු.</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-label">සම්පූර්ණ නිවැරදි කිරීම්</span>
+            <span class="stat-value" id="stat-total-checks">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">භාවිතා කළ මෙවලම්</span>
+            <span class="stat-value" id="stat-tools-used">0</span>
+          </div>
+        </div>
+
+        <div class="settings-switch-card">
+          <div class="switch-info">
+            <h3>Inline සහායකයා</h3>
+            <p>පෙළ තෝරාගත් විට floating badge එක පෙන්වන්න</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggle-inline-helper" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="action-card">
+          <h3>නවතම විශේෂාංග</h3>
+          <ul>
+            <li>සිංහල ව්‍යාකරණ සහ අක්ෂර වින්‍යාසය නිවැරදි කිරීම</li>
+            <li>ප්‍රවෘත්ති ලිපි සඳහා සිරස්තල නිර්මාණය</li>
+            <li>ලිවීම් ශෛලීන් වෙනස් කිරීම (නිල, සාමාන්‍ය, ආදිය)</li>
+            <li>දිගු ලිපිවල කෙටි සාරාංශයක් ලබා ගැනීම</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 2. TOOLS PANEL -->
+      <section id="panel-tools" class="tab-panel">
+        <div class="tool-selector-container">
+          <label for="select-active-tool" class="field-label">භාවිතා කරන මෙවලම</label>
+          <select id="select-active-tool" class="app-select">
+            <option value="grammar">Grammar Checker (ව්‍යාකරණ)</option>
+            <option value="headlines">Headline Generator (සිරස්තල)</option>
+            <option value="rewriter">Style Rewriter (ශෛලිය)</option>
+            <option value="summarizer">News Summarizer (සාරාංශය)</option>
+          </select>
+        </div>
+
+        <!-- Tool options wrapper (dynamic contents inside) -->
+        <div class="tool-options-bar">
+          <!-- Style Tone options -->
+          <div id="options-style-rewriter" class="tool-option-sub-panel hidden">
+            <span class="sub-label">ශෛලිය/ස්වරය:</span>
+            <div class="segmented-control">
+              <button class="seg-btn active" data-value="formal">නිල (Formal)</button>
+              <button class="seg-btn" data-value="journalistic">මාධ්‍ය (News)</button>
+              <button class="seg-btn" data-value="casual">සරල (Casual)</button>
+            </div>
+          </div>
+          <!-- Summarizer options -->
+          <div id="options-summarizer" class="tool-option-sub-panel hidden">
+            <span class="sub-label">සාරාංශයේ ප්‍රමාණය:</span>
+            <div class="segmented-control">
+              <button class="seg-btn" data-value="short">කෙටි</button>
+              <button class="seg-btn active" data-value="medium">මධ්‍යම</button>
+              <button class="seg-btn" data-value="long">දීර්ඝ</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="input-area">
+          <textarea id="tool-textarea-input" class="app-textarea" placeholder="මෙහි සිංහල ලිපිය හෝ වාක්‍යයන් ඇතුළත් කරන්න..."></textarea>
+          <span class="char-count" id="tool-char-count">0 / 10,000</span>
+        </div>
+
+        <div class="button-row">
+          <button id="btn-process-tool" class="btn-primary" disabled>ක්‍රියාත්මක කරන්න</button>
+          <button id="btn-clear-tool" class="btn-secondary">හිස් කරන්න</button>
+        </div>
+
+        <!-- Result Container -->
+        <div id="tool-result-container" class="result-container hidden">
+          <div class="result-header">
+            <h3>ප්‍රතිඵලය</h3>
+            <div class="result-actions">
+              <button id="btn-copy-result" class="btn-icon" title="පිටපත් කරන්න (Copy)">
+                <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12V1z"/></svg>
+              </button>
+            </div>
+          </div>
+          
+          <div id="tool-result-output" class="result-output-box"></div>
+          
+          <!-- Corrections specific panel -->
+          <div id="grammar-corrections-list" class="corrections-details-list hidden">
+            <!-- Dynamic items go here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. HISTORY PANEL -->
+      <section id="panel-history" class="tab-panel">
+        <div class="history-header">
+          <h2>පසුගිය ක්‍රියාකාරකම්</h2>
+          <button id="btn-clear-history" class="btn-link">සියල්ල මකන්න</button>
+        </div>
+        <div class="history-list" id="history-items-container">
+          <!-- Dynamic history cards go here -->
+          <div class="empty-state">
+            <p>පසුගිය ක්‍රියාකාරකම් කිසිවක් නැත.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. SETTINGS PANEL -->
+      <section id="panel-settings" class="tab-panel">
+        <h2>සැකසුම් (Settings)</h2>
+        
+        <div class="settings-form">
+          <div class="settings-group">
+            <label for="input-api-host" class="field-label">API Base URL</label>
+            <div class="api-input-row">
+              <input type="text" id="input-api-host" class="app-input" placeholder="http://localhost:8000/api/v1">
+              <button id="btn-test-connection" class="btn-secondary">Test</button>
+            </div>
+            <p class="field-help">දේශීයව ක්‍රියාත්මක වන SinAI backend ලිපිනය</p>
+          </div>
+
+          <div class="settings-group">
+            <label for="select-default-tone" class="field-label">පෙරනිමි ශෛලිය (Default Tone)</label>
+            <select id="select-default-tone" class="app-select">
+              <option value="formal">Formal (නිල)</option>
+              <option value="journalistic">Journalistic (ප්‍රවෘත්ති)</option>
+              <option value="casual">Casual (සරල)</option>
+            </select>
+          </div>
+
+          <div class="settings-group">
+            <label for="select-default-length" class="field-label">පෙරනිමි සාරාංශ ප්‍රමාණය (Default Summary Length)</label>
+            <select id="select-default-length" class="app-select">
+              <option value="short">Short (කෙටි)</option>
+              <option value="medium">Medium (මධ්‍යම)</option>
+              <option value="long">Long (දීර්ඝ)</option>
+            </select>
+          </div>
+
+          <div class="settings-group">
+            <label for="input-default-headlines" class="field-label">පෙරනිමි සිරස්තල ගණන (Default Headline Count)</label>
+            <input type="number" id="input-default-headlines" class="app-input" min="1" max="10" value="5">
+          </div>
+
+          <button id="btn-save-settings" class="btn-primary w-full">සැකසුම් සුරකින්න</button>
+          
+          <div class="app-version">
+            <p>SinAI Extension v1.0.0</p>
+            <p>© 2026 SinhalaJournal LLM Project</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Navigation Bar -->
+    <nav class="app-navbar">
+      <button class="nav-item active" data-target="panel-dashboard">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="nav-item" data-target="panel-tools">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M7.5 5.6L5 7c.7-1.3 2-2.2 3.5-2.4m7 0c1.5.2 2.8 1.1 3.5 2.4l-2.5-1.4M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m0 4a6 6 0 0 1 6 6c0 1.5-.5 2.8-1.5 3.8l-1.4-1.4c.6-.6.9-1.5.9-2.4a4 4 0 0 0-4-4c-.9 0-1.8.3-2.4.9L8.2 7.5C9.2 6.5 10.5 6 12 6z"/></svg>
+        <span>Tools</span>
+      </button>
+      <button class="nav-item" data-target="panel-history">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 0 1 7-7 7 7 0 0 1 7 7 7 7 0 0 1-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 9-9 9 9 0 0 0-9-9zm-1 5v5l4.28 2.53.85-1.07-3.63-2.2V8h-1.5z"/></svg>
+        <span>History</span>
+      </button>
+      <button class="nav-item" data-target="panel-settings">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
