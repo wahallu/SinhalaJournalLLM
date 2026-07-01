@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent: #C1121F;
+  --color-accent-hover: #9E0F19;
+  --font-sans: 'Satoshi', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: #111827;
+  background: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Global font-size bump */
+p, span, div, li, td, th, label, input, select, textarea, button {
+  font-size: inherit;
+}
+
+h1 { font-size: 1.25rem; font-weight: 600; }
+h2 { font-size: 1.1rem;  font-weight: 600; }
+h3 { font-size: 1rem;    font-weight: 500; }
+
+input, select, textarea {
+  font-size: 0.9375rem; /* 15px */
+}
+
+/* Subtle scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+textarea { resize: vertical; }
+
+@keyframes subtle-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.animate-subtle-pulse {
+  animation: subtle-pulse 1.5s ease-in-out infinite;
+}
