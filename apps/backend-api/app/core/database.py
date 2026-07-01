@@ -1,60 +1,29 @@
 """
-Async SQLAlchemy engine, session factory, and declarative Base.
-Uses asyncpg as the PostgreSQL driver.
+Supabase async client singleton.
+
+create_async_client() itself is a coroutine, so the client can't be built at
+import time. It's created lazily on first use rather than in a FastAPI
+lifespan handler — ASGI lifespan events aren't guaranteed to fire under
+every runner/test harness (e.g. httpx's ASGITransport doesn't trigger them
+by default), so a lifespan-only init would silently break in contexts that
+never run startup.
 """
 
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
-from sqlalchemy.orm import DeclarativeBase
+from supabase import AsyncClient, create_async_client
 
 from app.core.config import get_settings
 
 settings = get_settings()
 
-# ── Engine ──
-engine = create_async_engine(
-    settings.DATABASE_URL,
-    echo=settings.is_development,
-    pool_size=5,
-    max_overflow=10,
-)
-
-# ── Session factory ──
-async_session = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
+_client: AsyncClient | None = None
 
 
-# ── Declarative Base ──
-class Base(DeclarativeBase):
-    """Base class for all ORM models."""
-    pass
-
-
-# ── Dependency ──
-async def get_db():
-    """FastAPI dependency that yields an async DB session."""
-    async with async_session() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-
-
-# ── Startup helper ──
-async def init_db():
-    """Create all tables. Called once during app startup."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-
-async def close_db():
-    """Dispose the engine connection pool. Called during app shutdown."""
-    await engine.dispose()
+async def get_supabase() -> AsyncClient:
+    """Return the Supabase async client, creating it on first call."""
+    global _client
+    if _client is None:
+        _client = await create_async_client(
+            settings.PUBLIC_SUPABASE_URL,
+            settings.SUPABASE_SERVICE_ROLE_KEY,
+        )
+    return _client

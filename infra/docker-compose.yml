@@ -5,26 +5,15 @@
 # apps/ (see infra/README.md) — that keeps apps independently deployable,
 # which this file intentionally does not need to preserve for local dev.
 #
+# No local Postgres here — backend-api talks to Supabase over its HTTP API
+# (PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in apps/backend-api/.env),
+# the same way in local dev and production. Point those at a dev/staging
+# Supabase project, ideally, not the one production uses.
+#
 # Usage (from repo root):
 #   docker compose -f infra/docker-compose.yml up
 
 services:
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-sinhalajournal}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sinhalajournal}
-      POSTGRES_DB: ${POSTGRES_DB:-sinhalajournalllm}
-    ports:
-      - "5432:5432"
-    volumes:
-      - db-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sinhalajournal}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   backend-api:
     image: python:3.12-slim
     working_dir: /app
@@ -35,9 +24,3 @@ services:
       - ../apps/backend-api/.env
     ports:
       - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-
-volumes:
-  db-data:

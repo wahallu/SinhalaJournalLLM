@@ -5,9 +5,6 @@ Currently uses rule-based dummy corrections.
 Will be replaced with fine-tuned SinLlama model inference.
 """
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.grammar import GrammarCorrection
 from app.repositories.grammar_repository import save_correction
 from app.schemas.grammar import (
     CorrectionDetail,
@@ -59,32 +56,29 @@ def _apply_rules(text: str) -> tuple[str, list[CorrectionDetail]]:
     return corrected, corrections
 
 
-async def check_grammar(text: str, db: AsyncSession) -> GrammarCheckResponse:
+async def check_grammar(text: str) -> GrammarCheckResponse:
     """
     Check Sinhala text for grammar errors, persist the result, and return it.
 
     Args:
         text: Raw Sinhala text from the user.
-        db:   Async database session.
 
     Returns:
         GrammarCheckResponse with corrected text and correction details.
     """
     corrected_text, corrections = _apply_rules(text)
 
-    # Persist to database
-    record = GrammarCorrection(
-        original_text=text,
-        corrected_text=corrected_text,
-        corrections=[c.model_dump() for c in corrections],
-        correction_count=len(corrections),
-    )
-    saved = await save_correction(db, record)
+    saved = await save_correction({
+        "original_text": text,
+        "corrected_text": corrected_text,
+        "corrections": [c.model_dump() for c in corrections],
+        "correction_count": len(corrections),
+    })
 
     return GrammarCheckResponse(
-        id=str(saved.id),
-        corrected=saved.corrected_text,
+        id=saved["id"],
+        corrected=saved["corrected_text"],
         corrections=corrections,
-        correction_count=saved.correction_count,
-        created_at=saved.created_at,
+        correction_count=saved["correction_count"],
+        created_at=saved["created_at"],
     )

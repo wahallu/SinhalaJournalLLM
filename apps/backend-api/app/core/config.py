@@ -6,6 +6,7 @@ Uses pydantic-settings for type-safe config with .env file support.
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolve .env from the backend-api app root (apps/backend-api/.env),
@@ -16,8 +17,16 @@ _ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 class Settings(BaseSettings):
     """Global application settings, auto-loaded from .env file."""
 
-    # ── Database ──
-    DATABASE_URL: str
+    # ── Supabase ──
+    PUBLIC_SUPABASE_URL: str
+    # Server-only secret: bypasses Row Level Security. Must never reach a
+    # client app (web-app, chrome-extension, etc.).
+    SUPABASE_SERVICE_ROLE_KEY: str
+
+    @field_validator("PUBLIC_SUPABASE_URL")
+    @classmethod
+    def _strip_trailing_slash(cls, v: str) -> str:
+        return v.rstrip("/")
 
     # ── App ──
     APP_ENV: str = "development"
