@@ -5,10 +5,21 @@
 
 // ── Lifecycle Hook: Document Opened ──
 function onOpen(e) {
-  DocumentApp.getUi()
-    .createAddonMenu()
-    .addItem("Open Assistant", "showSidebar")
-    .addToUi();
+  try {
+    // 1. Top-level menu (appears next to "Extensions" on the main toolbar - works immediately)
+    DocumentApp.getUi()
+      .createMenu("SinAI Assistant")
+      .addItem("Open Assistant", "showSidebar")
+      .addToUi();
+
+    // 2. Add-on menu (appears under Extensions -> Add-ons)
+    DocumentApp.getUi()
+      .createAddonMenu()
+      .addItem("Open Assistant", "showSidebar")
+      .addToUi();
+  } catch (err) {
+    Logger.log("UI context not available (normal in editor run): " + err.message);
+  }
 }
 
 // ── Render Sidebar ──
@@ -122,7 +133,7 @@ function insertTextAtCursor(text) {
 // ── Server-Side API Proxy (Bypasses CORS restrictions) ──
 function callApiProxy(endpoint, body, method) {
   var userProperties = PropertiesService.getUserProperties();
-  var apiHost = userProperties.getProperty("apiHost") || "http://obc6jy896hk9b9u1fdzxkwvj.62.171.163.6.sslip.io/api/v1";
+  var apiHost = userProperties.getProperty("apiHost") || "https://sinhalajournalllm.onrender.com/api/v1";
   
   // Clean up trailing slash
   if (apiHost.substring(apiHost.length - 1) === "/") {
@@ -130,14 +141,20 @@ function callApiProxy(endpoint, body, method) {
   }
   
   var url = apiHost + endpoint;
+  if (endpoint === "/health") {
+    url = apiHost.replace(/\/api\/v1/i, "") + "/health";
+  }
   var options = {
     method: method || "POST",
-    contentType: "application/json",
     muteHttpExceptions: true // Allow us to catch 400/500 responses as JSON instead of throwing GAS runtime errors
   };
   
-  if (body && method !== "GET") {
-    options.payload = JSON.stringify(body);
+  var requestMethod = (method || "POST").toUpperCase();
+  if (requestMethod !== "GET") {
+    options.contentType = "application/json";
+    if (body) {
+      options.payload = JSON.stringify(body);
+    }
   }
   
   try {
@@ -153,10 +170,10 @@ function callApiProxy(endpoint, body, method) {
         errObj = JSON.parse(responseText);
       } catch (e) {}
       var errorMsg = errObj.detail || errObj.message || ("HTTP " + responseCode);
-      return { success: false, error: errorMsg };
+      return { success: false, error: errorMsg + " (URL: " + url + ")" };
     }
   } catch (e) {
-    return { success: false, error: e.toString() };
+    return { success: false, error: e.toString() + " (URL: " + url + ")" };
   }
 }
 
@@ -170,7 +187,7 @@ function loadSettings() {
   var userProperties = PropertiesService.getUserProperties();
   var props = userProperties.getProperties();
   return {
-    apiHost: props.apiHost || "http://obc6jy896hk9b9u1fdzxkwvj.62.171.163.6.sslip.io/api/v1",
+    apiHost: props.apiHost || "https://sinhalajournalllm.onrender.com/api/v1",
     defaultTone: props.defaultTone || "formal",
     defaultLength: props.defaultLength || "medium",
     defaultHeadlineCount: parseInt(props.defaultHeadlineCount || "5", 10)

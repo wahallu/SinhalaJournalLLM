@@ -34,7 +34,7 @@
     // ── Client State ──
     let activeSelection = "";
     let activeSettings = {
-      apiHost: "http://obc6jy896hk9b9u1fdzxkwvj.62.171.163.6.sslip.io/api/v1",
+      apiHost: "https://sinhalajournalllm.onrender.com/api/v1",
       defaultTone: "formal",
       defaultLength: "medium",
       defaultHeadlineCount: 5
@@ -119,17 +119,31 @@
           if (response && response.success) {
             apiStatusDot.className = "status-dot success";
             apiStatusText.textContent = "Connected";
+            apiStatusDot.parentElement.setAttribute("title", "Connected to Render Backend");
           } else {
             apiStatusDot.className = "status-dot error";
             apiStatusText.textContent = "Offline";
+            const errMsg = response ? response.error : "Unknown connection error";
+            apiStatusDot.parentElement.setAttribute("title", "Offline: " + errMsg);
+            alert("Health Check failed: " + errMsg);
           }
         })
-        .withFailureHandler(() => {
+        .withFailureHandler((err) => {
           apiStatusDot.className = "status-dot error";
           apiStatusText.textContent = "Offline";
+          apiStatusDot.parentElement.setAttribute("title", "Apps Script error: " + err);
+          alert("Apps Script connection error: " + err);
         })
         .callApiProxy("/health", null, "GET");
     }
+
+    // Click on status badge to display connection error details
+    apiStatusDot.parentElement.addEventListener("click", () => {
+      const statusTitle = apiStatusDot.parentElement.getAttribute("title");
+      if (statusTitle) {
+        alert(statusTitle);
+      }
+    });
 
     // ── Document Selection Handling ──
     btnRefreshSelection.addEventListener("click", refreshSelection);
@@ -349,7 +363,7 @@
     function setupSettingsEvents() {
       btnSaveSettings.addEventListener("click", () => {
         const settings = {
-          apiHost: inputApiHost.value.trim() || "http://obc6jy896hk9b9u1fdzxkwvj.62.171.163.6.sslip.io/api/v1",
+          apiHost: inputApiHost.value.trim() || "https://sinhalajournalllm.onrender.com/api/v1",
           defaultTone: selectDefaultTone.value,
           defaultLength: selectDefaultLength.value,
           defaultHeadlineCount: inputDefaultHeadlines.value

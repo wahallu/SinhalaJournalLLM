@@ -79,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
       chrome.runtime.sendMessage(message, callback);
     } else {
       // Fallback: Direct API request if previewed as standard page
-      const apiHost = extensionSettings.apiHost || "http://localhost:8000/api/v1";
+      const apiHost = extensionSettings.apiHost || "https://sinhalajournalllm.onrender.com/api/v1";
       const url = `${apiHost}${message.endpoint}`;
       
       fetch(url, {
@@ -143,7 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── State Variables ──
   let extensionSettings = {
-    apiHost: "http://localhost:8000/api/v1",
+    apiHost: "https://sinhalajournalllm.onrender.com/api/v1",
     inlineEnabled: true,
     defaultTone: "formal",
     defaultLength: "medium",
@@ -228,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function setupSettingsEvents() {
     btnSaveSettings.addEventListener("click", () => {
       const updated = {
-        apiHost: inputApiHost.value.trim() || "http://localhost:8000/api/v1",
+        apiHost: inputApiHost.value.trim() || "https://sinhalajournalllm.onrender.com/api/v1",
         defaultTone: selectDefaultTone.value,
         defaultLength: selectDefaultLength.value,
         defaultHeadlineCount: parseInt(inputDefaultHeadlines.value, 10) || 5

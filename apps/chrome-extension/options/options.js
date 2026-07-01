@@ -4,7 +4,7 @@
  */
 
 const DEFAULT_SETTINGS = {
-  apiHost: "http://localhost:8000/api/v1",
+  apiHost: "https://sinhalajournalllm.onrender.com/api/v1",
   inlineEnabled: true,
   defaultTone: "formal",
   defaultLength: "medium",

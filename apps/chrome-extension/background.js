@@ -4,16 +4,24 @@
  */
 
 const DEFAULT_SETTINGS = {
-  apiHost: "https://sinhalajournalllm.onrender.com/api/v1" | "http://localhost:8000/api/v1",
+  apiHost: "https://sinhalajournalllm.onrender.com/api/v1",
   inlineEnabled: true,
   defaultTone: "formal",
   defaultLength: "medium",
   defaultHeadlineCount: 5
 };
 
+// Run migration check on startup to redirect old localhost/sslip.io hosts to Render
+chrome.storage.local.get(["apiHost"], (items) => {
+  const oldHostPattern = /localhost:8000|sslip\.io/;
+  if (items.apiHost && oldHostPattern.test(items.apiHost)) {
+    chrome.storage.local.set({ apiHost: DEFAULT_SETTINGS.apiHost });
+  }
+});
+
 // ── Lifecycle Event: Installation ──
 chrome.runtime.onInstalled.addListener(() => {
-  // 1. Initialize default settings
+  // 1. Initialize default settings & migrate old ones
   chrome.storage.local.get(Object.keys(DEFAULT_SETTINGS), (items) => {
     const updates = {};
     for (const key of Object.keys(DEFAULT_SETTINGS)) {
@@ -21,6 +29,13 @@ chrome.runtime.onInstalled.addListener(() => {
         updates[key] = DEFAULT_SETTINGS[key];
       }
     }
+    
+    // Auto-migrate if pointing to old/dead hosts
+    const oldHostPattern = /localhost:8000|sslip\.io/;
+    if (items.apiHost && oldHostPattern.test(items.apiHost)) {
+      updates.apiHost = DEFAULT_SETTINGS.apiHost;
+    }
+    
     if (Object.keys(updates).length > 0) {
       chrome.storage.local.set(updates);
     }
@@ -83,6 +98,15 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 
 // ── Secure API Fetch Proxy & History Tracker ──
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "preWarm") {
+    chrome.storage.local.get(["apiHost"], (settings) => {
+      let apiHost = settings.apiHost || DEFAULT_SETTINGS.apiHost;
+      const healthUrl = apiHost.replace(/\/api\/v1\/?$/, "") + "/health";
+      fetch(healthUrl, { method: "GET" }).catch(() => {});
+    });
+    return false; // Sync message channel close
+  }
+
   if (message.action === "callApi") {
     const { endpoint, body, method } = message;
     

@@ -27,6 +27,9 @@
     if (items.defaultHeadlineCount) apiSettings.defaultHeadlineCount = items.defaultHeadlineCount;
   });
 
+  // Pre-warm the backend server (wakes up Render free tier if sleeping)
+  chrome.runtime.sendMessage({ action: "preWarm" });
+
   // Listen for storage changes
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.inlineEnabled) inlineEnabled = changes.inlineEnabled.newValue;
@@ -152,6 +155,9 @@
         activeSelectionText = text;
         activeSelectionRange = selection.getRangeAt(0).cloneRange();
         activeTargetElement = document.activeElement;
+
+        // Trigger a pre-warm ping when Sinhala is selected (wakes up Render before clicking process)
+        chrome.runtime.sendMessage({ action: "preWarm" });
 
         showBadgeAtSelection(activeSelectionRange);
       } else {
