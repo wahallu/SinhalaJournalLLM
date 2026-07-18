@@ -2,7 +2,7 @@
 Canonical prompt templates and style/length definitions.
 
 These mirror the Alpaca-style templates used to fine-tune the SinLlama task
-adapters (see SinAI-Training/work/sinllama/serve_sinllama.py). Keeping them
+adapters (see SinAI-Training/work/sinllama/serve_sinai.py). Keeping them
 byte-identical to the training distribution matters: the model server accepts
 either raw text (it wraps it itself) or a fully-formed prompt containing
 "### Instruction:" (passed through untouched). We send fully-formed prompts
@@ -10,7 +10,7 @@ when we need knobs the server doesn't expose — e.g. summary length.
 """
 
 # ── Style rewriter ──
-# The five styles the style adapter (style_sinllama_v02) was trained on.
+# The five styles the style adapter (style_sinllama_v07) was trained on.
 # Keys are the API contract; every client (web app, extension, docs add-on)
 # must send one of these.
 STYLE_INSTRUCTIONS: dict[str, str] = {
@@ -73,7 +73,7 @@ def resolve_style(tone: str | None) -> str:
 
 
 # ── Summarizer lengths ──
-# serve_sinllama.py hardcodes a ~10% word target. Length control happens on
+# serve_sinai.py hardcodes a ~10% word target. Length control happens on
 # our side by sending a fully-formed prompt with a different target.
 SUMMARY_LENGTHS: dict[str, dict] = {
     "short": {"ratio": 0.08, "min_words": 15, "label_en": "Short", "label_si": "කෙටි"},

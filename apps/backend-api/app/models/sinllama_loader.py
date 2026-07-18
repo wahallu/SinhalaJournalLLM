@@ -2,8 +2,8 @@
 HTTP client for the SinLlama inference server.
 
 The model itself lives in the research environment
-(SinAI-Training/work/sinllama/serve_sinllama.py) — a FastAPI app that loads
-SinLLaMA-merged-base on GPU and exposes:
+(SinAI-Training/work/sinllama/serve_sinai.py) — a FastAPI app that loads
+SinLLaMA-merged-base plus all four task adapters on GPU and exposes:
 
     POST /generate  {"prompt": str, "task": "grammar|headline|summarizer|style",
                      "style": "formal|sports|youth|editorial|feature" | null}

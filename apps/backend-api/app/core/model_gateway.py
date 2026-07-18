@@ -136,7 +136,7 @@ async def _via_sinllama(
     variation_hint: str | None,
 ) -> tuple[str, dict]:
     """
-    Build the request per the serve_sinllama.py contract. Raw text lets the
+    Build the request per the serve_sinai.py contract. Raw text lets the
     server apply its own (identical) template; a fully-formed prompt is sent
     when we need knobs the server doesn't expose.
     """

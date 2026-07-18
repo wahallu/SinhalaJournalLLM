@@ -5,7 +5,7 @@ Model storage and training entry points for the deployed product.
 **The actual training pipeline lives in the separate SinAI-Training repo** —
 `work/sinllama/` has the download/merge scripts, per-task LoRA training
 (`scripts/train_*.py`), evaluation (`scripts/test_*.py`), and the inference
-server (`serve_sinllama.py`) that `apps/backend-api` talks to.
+server (`serve_sinai.py`) that `apps/backend-api` talks to.
 
 Layout here:
 

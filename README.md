@@ -32,7 +32,7 @@ Training code, datasets, and the inference server live in the separate **SinAI-T
 ```
 web-app ─────┐
 chrome ext ──┤                        ┌─→ SinLlama inference server (GPU)
-docs addon ──┴─→ backend-api ─→ model │     serve_sinllama.py  POST /generate
+docs addon ──┴─→ backend-api ─→ model │     serve_sinai.py  POST /generate
                      │        gateway ├─→ OpenRouter (hosted fallback)
                      ↓                └─→ mock provider (offline, rule-based)
                  Supabase
@@ -81,7 +81,7 @@ Tests (fully offline — fake Supabase + mock provider): `python -m pytest tests
 From the SinAI-Training repo:
 
 ```bash
-uvicorn work.sinllama.serve_sinllama:app --host 0.0.0.0 --port 8001
+uvicorn work.sinllama.serve_sinai:app --host 0.0.0.0 --port 8001
 ```
 
 Then in `apps/backend-api/.env`: `MODEL_PROVIDER=sinllama`, `SINLLAMA_API_URL=http://<gpu-host>:8001`.
