@@ -313,8 +313,10 @@
         <span class="options-label">ශෛලිය/ස්වරය:</span>
         <select class="inline-select" id="sinai-inline-select-tone">
           <option value="formal" ${toolOptionsState.tone === "formal" ? "selected" : ""}>Formal (නිල)</option>
-          <option value="journalistic" ${toolOptionsState.tone === "journalistic" ? "selected" : ""}>News (මාධ්‍ය)</option>
-          <option value="casual" ${toolOptionsState.tone === "casual" ? "selected" : ""}>Casual (සරල)</option>
+          <option value="sports" ${toolOptionsState.tone === "sports" ? "selected" : ""}>Sports (ක්‍රීඩා)</option>
+          <option value="youth" ${toolOptionsState.tone === "youth" ? "selected" : ""}>Youth (තරුණ)</option>
+          <option value="editorial" ${toolOptionsState.tone === "editorial" ? "selected" : ""}>Editorial (සංස්කාරකීය)</option>
+          <option value="feature" ${toolOptionsState.tone === "feature" ? "selected" : ""}>Feature (විශේෂාංග)</option>
         </select>
       `;
       optionsPanel.querySelector("#sinai-inline-select-tone").addEventListener("change", (e) => {

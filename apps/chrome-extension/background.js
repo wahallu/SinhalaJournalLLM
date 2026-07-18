@@ -11,11 +11,28 @@ const DEFAULT_SETTINGS = {
   defaultHeadlineCount: 5
 };
 
-// Run migration check on startup to redirect old localhost/sslip.io hosts to Render
-chrome.storage.local.get(["apiHost"], (items) => {
+// Legacy tone values from before the option lists were aligned with the
+// styles the SinLlama adapter was actually trained on.
+const LEGACY_TONE_MAP = {
+  journalistic: "formal",
+  casual: "youth",
+  news: "formal",
+  opinion: "editorial"
+};
+
+// Run migration check on startup to redirect old localhost/sslip.io hosts
+// to Render and remap legacy tone values.
+chrome.storage.local.get(["apiHost", "defaultTone"], (items) => {
+  const updates = {};
   const oldHostPattern = /localhost:8000|sslip\.io/;
   if (items.apiHost && oldHostPattern.test(items.apiHost)) {
-    chrome.storage.local.set({ apiHost: DEFAULT_SETTINGS.apiHost });
+    updates.apiHost = DEFAULT_SETTINGS.apiHost;
+  }
+  if (items.defaultTone && LEGACY_TONE_MAP[items.defaultTone]) {
+    updates.defaultTone = LEGACY_TONE_MAP[items.defaultTone];
+  }
+  if (Object.keys(updates).length > 0) {
+    chrome.storage.local.set(updates);
   }
 });
 
@@ -35,7 +52,12 @@ chrome.runtime.onInstalled.addListener(() => {
     if (items.apiHost && oldHostPattern.test(items.apiHost)) {
       updates.apiHost = DEFAULT_SETTINGS.apiHost;
     }
-    
+
+    // Remap legacy tone values to trained styles
+    if (items.defaultTone && LEGACY_TONE_MAP[items.defaultTone]) {
+      updates.defaultTone = LEGACY_TONE_MAP[items.defaultTone];
+    }
+
     if (Object.keys(updates).length > 0) {
       chrome.storage.local.set(updates);
     }

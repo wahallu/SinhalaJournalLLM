@@ -396,6 +396,7 @@ input:checked + .slider:before {
 
 .segmented-control {
   display: flex;
+  flex-wrap: wrap;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border);
   border-radius: 8px;
