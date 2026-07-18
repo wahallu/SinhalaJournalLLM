@@ -3,7 +3,7 @@
  * Base URL defaults to the local FastAPI server on port 8000.
  */
 
-const API_BASE = 'https://sinai.onrender.com/api/v1';
+const API_BASE = 'https://sinhalajournalllm.onrender.com/api/v1';
 
 async function request(endpoint, body = null, method = 'POST') {
   const options = {
