@@ -31,6 +31,30 @@ class Settings(BaseSettings):
     # ── App ──
     APP_ENV: str = "development"
 
+    # ── Model gateway ──
+    # Primary inference provider:
+    #   sinllama   → the research team's SinLlama inference server
+    #                (SinAI-Training/work/sinllama/serve_sinllama.py)
+    #   openrouter → hosted LLM stand-in for when the GPU server is offline
+    #   mock       → deterministic rule-based output, no network needed
+    MODEL_PROVIDER: str = "mock"
+    # When true, a failing provider falls through the chain
+    # sinllama → openrouter → mock instead of surfacing a 502.
+    MODEL_FALLBACK: bool = True
+
+    # SinLlama inference server (serve_sinllama.py) base URL.
+    SINLLAMA_API_URL: str = "http://localhost:8001"
+    SINLLAMA_TIMEOUT_SECONDS: float = 120.0
+
+    @field_validator("SINLLAMA_API_URL")
+    @classmethod
+    def _strip_model_url_slash(cls, v: str) -> str:
+        return v.rstrip("/")
+
+    # OpenRouter fallback (optional — provider is skipped when key is empty).
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "openrouter/free"
+
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173"
 
