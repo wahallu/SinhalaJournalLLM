@@ -1,17 +1,17 @@
 /**
- * Frontend API service.
- * All backend calls go through this module.
+ * Frontend API service — all backend calls go through this module.
+ * Base URL defaults to the local FastAPI server on port 8000.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const API_BASE = 'https://sinai.onrender.com/api/v1';
 
-async function request(endpoint, body, method = 'POST') {
+async function request(endpoint, body = null, method = 'POST') {
   const options = {
     method,
     headers: { 'Content-Type': 'application/json' },
   };
 
-  if (body && method !== 'GET') {
+  if (body !== null && method !== 'GET') {
     options.body = JSON.stringify(body);
   }
 
@@ -19,50 +19,65 @@ async function request(endpoint, body, method = 'POST') {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    const detail = typeof err.detail === 'string' ? err.detail : err.message;
-    throw new Error(detail || `Request failed (${res.status})`);
+    throw new Error(err.detail || err.message || `Request failed (${res.status})`);
   }
 
   return res.json();
 }
 
-// ── Tools ──
-
+// ── Grammar ──
 export function checkGrammar(text) {
   return request('/grammar/check', { text });
 }
-
-export function generateHeadlines(text, count = 5) {
-  return request('/headlines/generate', { text, count });
-}
-
-export function rewriteStyle(text, tone) {
-  return request('/rewrite', { text, tone });
-}
-
-export function summarizeNews(text, length) {
-  return request('/summarize', { text, length });
-}
-
-// ── History ──
 
 export function getGrammarHistory(page = 1, pageSize = 20) {
   return request(`/grammar/history?page=${page}&page_size=${pageSize}`, null, 'GET');
 }
 
-export function getUnifiedHistory(limit = 50) {
-  return request(`/history?limit=${limit}`, null, 'GET');
+// ── Headlines ──
+// Backend only accepts { text, count } — style/maxLength aren't supported
+// server-side yet, so they're accepted here but not sent.
+export function generateHeadlines(text, options = {}) {
+  const {
+    count = 5,
+    numCandidates,
+  } = typeof options === 'object' && !Array.isArray(options) ? options : { count: options };
+
+  return request('/headlines/generate', {
+    text,
+    count: numCandidates ?? count,
+  });
 }
 
-// ── Capabilities / status ──
-
-export function getMeta() {
-  return request('/meta', null, 'GET');
+export function getHeadlineHistory(page = 1, pageSize = 20) {
+  return request(`/headlines/history?page=${page}&page_size=${pageSize}`, null, 'GET');
 }
 
-export async function getModelHealth() {
-  const base = API_BASE.replace(/\/api\/v1\/?$/, '');
-  const res = await fetch(`${base}/health/model`);
-  if (!res.ok) throw new Error(`Health check failed (${res.status})`);
-  return res.json();
+// ── Style Rewriter ──
+export function rewriteStyle(text, tone = 'formal') {
+  return request('/rewrite', { text, tone });
+}
+
+export function getStyleHistory(page = 1, pageSize = 20) {
+  return request(`/rewrite/history?page=${page}&page_size=${pageSize}`, null, 'GET');
+}
+
+// ── Summarizer ──
+export function summarizeNews(text, length = 'medium') {
+  return request('/summarize', { text, length });
+}
+
+export function getSummarizeHistory(page = 1, pageSize = 20) {
+  return request(`/summarize/history?page=${page}&page_size=${pageSize}`, null, 'GET');
+}
+
+// ── SinLLaMA Playground ──
+// Base model only (no task adapter) — proxied through the backend so the
+// inference server's address is never sent to the browser.
+export function chatSinLlama(prompt) {
+  return request('/sinllama/chat', { prompt });
+}
+
+export function getSinLlamaHealth() {
+  return request('/sinllama/health', null, 'GET');
 }

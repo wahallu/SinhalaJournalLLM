@@ -252,8 +252,9 @@ async def gateway_status() -> dict[str, Any]:
         "primary": settings.MODEL_PROVIDER,
         "fallback_enabled": settings.MODEL_FALLBACK,
         "providers": {
+            # No "url" field — the inference server's address is a backend
+            # implementation detail and must never reach a client.
             "sinllama": {
-                "url": settings.SINLLAMA_API_URL,
                 "available": sinllama_ok,
             },
             "openrouter": {

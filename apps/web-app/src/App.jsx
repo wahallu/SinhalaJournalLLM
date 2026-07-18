@@ -3,14 +3,17 @@ import Sidebar from './components/Sidebar';
 import ToolHeader from './components/ToolHeader';
 import InputBox from './components/InputBox';
 import OutputPanel from './components/OutputPanel';
+import HeadlineOutputPanel from './components/HeadlineOutputPanel';
 import RightPanel from './components/RightPanel';
 import Dashboard from './components/Dashboard';
 import HistoryPage from './components/HistoryPage';
 import SettingsPage from './components/SettingsPage';
 import ProfilePage from './components/ProfilePage';
+import Plans from './components/Plans';
+import SinLLamaPage from './components/SinLLamaPage';
 import { useToolProcessor } from './hooks/useToolProcessor';
 import { checkGrammar, generateHeadlines, rewriteStyle, summarizeNews } from './services/api';
-import { saveToHistory } from './services/localHistory';
+import { saveToHistory } from './components/HistoryPage';
 
 const TOOL_CONFIG = {
   grammar: {
@@ -25,7 +28,7 @@ const TOOL_CONFIG = {
     description: 'Generate headline options from an article',
     placeholder: 'මෙහි ප්‍රවෘත්ති ලිපිය ඇතුළත් කරන්න…',
     actionLabel: 'Generate',
-    outputType: 'list',
+    outputType: 'headlines',
   },
   rewriter: {
     title: 'Style Rewriter',
@@ -43,7 +46,7 @@ const TOOL_CONFIG = {
   },
 };
 
-const TOOL_IDS = ['grammar', 'headlines', 'rewriter', 'summarizer'];
+const TOOL_IDS = ['grammar', 'headlines', 'rewriter', 'summarizer', 'plans', 'sinllama'];
 
 function App() {
   const [activeTool, setActiveTool] = useState('dashboard');
@@ -51,8 +54,10 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [settings, setSettings] = useState({
     tone: 'formal',
-    length: 'medium',
-    count: 5,
+    length: 'short',
+    count: 3,
+    headlineStyle: 'formal',
+    headlineMaxLength: 80,
   });
 
   const { input, setInput, output, loading, error, process, clear } = useToolProcessor();
@@ -79,7 +84,13 @@ function App() {
         wrappedProcess((text) => checkGrammar(text));
         break;
       case 'headlines':
-        wrappedProcess((text) => generateHeadlines(text, settings.count));
+        wrappedProcess((text) =>
+          generateHeadlines(text, {
+            style: settings.headlineStyle,
+            maxLength: settings.headlineMaxLength,
+            numCandidates: settings.count,
+          })
+        );
         break;
       case 'rewriter':
         wrappedProcess((text) => rewriteStyle(text, settings.tone));
@@ -98,11 +109,15 @@ function App() {
       case 'dashboard':
         return <Dashboard onSelectTool={handleSelectTool} />;
       case 'history':
-        return <HistoryPage onSelectTool={handleSelectTool} />;
+        return <HistoryPage onSelectTool={handleSelectTool} onBack={() => handleSelectTool('dashboard')} />;
       case 'settings':
-        return <SettingsPage />;
+        return <SettingsPage onBack={() => handleSelectTool('dashboard')} />;
       case 'profile':
-        return <ProfilePage />;
+        return <ProfilePage onBack={() => handleSelectTool('dashboard')} />;
+      case 'plans':
+        return <Plans />;
+      case 'sinllama':
+        return <SinLLamaPage />;
       default:
         if (!config) return null;
         return (
@@ -115,17 +130,18 @@ function App() {
               placeholder={config.placeholder}
               onSubmit={handleRun}
               disabled={loading}
+              activeTool={activeTool}
             />
 
-            <div className="flex items-center gap-3 mt-4">
+            <div className="flex items-center gap-3 mt-4 justify-end w-full">
               <button
                 id="btn-run"
                 onClick={handleRun}
                 disabled={loading || !input.trim()}
-                className="px-6 py-2.5 bg-accent text-white text-base font-medium rounded-lg
-                  hover:bg-accent-hover active:scale-[0.98]
+                className={`px-8 py-2 text-white text-[15px] font-semibold rounded-full shadow-sm
+                  ${getButtonColor(activeTool)} active:scale-[0.98]
                   disabled:opacity-40 disabled:cursor-not-allowed
-                  transition-all duration-100 cursor-pointer"
+                  transition-all duration-100 cursor-pointer`}
               >
                 {config.actionLabel}
               </button>
@@ -133,29 +149,66 @@ function App() {
                 id="btn-clear"
                 onClick={clear}
                 disabled={loading}
-                className="px-5 py-2.5 text-base font-medium text-gray-400 rounded-lg
-                  hover:text-gray-600 hover:bg-gray-50
+                className={`px-6 py-2 text-[15px] font-semibold text-white rounded-full shadow-sm
+                  ${getButtonColor(activeTool)} active:scale-[0.98]
                   disabled:opacity-40 disabled:cursor-not-allowed
-                  transition-colors duration-100 cursor-pointer"
+                  transition-all duration-100 cursor-pointer`}
               >
                 Clear
               </button>
-              <span className="text-sm text-gray-300 ml-auto hidden sm:inline">⌘ Enter</span>
             </div>
 
-            <OutputPanel
-              output={output}
-              loading={loading}
-              error={error}
-              type={config.outputType}
-            />
+            {/* Use dedicated panel for headlines, generic for others */}
+            {activeTool === 'headlines' ? (
+              <HeadlineOutputPanel
+                output={output}
+                loading={loading}
+                error={error}
+                articleText={input}
+              />
+            ) : (
+              <OutputPanel
+                output={output}
+                loading={loading}
+                error={error}
+                type={config.outputType}
+              />
+            )}
           </>
         );
     }
   };
 
+  const getBgColor = () => {
+    return 'bg-[#cd191a]';
+  };
+
+  const getButtonColor = (tool) => {
+    switch (tool) {
+      case 'dashboard': return 'bg-[#cd191a] hover:bg-[#cd191a]';
+      case 'grammar': return 'bg-[#cd191a] hover:bg-[#cd191a]';
+      case 'headlines': return 'bg-[#cd191a] hover:bg-[#cd191a]';
+      case 'rewriter': return 'bg-[#cd191a] hover:bg-[#cd191a]';
+      case 'summarizer': return 'bg-[#cd191a] hover:bg-[#cd191a]';
+      case 'history': return 'bg-[#cd191a] hover:bg-[#cd191a]';
+      case 'settings': return 'bg-[#cd191a] hover:bg-[#cd191a]';
+      case 'profile': return 'bg-[#cd191a] hover:bg-[#cd191a]';
+      case 'plans': return 'bg-[#cd191a] hover:bg-[#cd191a]';
+      default: return 'bg-[#cd191a] hover:bg-[#cd191a]';
+    }
+  };
+
   return (
-    <div className="h-full flex">
+    <div className={`relative h-full flex ${getBgColor()} transition-colors duration-500 overflow-hidden`}>
+      <div
+        className="pointer-events-none absolute inset-0 z-0 bg-center bg-repeat"
+        style={{
+          backgroundImage: "url('/t.svg')",
+          backgroundSize: '2840px auto',
+          opacity: 0.18,
+        }}
+      />
+
       <Sidebar
         activeTool={activeTool}
         onSelectTool={handleSelectTool}
@@ -165,23 +218,31 @@ function App() {
         onCollapse={() => setSidebarCollapsed((v) => !v)}
       />
 
-      <main className="flex-1 min-w-0 flex">
-        <div className="flex-1 min-w-0 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-6 py-8 lg:pl-8">
-            {renderContent()}
-          </div>
-        </div>
+      {/* Desktop sidebar spacer — gives the fixed sidebar its flex-row space on lg+ */}
+      <div className={`
+        hidden lg:block shrink-0 transition-all duration-200
+        ${sidebarCollapsed ? 'w-20' : 'w-[20rem]'}
+      `} />
 
-        {isTool && (
-          <RightPanel
-            activeTool={activeTool}
-            settings={settings}
-            onSettingsChange={setSettings}
-            output={output}
-            loading={loading}
-            input={input}
-          />
-        )}
+      <main className="relative z-10 flex-1 flex flex-col bg-[#f8fafc] rounded-[2rem] lg:rounded-tl-[3rem] lg:rounded-tr-none lg:rounded-bl-none lg:rounded-br-none my-2 mx-2 sm:my-4 sm:mr-4 sm:ml-0 shadow-2xl overflow-hidden">
+        <div className="flex-1 flex min-w-0 overflow-y-auto">
+          <div className="flex-1 min-w-0 flex justify-center">
+            <div className="w-full max-w-4xl px-4 pt-16 pb-6 lg:pt-8 sm:px-8 sm:py-8">
+              {renderContent()}
+            </div>
+          </div>
+
+          {isTool && (
+            <RightPanel
+              activeTool={activeTool}
+              settings={settings}
+              onSettingsChange={setSettings}
+              output={output}
+              loading={loading}
+              input={input}
+            />
+          )}
+        </div>
       </main>
     </div>
   );

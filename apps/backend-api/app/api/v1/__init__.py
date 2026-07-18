@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from app.api.v1.grammar import router as grammar_router
 from app.api.v1.headline import router as headline_router
 from app.api.v1.meta import router as meta_router
+from app.api.v1.sinllama import router as sinllama_router
 from app.api.v1.style import router as style_router
 from app.api.v1.summarizer import router as summarizer_router
 
@@ -16,4 +17,5 @@ router.include_router(grammar_router)
 router.include_router(headline_router)
 router.include_router(style_router)
 router.include_router(summarizer_router)
+router.include_router(sinllama_router)
 router.include_router(meta_router)
