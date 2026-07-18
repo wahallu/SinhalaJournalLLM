@@ -1,16 +1,21 @@
 import { AlertCircle, CheckCircle2, Lightbulb, BookOpen } from 'lucide-react';
 
 // ─── Settings Panels ─────────────────────────────────────────────────────────
+// Option values match the styles/lengths the SinLlama adapters were trained
+// on (see backend /api/v1/meta). Keep in sync with the backend prompts module.
 
 const TONES = [
-  { id: 'formal',    label: 'Formal'    },
-  { id: 'editorial', label: 'Editorial' },
-  { id: 'youth',     label: 'Youth'     },
+  { id: 'formal',    label: 'Formal',    si: 'නිල'          },
+  { id: 'sports',    label: 'Sports',    si: 'ක්‍රීඩා'       },
+  { id: 'youth',     label: 'Youth',     si: 'තරුණ'         },
+  { id: 'editorial', label: 'Editorial', si: 'සංස්කාරකීය'   },
+  { id: 'feature',   label: 'Feature',   si: 'විශේෂාංග'     },
 ];
 
 const LENGTHS = [
-  { id: 'short',  label: 'Short'  },
-  { id: 'medium', label: 'Medium' },
+  { id: 'short',  label: 'Short',  si: 'කෙටි'   },
+  { id: 'medium', label: 'Medium', si: 'මධ්‍යම' },
+  { id: 'long',   label: 'Long',   si: 'දීර්ඝ'  },
 ];
 
 const HEADLINE_COUNTS = [
@@ -31,15 +36,16 @@ function OptionGroup({ label, options, value, onChange }) {
             key={opt.id}
             onClick={() => onChange(opt.id)}
             className={`
-              w-full text-left px-3.5 py-2.5 rounded-lg text-[14px] font-medium
-              transition-colors duration-100 cursor-pointer
+              w-full flex items-center justify-between text-left px-3.5 py-2.5 rounded-lg
+              text-[14px] font-medium transition-colors duration-100 cursor-pointer
               ${value === opt.id
                 ? 'bg-red-50 text-accent'
                 : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
               }
             `}
           >
-            {opt.label}
+            <span>{opt.label}</span>
+            {opt.si && <span className="text-[13px] opacity-60">{opt.si}</span>}
           </button>
         ))}
       </div>
@@ -53,6 +59,7 @@ const SUGGESTION_TYPES = {
   spelling:    { label: 'Spelling',    color: 'text-red-500',    bg: 'bg-red-50',    border: 'border-red-100'    },
   grammar:     { label: 'Grammar',     color: 'text-orange-500', bg: 'bg-orange-50', border: 'border-orange-100' },
   punctuation: { label: 'Punctuation', color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100' },
+  spacing:     { label: 'Spacing',     color: 'text-teal-600',   bg: 'bg-teal-50',   border: 'border-teal-100'   },
   style:       { label: 'Style',       color: 'text-blue-500',   bg: 'bg-blue-50',   border: 'border-blue-100'   },
   info:        { label: 'Info',        color: 'text-gray-500',   bg: 'bg-gray-50',   border: 'border-gray-200'   },
 };
@@ -60,12 +67,18 @@ const SUGGESTION_TYPES = {
 function deriveSuggestions(input, output) {
   if (!output?.corrected || !input) return [];
 
-  // Use API-provided suggestions if present
-  if (Array.isArray(output.suggestions) && output.suggestions.length > 0) {
-    return output.suggestions;
+  // Preferred: corrections computed by the backend (word-level diff against
+  // the model output, with category + rule description).
+  if (Array.isArray(output.corrections) && output.corrections.length > 0) {
+    return output.corrections.map((c) => ({
+      type: c.type || 'grammar',
+      original: c.original,
+      correction: c.corrected,
+      message: c.rule,
+    }));
   }
 
-  // Auto-derive by word-level diff
+  // Fallback: naive word-level diff done client-side.
   const inputWords  = input.trim().split(/\s+/);
   const outputWords = output.corrected.trim().split(/\s+/);
   const derived = [];
@@ -158,6 +171,9 @@ function GrammarSuggestionsPanel({ output, loading, input }) {
                       <div className="mt-1 space-y-0.5">
                         <p className="text-[13px] text-gray-500 line-through">{s.original}</p>
                         <p className="text-[13px] font-medium text-gray-800">{s.correction}</p>
+                        {s.message && (
+                          <p className="text-[11px] text-gray-400 pt-0.5">{s.message}</p>
+                        )}
                       </div>
                     ) : (
                       <p className="text-[13px] text-gray-700 mt-0.5">{s.message}</p>
@@ -197,7 +213,7 @@ export default function RightPanel({ activeTool, settings, onSettingsChange, out
 
         {activeTool === 'rewriter' && (
           <OptionGroup
-            label="Tone"
+            label="Newspaper style"
             options={TONES}
             value={settings.tone}
             onChange={(v) => onSettingsChange({ ...settings, tone: v })}

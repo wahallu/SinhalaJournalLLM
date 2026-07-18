@@ -15,7 +15,7 @@ function saveSettings(settings) {
 const DEFAULT_SETTINGS = {
   apiBaseUrl: '',
   defaultTone: 'formal',
-  defaultLength: 'short',
+  defaultLength: 'medium',
   headlineCount: 5,
 };
 
@@ -80,17 +80,20 @@ export default function SettingsPage() {
             <div>
               <label htmlFor="default-tone" className={labelClass}>Default Tone (Style Rewriter)</label>
               <select id="default-tone" value={settings.defaultTone} onChange={(e) => update('defaultTone', e.target.value)} className={selectClass}>
-                <option value="formal">Formal</option>
-                <option value="editorial">Editorial</option>
-                <option value="youth">Youth</option>
+                <option value="formal">Formal (නිල)</option>
+                <option value="sports">Sports (ක්‍රීඩා)</option>
+                <option value="youth">Youth (තරුණ)</option>
+                <option value="editorial">Editorial (සංස්කාරකීය)</option>
+                <option value="feature">Feature (විශේෂාංග)</option>
               </select>
             </div>
 
             <div>
               <label htmlFor="default-length" className={labelClass}>Default Summary Length</label>
               <select id="default-length" value={settings.defaultLength} onChange={(e) => update('defaultLength', e.target.value)} className={selectClass}>
-                <option value="short">Short</option>
-                <option value="medium">Medium</option>
+                <option value="short">Short (කෙටි)</option>
+                <option value="medium">Medium (මධ්‍යම)</option>
+                <option value="long">Long (දීර්ඝ)</option>
               </select>
             </div>
 

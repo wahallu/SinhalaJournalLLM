@@ -19,18 +19,17 @@ async function request(endpoint, body, method = 'POST') {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Request failed (${res.status})`);
+    const detail = typeof err.detail === 'string' ? err.detail : err.message;
+    throw new Error(detail || `Request failed (${res.status})`);
   }
 
   return res.json();
 }
 
+// ── Tools ──
+
 export function checkGrammar(text) {
   return request('/grammar/check', { text });
-}
-
-export function getGrammarHistory(page = 1, pageSize = 20) {
-  return request(`/grammar/history?page=${page}&page_size=${pageSize}`, null, 'GET');
 }
 
 export function generateHeadlines(text, count = 5) {
@@ -43,4 +42,27 @@ export function rewriteStyle(text, tone) {
 
 export function summarizeNews(text, length) {
   return request('/summarize', { text, length });
+}
+
+// ── History ──
+
+export function getGrammarHistory(page = 1, pageSize = 20) {
+  return request(`/grammar/history?page=${page}&page_size=${pageSize}`, null, 'GET');
+}
+
+export function getUnifiedHistory(limit = 50) {
+  return request(`/history?limit=${limit}`, null, 'GET');
+}
+
+// ── Capabilities / status ──
+
+export function getMeta() {
+  return request('/meta', null, 'GET');
+}
+
+export async function getModelHealth() {
+  const base = API_BASE.replace(/\/api\/v1\/?$/, '');
+  const res = await fetch(`${base}/health/model`);
+  if (!res.ok) throw new Error(`Health check failed (${res.status})`);
+  return res.json();
 }

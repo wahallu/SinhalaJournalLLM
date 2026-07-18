@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { Clock, SpellCheck, Newspaper, PenLine, FileText, Trash2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Clock, SpellCheck, Newspaper, PenLine, FileText, Trash2, CloudOff, RefreshCw } from 'lucide-react';
+import { getUnifiedHistory } from '../services/api';
+import { clearHistory, getLocalHistory } from '../services/localHistory';
 
 const TOOL_ICONS = {
   grammar: SpellCheck,
@@ -15,41 +17,52 @@ const TOOL_LABELS = {
   summarizer: 'News Summarizer',
 };
 
-function getHistory() {
-  try {
-    return JSON.parse(localStorage.getItem('sinai_history') || '[]');
-  } catch {
-    return [];
-  }
-}
-
-export function saveToHistory(tool, input) {
-  const history = getHistory();
-  history.unshift({
-    id: Date.now(),
-    tool,
-    input: input.slice(0, 200),
-    timestamp: new Date().toISOString(),
-  });
-  localStorage.setItem('sinai_history', JSON.stringify(history.slice(0, 50)));
-}
-
-export function clearHistory() {
-  localStorage.removeItem('sinai_history');
-}
-
 export default function HistoryPage({ onSelectTool }) {
-  const [history, setHistory] = useState(getHistory);
+  const [items, setItems] = useState([]);
+  const [source, setSource] = useState('loading'); // loading | server | local
   const [filter, setFilter] = useState('all');
 
-  const filtered = filter === 'all' ? history : history.filter((h) => h.tool === filter);
+  // setState only runs inside promise callbacks, never synchronously in the
+  // effect body — keeps react-hooks/set-state-in-effect satisfied.
+  const load = useCallback(() => {
+    getUnifiedHistory(50)
+      .then((data) => {
+        setItems(
+          data.items.map((item) => ({
+            id: item.id,
+            tool: item.tool,
+            input: item.input_preview,
+            output: item.output_preview,
+            timestamp: item.created_at,
+            provider: item.model_provider,
+          }))
+        );
+        setSource('server');
+      })
+      .catch(() => {
+        setItems(getLocalHistory());
+        setSource('local');
+      });
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const refresh = () => {
+    setSource('loading');
+    load();
+  };
+
+  const filtered = filter === 'all' ? items : items.filter((h) => h.tool === filter);
 
   const handleClear = () => {
     clearHistory();
-    setHistory([]);
+    if (source === 'local') setItems([]);
   };
 
   const formatTime = (iso) => {
+    if (!iso) return '';
     const d = new Date(iso);
     const now = new Date();
     const diff = now - d;
@@ -69,19 +82,37 @@ export default function HistoryPage({ onSelectTool }) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">History</h1>
-          <p className="text-base text-gray-400 mt-1">{history.length} entries</p>
+          <p className="text-base text-gray-400 mt-1 flex items-center gap-2">
+            {items.length} entries
+            {source === 'local' && (
+              <span className="inline-flex items-center gap-1 text-xs text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">
+                <CloudOff size={11} /> offline — showing local history
+              </span>
+            )}
+          </p>
         </div>
-        {history.length > 0 && (
+        <div className="flex items-center gap-1">
           <button
-            id="clear-history"
-            onClick={handleClear}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-400 rounded-lg
-              hover:text-red-500 hover:bg-red-50 transition-colors duration-100 cursor-pointer"
+            id="refresh-history"
+            onClick={refresh}
+            className="p-2.5 text-gray-400 rounded-lg hover:text-gray-600 hover:bg-gray-50
+              transition-colors duration-100 cursor-pointer"
+            title="Refresh"
           >
-            <Trash2 size={15} />
-            Clear all
+            <RefreshCw size={15} className={source === 'loading' ? 'animate-spin' : ''} />
           </button>
-        )}
+          {source === 'local' && items.length > 0 && (
+            <button
+              id="clear-history"
+              onClick={handleClear}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-400 rounded-lg
+                hover:text-red-500 hover:bg-red-50 transition-colors duration-100 cursor-pointer"
+            >
+              <Trash2 size={15} />
+              Clear all
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter tabs */}
@@ -100,7 +131,13 @@ export default function HistoryPage({ onSelectTool }) {
       </div>
 
       {/* History list */}
-      {filtered.length === 0 ? (
+      {source === 'loading' ? (
+        <div className="space-y-2">
+          {[1, 2, 3, 4].map((n) => (
+            <div key={n} className="h-16 bg-gray-50 rounded-xl animate-subtle-pulse" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="text-center py-20">
           <Clock size={36} className="mx-auto text-gray-200 mb-3" />
           <p className="text-base text-gray-400">No history yet</p>
@@ -111,7 +148,7 @@ export default function HistoryPage({ onSelectTool }) {
             const Icon = TOOL_ICONS[item.tool] || Clock;
             return (
               <button
-                key={item.id}
+                key={`${item.tool}-${item.id}`}
                 onClick={() => onSelectTool(item.tool)}
                 className="w-full flex items-start gap-4 px-4 py-3.5 rounded-xl
                   hover:bg-gray-50 transition-colors duration-100 text-left cursor-pointer"
@@ -123,10 +160,18 @@ export default function HistoryPage({ onSelectTool }) {
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium text-gray-500">
                       {TOOL_LABELS[item.tool] || item.tool}
+                      {item.provider && (
+                        <span className="ml-2 text-[10px] uppercase tracking-wider text-gray-300">
+                          {item.provider}
+                        </span>
+                      )}
                     </span>
                     <span className="text-xs text-gray-300 shrink-0">{formatTime(item.timestamp)}</span>
                   </div>
                   <p className="text-[15px] text-gray-700 mt-0.5 truncate">{item.input}</p>
+                  {item.output && (
+                    <p className="text-[13px] text-gray-400 mt-0.5 truncate">→ {item.output}</p>
+                  )}
                 </div>
               </button>
             );

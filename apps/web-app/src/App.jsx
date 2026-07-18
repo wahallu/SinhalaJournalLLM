@@ -10,7 +10,7 @@ import SettingsPage from './components/SettingsPage';
 import ProfilePage from './components/ProfilePage';
 import { useToolProcessor } from './hooks/useToolProcessor';
 import { checkGrammar, generateHeadlines, rewriteStyle, summarizeNews } from './services/api';
-import { saveToHistory } from './components/HistoryPage';
+import { saveToHistory } from './services/localHistory';
 
 const TOOL_CONFIG = {
   grammar: {
@@ -51,7 +51,7 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [settings, setSettings] = useState({
     tone: 'formal',
-    length: 'short',
+    length: 'medium',
     count: 5,
   });
 
