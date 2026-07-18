@@ -24,3 +24,23 @@ services:
       - ../apps/backend-api/.env
     ports:
       - "8000:8000"
+
+  web-app:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ../apps/web-app:/app
+      - web-app-node-modules:/app/node_modules
+    # node_modules gets its own volume (rather than reusing the host's) since
+    # native deps like esbuild ship platform-specific binaries — a Windows
+    # host install won't run inside this Linux container.
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000/api/v1
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend-api
+
+volumes:
+  web-app-node-modules:
