@@ -1,21 +1,36 @@
 """
 Summarization service.
-Currently uses rule-based dummy summaries.
-Will be replaced with fine-tuned LLM inference.
+
+Length control (short / medium / long) happens by sending the model server a
+fully-formed prompt with a scaled word target — the server's own template
+hardcodes ~10% (see app/core/prompts.py SUMMARY_LENGTHS).
 """
 
-def summarize_text(text: str, length: str = "medium") -> str:
-    """
-    Summarize long-form text.
-    """
-    clean_text = text.strip()
-    
-    if length == "short":
-        snippet = clean_text[:80]
-        return f"[SinAI සාරාංශය - කෙටි]: {snippet}..."
-    elif length == "long":
-        snippet = clean_text[:300]
-        return f"[SinAI සාරාංශය - දීර්ඝ]: {snippet}...\n[අමතර තොරතුරු ඇතුළත් වේ]"
-    else: # medium
-        snippet = clean_text[:150]
-        return f"[SinAI සාරාංශය - මාධ්‍යම]: {snippet}..."
+from app.core.model_gateway import model_generate
+from app.core.prompts import resolve_length
+from app.repositories.summarizer_repository import save_summary
+from app.schemas.summarizer import SummarizerResponse
+
+
+async def summarize_text(text: str, length: str = "medium") -> SummarizerResponse:
+    """Summarize `text` at the requested length, persist, and return."""
+    resolved = resolve_length(length)
+    result = await model_generate("summarizer", text, length=resolved)
+    summary = result.text or text
+
+    saved = await save_summary({
+        "original_text": text,
+        "summary_text": summary,
+        "length": resolved,
+        "model_provider": result.provider,
+        "latency_ms": result.latency_ms,
+    })
+
+    return SummarizerResponse(
+        id=str(saved["id"]),
+        original=text,
+        summary=summary,
+        length=resolved,
+        model_used=result.provider,
+        created_at=saved.get("created_at"),
+    )

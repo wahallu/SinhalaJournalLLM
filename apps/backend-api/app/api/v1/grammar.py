@@ -1,7 +1,7 @@
 """
 Grammar Checker API endpoints.
 
-POST /check  — Check text for grammar errors
+POST /check   — Check text for grammar errors
 GET  /history — Paginated correction history
 GET  /{id}    — Single correction detail
 """
@@ -25,16 +25,26 @@ from app.services.grammar.grammar_service import check_grammar
 router = APIRouter(prefix="/grammar", tags=["Grammar"])
 
 
+def _record_to_response(record: dict) -> GrammarCheckResponse:
+    return GrammarCheckResponse(
+        id=str(record["id"]),
+        corrected=record.get("corrected_text", ""),
+        corrections=[CorrectionDetail(**c) for c in record.get("corrections") or []],
+        correction_count=record.get("correction_count", 0),
+        created_at=record.get("created_at"),
+        model_used=record.get("model_provider"),
+    )
+
+
 @router.post("/check", response_model=GrammarCheckResponse)
 async def grammar_check_endpoint(payload: GrammarCheckRequest):
     """
     Check Sinhala text for grammatical errors.
 
-    Applies grammar correction rules and persists the result.
+    Runs the text through the model gateway and persists the result.
     Returns the corrected text along with a list of individual corrections.
     """
-    result = await check_grammar(payload.text)
-    return result
+    return await check_grammar(payload.text)
 
 
 @router.get("/history", response_model=GrammarHistoryResponse)
@@ -46,20 +56,8 @@ async def grammar_history_endpoint(
     Retrieve paginated grammar correction history, newest first.
     """
     records, total = await get_corrections(page=page, page_size=page_size)
-
-    items = [
-        GrammarCheckResponse(
-            id=r["id"],
-            corrected=r["corrected_text"],
-            corrections=[CorrectionDetail(**c) for c in r["corrections"]],
-            correction_count=r["correction_count"],
-            created_at=r["created_at"],
-        )
-        for r in records
-    ]
-
     return GrammarHistoryResponse(
-        items=items,
+        items=[_record_to_response(r) for r in records],
         total=total,
         page=page,
         page_size=page_size,
@@ -74,11 +72,4 @@ async def grammar_detail_endpoint(correction_id: UUID):
     record = await get_correction_by_id(correction_id)
     if not record:
         raise HTTPException(status_code=404, detail="Correction not found")
-
-    return GrammarCheckResponse(
-        id=record["id"],
-        corrected=record["corrected_text"],
-        corrections=[CorrectionDetail(**c) for c in record["corrections"]],
-        correction_count=record["correction_count"],
-        created_at=record["created_at"],
-    )
+    return _record_to_response(record)

@@ -27,6 +27,10 @@ class CorrectionDetail(BaseModel):
     original: str = Field(description="Original incorrect fragment")
     corrected: str = Field(description="Corrected fragment")
     rule: str = Field(description="Rule or pattern that triggered the correction")
+    type: str = Field(
+        default="grammar",
+        description="Correction category: grammar | spelling | punctuation | spacing",
+    )
 
 
 # ── Response ──
@@ -43,6 +47,10 @@ class GrammarCheckResponse(BaseModel):
     created_at: datetime | None = Field(
         default=None,
         description="Timestamp of the correction",
+    )
+    model_used: str | None = Field(
+        default=None,
+        description="Inference provider that produced this result (sinllama | openrouter | mock)",
     )
 
 
