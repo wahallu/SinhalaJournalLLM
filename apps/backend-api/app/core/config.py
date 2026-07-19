@@ -55,9 +55,6 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_MODEL: str = "openrouter/free"
 
-    # Gemini API — used for visual prompt generation.
-    GEMINI_API_KEY: str = ""
-
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173"
 

@@ -19,7 +19,7 @@ from app.schemas.headline import (
 )
 from app.services.headline.headline_service import generate_headlines
 from app.services.headline.visual_prompt_service import generate_visual_prompt
-from app.core.gemini_client import GeminiUnavailable
+from app.core.openrouter_client import OpenRouterUnavailable
 
 router = APIRouter(prefix="/headlines", tags=["Headline"])
 
@@ -36,11 +36,11 @@ async def generate_headlines_endpoint(payload: HeadlineRequest):
 async def visual_prompt_endpoint(payload: VisualPromptRequest):
     """
     Generate a detailed English image-generation prompt from a Sinhala article.
-    Uses Gemini Flash to understand the article and craft a photorealistic prompt.
+    Uses OpenRouter to understand the article and craft a photorealistic prompt.
     """
     try:
         prompt = await generate_visual_prompt(payload.article_text, payload.headline)
-    except GeminiUnavailable as exc:
+    except OpenRouterUnavailable as exc:
         raise HTTPException(
             status_code=503,
             detail=f"Visual prompt generation unavailable: {exc}",
