@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
-import { SiteNav } from "@/components/site-nav";
-import { SiteFooter } from "@/components/site-footer";
+import { SiteShell } from "@/components/shell/site-shell";
 import { siteConfig } from "@/lib/config/site";
 import "./globals.css";
 
@@ -54,17 +53,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <a
-            href="#main-content"
-            className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:top-4 focus-visible:left-4 focus-visible:z-50 focus-visible:rounded-full focus-visible:bg-primary focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:font-medium focus-visible:text-primary-foreground"
-          >
-            Skip to content
-          </a>
-          <SiteNav />
-          <main id="main-content" className="flex flex-1 flex-col">
-            {children}
-          </main>
-          <SiteFooter />
+          <SiteShell>{children}</SiteShell>
         </ThemeProvider>
       </body>
     </html>

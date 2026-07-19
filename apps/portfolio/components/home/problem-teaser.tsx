@@ -15,10 +15,10 @@ export function ProblemTeaser() {
             SinLlama is fine-tuned directly on newspaper text across all five.
           </p>
           <Link
-            href="/research"
+            href="/publications"
             className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
           >
-            See how we approached it
+            Read the published research
             <ArrowRightIcon strokeWidth={1.75} className="size-3.5" />
           </Link>
         </div>

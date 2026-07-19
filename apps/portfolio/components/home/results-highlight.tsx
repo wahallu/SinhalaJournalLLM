@@ -11,10 +11,10 @@ export function ResultsHighlight() {
             Measured against held-out newspaper text.
           </h2>
           <Link
-            href="/research"
+            href="/publications"
             className="inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-foreground underline decoration-border underline-offset-4 hover:decoration-foreground"
           >
-            Full methodology
+            See the full paper
             <ArrowRightIcon strokeWidth={1.75} className="size-3.5" />
           </Link>
         </div>
