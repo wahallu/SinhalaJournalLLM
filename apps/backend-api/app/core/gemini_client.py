@@ -17,7 +17,7 @@ from app.core.config import get_settings
 logger = logging.getLogger(__name__)
 
 _GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
-_GEMINI_MODEL = "gemini-2.0-flash"  # fast, cost-effective Flash model
+_GEMINI_MODEL = "gemini-2.5-flash"  # Gemini 2.5 Flash model
 
 _TIMEOUT = httpx.Timeout(60.0, connect=10.0)
 
