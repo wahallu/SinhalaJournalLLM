@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_MODEL: str = "openrouter/free"
 
+    # ── Gemini (visual prompt generation) ──
+    # Used exclusively by the visual-prompt service to call Gemini 2.5 Flash.
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-2.5-flash"
+
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173"
 
