@@ -19,9 +19,8 @@ function MetricBar({ label, value, threshold, suffix = '' }) {
       </div>
       <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${
-            passed ? 'bg-emerald-400' : 'bg-amber-400'
-          }`}
+          className={`h-full rounded-full transition-all duration-500 ${passed ? 'bg-emerald-400' : 'bg-amber-400'
+            }`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -43,9 +42,9 @@ function Badge({ passed, label }) {
 /* ── Alignment score badge ──────────────────────────────────────── */
 function AlignmentBadge({ score }) {
   const styles = {
-    High:   { wrap: 'bg-emerald-50 text-emerald-600 border-emerald-100', dot: 'bg-emerald-400' },
-    Medium: { wrap: 'bg-amber-50 text-amber-600 border-amber-100',       dot: 'bg-amber-400'   },
-    Low:    { wrap: 'bg-rose-50 text-rose-600 border-rose-100',          dot: 'bg-rose-400'    },
+    High: { wrap: 'bg-emerald-50 text-emerald-600 border-emerald-100', dot: 'bg-emerald-400' },
+    Medium: { wrap: 'bg-amber-50 text-amber-600 border-amber-100', dot: 'bg-amber-400' },
+    Low: { wrap: 'bg-rose-50 text-rose-600 border-rose-100', dot: 'bg-rose-400' },
   };
   const s = styles[score] || styles.Low;
   return (
@@ -70,18 +69,16 @@ function CandidateCard({ candidate, isExpanded, onToggle }) {
   };
 
   return (
-    <div className={`rounded-xl border transition-all duration-200 ${
-      isBest
+    <div className={`rounded-xl border transition-all duration-200 ${isBest
         ? 'border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white shadow-sm'
         : 'border-gray-200 bg-white hover:border-gray-300'
-    }`}>
+      }`}>
       <button
         onClick={onToggle}
         className="w-full flex items-start gap-3 px-4 py-3.5 text-left cursor-pointer"
       >
-        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 text-[12px] font-bold ${
-          isBest ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'
-        }`}>
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 text-[12px] font-bold ${isBest ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-400'
+          }`}>
           {isBest ? <Trophy size={14} /> : candidate.rank}
         </div>
 
@@ -132,11 +129,11 @@ function CandidateCard({ candidate, isExpanded, onToggle }) {
 /* ── Entity tag ─────────────────────────────────────────────────── */
 const ENTITY_COLORS = {
   PERSON: 'bg-blue-50 text-blue-600 border-blue-100',
-  ORG:    'bg-purple-50 text-purple-600 border-purple-100',
-  LOC:    'bg-green-50 text-green-600 border-green-100',
-  DATE:   'bg-amber-50 text-amber-600 border-amber-100',
+  ORG: 'bg-purple-50 text-purple-600 border-purple-100',
+  LOC: 'bg-green-50 text-green-600 border-green-100',
+  DATE: 'bg-amber-50 text-amber-600 border-amber-100',
   NUMBER: 'bg-rose-50 text-rose-600 border-rose-100',
-  EVENT:  'bg-indigo-50 text-indigo-600 border-indigo-100',
+  EVENT: 'bg-indigo-50 text-indigo-600 border-indigo-100',
 };
 
 function EntityTag({ entity }) {
@@ -205,7 +202,7 @@ function VisualPromptModule({ headline, articleText }) {
         .finally(() => { if (!cancelled) setLoading(false); })
     );
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [articleText]);
 
   const handleRegenerate = () => {
@@ -489,9 +486,8 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
               <div className="space-y-1">
                 {pipelineLog.map((log, i) => (
                   <div key={i} className="flex items-center gap-3 py-1.5 text-[12px]">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      log.status === 'success' ? 'bg-emerald-400' : log.status === 'warning' ? 'bg-amber-400' : 'bg-red-400'
-                    }`} />
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${log.status === 'success' ? 'bg-emerald-400' : log.status === 'warning' ? 'bg-amber-400' : 'bg-red-400'
+                      }`} />
                     <span className="text-gray-500 font-mono w-32 shrink-0">{log.stage}</span>
                     <span className="text-gray-400 flex-1 truncate">{log.message}</span>
                     <span className="text-gray-300 shrink-0 font-mono">{log.duration_ms.toFixed(1)}ms</span>

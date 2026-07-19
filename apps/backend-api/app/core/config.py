@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_MODEL: str = "openrouter/free"
 
+    # Groq — used for visual prompt generation.
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173"
 
@@ -78,3 +82,5 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Cached singleton for app settings."""
     return Settings()
+
+
