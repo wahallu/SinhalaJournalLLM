@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     # ── Gemini (visual prompt generation) ──
     # Used exclusively by the visual-prompt service to call Gemini 2.5 Flash.
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-2.0-flash"
 
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173"
