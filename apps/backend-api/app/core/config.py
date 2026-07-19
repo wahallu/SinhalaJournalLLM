@@ -55,6 +55,10 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_MODEL: str = "openrouter/free"
 
+    # NVIDIA NIM — used for visual prompt generation.
+    NVIDIA_API_KEY: str = ""
+    NVIDIA_MODEL: str = "google/gemma-4-31b-it"
+
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173"
 
