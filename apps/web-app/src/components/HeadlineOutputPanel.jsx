@@ -184,34 +184,48 @@ function detectImageFromArticle(articleText) {
 }
 
 
-function VisualPromptModule({ initialPrompt, headline, articleText }) {
+function VisualPromptModule({ headline, articleText }) {
   const [open, setOpen] = useState(true);
-  const [prompt, setPrompt] = useState(initialPrompt || '');
-  const [imageUrl, setImageUrl] = useState(null);
+  const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [alignmentScore, setAlignmentScore] = useState(null);
+  const [copied, setCopied] = useState(false);
 
+  // Auto-generate the prompt once when this component mounts / article changes
   useEffect(() => {
-    setPrompt(initialPrompt || '');
-    setImageUrl(null);
-    setError(null);
-    setAlignmentScore(null);
-  }, [initialPrompt]);
-
-  const handleGenerate = () => {
-    if (!prompt.trim()) return;
+    if (!articleText) return;
+    let cancelled = false;
     setLoading(true);
     setError(null);
-    setImageUrl(null);
-    // Detect which image to show based on article keywords
-    const resolvedImage = detectImageFromArticle(articleText);
-    // Simulate image generation with an 8-second delay, then show the matched image
-    setTimeout(() => {
-      setImageUrl(resolvedImage);
-      setAlignmentScore('High');
-      setLoading(false);
-    }, 8000);
+    setPrompt('');
+    import('../services/api').then(({ generateVisualPrompt }) =>
+      generateVisualPrompt(articleText, headline)
+        .then((res) => { if (!cancelled) setPrompt(res.visual_prompt || ''); })
+        .catch((err) => { if (!cancelled) setError(err.message || 'Failed to generate visual prompt'); })
+        .finally(() => { if (!cancelled) setLoading(false); })
+    );
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [articleText]);
+
+  const handleRegenerate = () => {
+    if (!articleText) return;
+    setLoading(true);
+    setError(null);
+    setPrompt('');
+    import('../services/api').then(({ generateVisualPrompt }) =>
+      generateVisualPrompt(articleText, headline)
+        .then((res) => setPrompt(res.visual_prompt || ''))
+        .catch((err) => setError(err.message || 'Failed to generate visual prompt'))
+        .finally(() => setLoading(false))
+    );
+  };
+
+  const handleCopy = async () => {
+    if (!prompt) return;
+    await navigator.clipboard.writeText(prompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   return (
@@ -230,93 +244,71 @@ function VisualPromptModule({ initialPrompt, headline, articleText }) {
 
       {open && (
         <div className="p-4 space-y-3 bg-white">
-          {/* Editable prompt area */}
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-1.5">
-              <Edit3 size={11} className="text-gray-400" />
-              <span className="text-[11px] text-gray-400 font-medium">
-                Auto-generated English prompt — you can edit before generating
-              </span>
-            </div>
-            <textarea
-              value={prompt}
-              onChange={e => setPrompt(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2.5 text-[13px] text-gray-700 bg-gray-50 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 leading-relaxed font-mono"
-              placeholder="Visual prompt will appear here after headline generation…"
-            />
-          </div>
-
-          {/* Action button */}
-          <button
-            onClick={handleGenerate}
-            disabled={loading || !prompt.trim()}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#cd191a] text-white text-[13px] font-semibold rounded-lg hover:bg-red-700 active:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {loading ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                <span>රූපය සාදමින්… / Generating Image…</span>
-              </>
-            ) : imageUrl ? (
-              <>
-                <RefreshCw size={14} />
-                <span>නැවත සාදන්න / Regenerate Image</span>
-              </>
-            ) : (
-              <>
-                <Camera size={14} />
-                <span>රූපය සාදන්න / Generate Image</span>
-              </>
-            )}
-          </button>
-
-          {/* Loading skeleton (16:9) */}
+          {/* Loading state */}
           {loading && (
-            <div className="w-full aspect-video rounded-lg bg-gray-100 overflow-hidden relative">
-              <div className="absolute inset-0 animate-shimmer" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                <Loader2 size={28} className="animate-spin text-gray-300" />
-                <p className="text-[12px] text-gray-400">රූපය ලබා ගනිමින්…</p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[12px] text-indigo-400">
+                <Loader2 size={12} className="animate-spin" />
+                <span>Generating visual prompt from article…</span>
               </div>
+              <div className="h-20 rounded-lg animate-shimmer" />
             </div>
           )}
 
-          {/* Generated image (16:9) */}
-          {imageUrl && !loading && (
-            <div className="space-y-2.5">
-              <div className="w-full aspect-video rounded-lg overflow-hidden border border-gray-200 shadow-sm bg-gray-100">
-                <img
-                  src={imageUrl}
-                  alt="Generated news image"
-                  className="w-full h-full object-cover"
-                  onError={e => {
-                    e.target.style.display = 'none';
-                    setImageUrl(null);
-                    setError(`Image failed to load: ${imageUrl}. Check that the file exists in /public/.`);
-                  }}
-                />
-              </div>
-              {alignmentScore && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-gray-400">අර්ථ සමතුලිතතාව / Semantic Alignment:</span>
-                  <AlignmentBadge score={alignmentScore} />
+          {/* Generated / editable prompt */}
+          {!loading && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Edit3 size={11} className="text-gray-400" />
+                  <span className="text-[11px] text-gray-400 font-medium">
+                    AI-generated English image prompt — you can edit before copying
+                  </span>
                 </div>
-              )}
+                {prompt && (
+                  <button
+                    onClick={handleCopy}
+                    className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Copy prompt"
+                  >
+                    {copied ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                    {copied ? 'Copied' : 'Copy'}
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={prompt}
+                onChange={e => setPrompt(e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2.5 text-[13px] text-gray-700 bg-gray-50 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 leading-relaxed font-mono"
+                placeholder={error ? 'Prompt generation failed — see error below.' : 'Visual prompt will appear here…'}
+              />
             </div>
           )}
 
-          {/* Error fallback */}
+          {/* Action buttons */}
+          {!loading && (
+            <button
+              onClick={handleRegenerate}
+              disabled={!articleText}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#cd191a] text-white text-[13px] font-semibold rounded-lg hover:bg-red-700 active:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <RefreshCw size={14} />
+              <span>නැවත සාදන්න / Regenerate Prompt</span>
+            </button>
+          )}
+
+          {/* Error */}
           {error && !loading && (
             <div className="p-3 bg-red-50 rounded-lg border border-red-100 flex items-start gap-2.5">
               <ImageOff size={16} className="text-red-400 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] text-red-600 font-medium">
-                  රූප නිර්මාණය අසාර්ථකයි / Image generation failed
+                  Visual prompt generation failed
                 </p>
                 <p className="text-[11px] text-red-500 mt-0.5 break-words">{error}</p>
                 <button
-                  onClick={handleGenerate}
+                  onClick={handleRegenerate}
                   className="mt-2 text-[11px] text-[#cd191a] font-semibold hover:underline"
                 >
                   නැවත උත්සාහ කරන්න / Retry
@@ -329,6 +321,7 @@ function VisualPromptModule({ initialPrompt, headline, articleText }) {
     </div>
   );
 }
+
 
 /* ── Main export ────────────────────────────────────────────────── */
 export default function HeadlineOutputPanel({ output, loading, error, articleText }) {
@@ -427,7 +420,6 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
 
       {/* ── Visual Prompt Generation Module ── */}
       <VisualPromptModule
-        initialPrompt={semantics.visual_prompt || ''}
         headline={output.best_headline || ''}
         articleText={articleText}
       />
