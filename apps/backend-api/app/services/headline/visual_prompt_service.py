@@ -1,14 +1,14 @@
 """
 Visual prompt generation service.
 
-Reads a Sinhala news article (and optional headline) via Groq (LLaMA 3.3 70B)
-and produces a detailed English prompt suitable for text-to-image models
+Reads a Sinhala news article (and optional headline) via OpenRouter and
+produces a detailed English prompt suitable for text-to-image models
 (Stable Diffusion, DALL-E, Midjourney, etc.).
 """
 
 import logging
 
-from app.core.groq_client import GroqUnavailable, groq_chat
+from app.core.openrouter_client import OpenRouterUnavailable, openrouter_chat
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ def _build_user_message(article_text: str, headline: str) -> str:
 
 async def generate_visual_prompt(article_text: str, headline: str = "") -> str:
     """
-    Call Groq to produce a detailed image-generation prompt.
+    Call OpenRouter to produce a detailed image-generation prompt.
 
     Args:
         article_text: The Sinhala article body.
@@ -50,7 +50,7 @@ async def generate_visual_prompt(article_text: str, headline: str = "") -> str:
         A detailed English image-generation prompt string.
 
     Raises:
-        GroqUnavailable: if the API key is missing or the call fails.
+        OpenRouterUnavailable: if the API key is missing or the call fails.
         RuntimeError: if the model returns an empty response.
     """
     messages = [
@@ -58,14 +58,11 @@ async def generate_visual_prompt(article_text: str, headline: str = "") -> str:
         {"role": "user", "content": _build_user_message(article_text, headline)},
     ]
 
-    logger.info(
-        "Generating visual prompt via Groq (article length=%d chars)",
-        len(article_text),
-    )
+    logger.info("Generating visual prompt via OpenRouter (article length=%d chars)", len(article_text))
 
-    prompt = await groq_chat(messages, temperature=0.7, max_tokens=300)
+    prompt = await openrouter_chat(messages, temperature=0.7, max_tokens=300)
 
     if not prompt or not prompt.strip():
-        raise RuntimeError("Groq returned an empty visual prompt")
+        raise RuntimeError("OpenRouter returned an empty visual prompt")
 
     return prompt.strip()

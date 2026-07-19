@@ -55,16 +55,6 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_MODEL: str = "openrouter/free"
 
-    # ── Groq (visual prompt generation) ──
-    # Used exclusively by the visual-prompt service. Groq runs open models
-    # (e.g. LLaMA 3.3) at very low latency via an OpenAI-compatible endpoint.
-    GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
-
-    # ── Gemini (image generation) ──
-    # Used exclusively by the image-generation endpoint (Imagen / Flash image).
-    GEMINI_IMAGE_API_KEY: str = ""
-
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173"
 
@@ -83,6 +73,11 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+
+@lru_cache
+def get_settings() -> Settings:
+    """Cached singleton for app settings."""
+    return Settings()
 
 @lru_cache
 def get_settings() -> Settings:

@@ -86,11 +86,6 @@ export function generateVisualPrompt(articleText, headline = '') {
   return request('/headlines/visual-prompt', { article_text: articleText, headline });
 }
 
-export function generateImage(visualPrompt) {
-  return request('/headlines/generate-image', { visual_prompt: visualPrompt });
-}
-
-
 // ── Style Rewriter ──
 export function rewriteStyle(text, tone = 'formal') {
   return request('/rewrite', { text, tone });
