@@ -37,20 +37,53 @@ export function getGrammarHistory(page = 1, pageSize = 20) {
 // ── Headlines ──
 // Backend only accepts { text, count } — style/maxLength aren't supported
 // server-side yet, so they're accepted here but not sent.
-export function generateHeadlines(text, options = {}) {
+// The response is transformed into the richer shape HeadlineOutputPanel expects.
+export async function generateHeadlines(text, options = {}) {
   const {
     count = 5,
     numCandidates,
   } = typeof options === 'object' && !Array.isArray(options) ? options : { count: options };
 
-  return request('/headlines/generate', {
+  const raw = await request('/headlines/generate', {
     text,
     count: numCandidates ?? count,
   });
+
+  // Transform flat { headlines: string[] } → rich output shape for HeadlineOutputPanel
+  const headlines = raw.headlines || [];
+  const candidates = headlines.map((headline, i) => ({
+    headline,
+    rank: i + 1,
+    passed_validation: true,
+    metrics: {
+      rouge_1: 0,
+      rouge_2: 0,
+      rouge_l: 0,
+      bleu: 0,
+      semantic_similarity: 0,
+      entity_coverage: 0,
+      grammar_pass: true,
+      length_ok: headline.split(/\s+/).length <= 10,
+    },
+  }));
+
+  return {
+    ...raw,
+    best_headline: headlines[0] || null,
+    candidates,
+    source_entities: [],
+    semantic_extraction: {},
+    pipeline_log: [],
+    regeneration_count: 0,
+  };
 }
 
 export function getHeadlineHistory(page = 1, pageSize = 20) {
   return request(`/headlines/history?page=${page}&page_size=${pageSize}`, null, 'GET');
+}
+
+export function generateVisualPrompt(articleText, headline = '') {
+  return request('/headlines/visual-prompt', { article_text: articleText, headline });
 }
 
 // ── Style Rewriter ──

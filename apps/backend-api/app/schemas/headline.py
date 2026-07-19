@@ -53,3 +53,26 @@ class HeadlineHistoryResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class VisualPromptRequest(BaseModel):
+    """Input for visual prompt generation."""
+    article_text: str = Field(
+        ...,
+        min_length=1,
+        max_length=10000,
+        description="Sinhala article text the image prompt should be based on",
+    )
+    headline: str = Field(
+        default="",
+        max_length=300,
+        description="The selected headline (used to sharpen the prompt)",
+    )
+
+
+class VisualPromptResponse(BaseModel):
+    """A detailed English image-generation prompt produced from the article."""
+    visual_prompt: str = Field(
+        ...,
+        description="Detailed English prompt ready to feed into an image generation model",
+    )
