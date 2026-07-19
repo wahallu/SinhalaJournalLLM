@@ -76,3 +76,20 @@ class VisualPromptResponse(BaseModel):
         ...,
         description="Detailed English prompt ready to feed into an image generation model",
     )
+
+
+class ImageGenerateRequest(BaseModel):
+    """Input for image generation from a visual prompt."""
+    visual_prompt: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+        description="The English image-generation prompt to render",
+    )
+
+
+class ImageGenerateResponse(BaseModel):
+    """Base64-encoded image produced by Gemini."""
+    image_data: str = Field(..., description="Base64-encoded image (PNG)")
+    mime_type: str = Field(default="image/png")
+

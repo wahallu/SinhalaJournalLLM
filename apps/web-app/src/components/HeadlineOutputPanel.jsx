@@ -191,6 +191,12 @@ function VisualPromptModule({ headline, articleText }) {
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  // Image generation state
+  const [imgLoading, setImgLoading] = useState(false);
+  const [imgData, setImgData] = useState(null);   // base64 string
+  const [imgMime, setImgMime] = useState('image/png');
+  const [imgError, setImgError] = useState(null);
+
   // Auto-generate the prompt once when this component mounts / article changes
   useEffect(() => {
     if (!articleText) return;
@@ -198,6 +204,8 @@ function VisualPromptModule({ headline, articleText }) {
     setLoading(true);
     setError(null);
     setPrompt('');
+    setImgData(null);
+    setImgError(null);
     import('../services/api').then(({ generateVisualPrompt }) =>
       generateVisualPrompt(articleText, headline)
         .then((res) => { if (!cancelled) setPrompt(res.visual_prompt || ''); })
@@ -213,6 +221,8 @@ function VisualPromptModule({ headline, articleText }) {
     setLoading(true);
     setError(null);
     setPrompt('');
+    setImgData(null);
+    setImgError(null);
     import('../services/api').then(({ generateVisualPrompt }) =>
       generateVisualPrompt(articleText, headline)
         .then((res) => setPrompt(res.visual_prompt || ''))
@@ -226,6 +236,30 @@ function VisualPromptModule({ headline, articleText }) {
     await navigator.clipboard.writeText(prompt);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  };
+
+  const handleGenerateImage = () => {
+    if (!prompt.trim()) return;
+    setImgLoading(true);
+    setImgData(null);
+    setImgError(null);
+    import('../services/api').then(({ generateImage }) =>
+      generateImage(prompt.trim())
+        .then((res) => {
+          setImgData(res.image_data);
+          setImgMime(res.mime_type || 'image/png');
+        })
+        .catch((err) => setImgError(err.message || 'Image generation failed'))
+        .finally(() => setImgLoading(false))
+    );
+  };
+
+  const handleDownloadImage = () => {
+    if (!imgData) return;
+    const link = document.createElement('a');
+    link.href = `data:${imgMime};base64,${imgData}`;
+    link.download = 'sinai-generated-image.png';
+    link.click();
   };
 
   return (
@@ -286,19 +320,96 @@ function VisualPromptModule({ headline, articleText }) {
             </div>
           )}
 
-          {/* Action buttons */}
+          {/* Action buttons row */}
           {!loading && (
-            <button
-              onClick={handleRegenerate}
-              disabled={!articleText}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#cd191a] text-white text-[13px] font-semibold rounded-lg hover:bg-red-700 active:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <RefreshCw size={14} />
-              <span>නැවත සාදන්න / Regenerate Prompt</span>
-            </button>
+            <div className="flex gap-2">
+              {/* Regenerate prompt */}
+              <button
+                onClick={handleRegenerate}
+                disabled={!articleText}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#cd191a] text-white text-[13px] font-semibold rounded-lg hover:bg-red-700 active:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <RefreshCw size={14} />
+                <span>නැවත සාදන්න / Regenerate</span>
+              </button>
+
+              {/* Generate image — only shown when prompt is ready */}
+              {prompt && (
+                <button
+                  onClick={handleGenerateImage}
+                  disabled={imgLoading}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-[13px] font-semibold rounded-lg hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                >
+                  {imgLoading
+                    ? <><Loader2 size={14} className="animate-spin" /><span>Generating…</span></>
+                    : <><Sparkles size={14} /><span>රූපය සාදන්න / Generate Image</span></>
+                  }
+                </button>
+              )}
+            </div>
           )}
 
-          {/* Error */}
+          {/* Image generation loading skeleton */}
+          {imgLoading && (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center gap-2 text-[12px] text-indigo-400">
+                <Loader2 size={12} className="animate-spin" />
+                <span>Generating image via Gemini — this may take 10–20 seconds…</span>
+              </div>
+              <div className="w-full aspect-video rounded-xl animate-shimmer" />
+            </div>
+          )}
+
+          {/* Generated image display */}
+          {imgData && !imgLoading && (
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
+                  <Sparkles size={11} />
+                  AI Generated Image
+                </span>
+                <button
+                  onClick={handleDownloadImage}
+                  className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-indigo-600 transition-colors font-medium"
+                  title="Download image"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Download
+                </button>
+              </div>
+              <div className="relative rounded-xl overflow-hidden border border-indigo-100 shadow-sm bg-gray-50">
+                <img
+                  src={`data:${imgMime};base64,${imgData}`}
+                  alt="AI generated news image"
+                  className="w-full object-cover rounded-xl"
+                />
+              </div>
+              <p className="text-[10px] text-gray-400 text-center">
+                Generated by Gemini · Based on the visual prompt above
+              </p>
+            </div>
+          )}
+
+          {/* Image generation error */}
+          {imgError && !imgLoading && (
+            <div className="p-3 bg-red-50 rounded-lg border border-red-100 flex items-start gap-2.5">
+              <ImageOff size={16} className="text-red-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] text-red-600 font-medium">Image generation failed</p>
+                <p className="text-[11px] text-red-500 mt-0.5 break-words">{imgError}</p>
+                <button
+                  onClick={handleGenerateImage}
+                  className="mt-2 text-[11px] text-[#cd191a] font-semibold hover:underline"
+                >
+                  නැවත උත්සාහ කරන්න / Retry
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Prompt error */}
           {error && !loading && (
             <div className="p-3 bg-red-50 rounded-lg border border-red-100 flex items-start gap-2.5">
               <ImageOff size={16} className="text-red-400 shrink-0 mt-0.5" />
@@ -321,6 +432,7 @@ function VisualPromptModule({ headline, articleText }) {
     </div>
   );
 }
+
 
 
 /* ── Main export ────────────────────────────────────────────────── */
