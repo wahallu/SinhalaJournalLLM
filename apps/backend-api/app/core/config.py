@@ -55,10 +55,11 @@ class Settings(BaseSettings):
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_MODEL: str = "openrouter/free"
 
-    # ── Gemini (visual prompt generation) ──
-    # Used exclusively by the visual-prompt service to call Gemini 2.5 Flash.
-    GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.0-flash"
+    # ── Groq (visual prompt generation) ──
+    # Used exclusively by the visual-prompt service. Groq runs open models
+    # (e.g. LLaMA 3.3) at very low latency via an OpenAI-compatible endpoint.
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
 
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173"

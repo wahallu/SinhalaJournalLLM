@@ -1,14 +1,14 @@
 """
 Visual prompt generation service.
 
-Reads a Sinhala news article (and optional headline) via Google Gemini 2.5 Flash
+Reads a Sinhala news article (and optional headline) via Groq (LLaMA 3.3 70B)
 and produces a detailed English prompt suitable for text-to-image models
 (Stable Diffusion, DALL-E, Midjourney, etc.).
 """
 
 import logging
 
-from app.core.gemini_client import GeminiUnavailable, gemini_generate
+from app.core.groq_client import GroqUnavailable, groq_chat
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ def _build_user_message(article_text: str, headline: str) -> str:
 
 async def generate_visual_prompt(article_text: str, headline: str = "") -> str:
     """
-    Call Google Gemini 2.5 Flash to produce a detailed image-generation prompt.
+    Call Groq to produce a detailed image-generation prompt.
 
     Args:
         article_text: The Sinhala article body.
@@ -50,24 +50,22 @@ async def generate_visual_prompt(article_text: str, headline: str = "") -> str:
         A detailed English image-generation prompt string.
 
     Raises:
-        GeminiUnavailable: if the API key is missing or the call fails.
+        GroqUnavailable: if the API key is missing or the call fails.
         RuntimeError: if the model returns an empty response.
     """
-    user_message = _build_user_message(article_text, headline)
+    messages = [
+        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "user", "content": _build_user_message(article_text, headline)},
+    ]
 
     logger.info(
-        "Generating visual prompt via Gemini 2.5 Flash (article length=%d chars)",
+        "Generating visual prompt via Groq (article length=%d chars)",
         len(article_text),
     )
 
-    prompt = await gemini_generate(
-        _SYSTEM_PROMPT,
-        user_message,
-        temperature=0.7,
-        max_tokens=300,
-    )
+    prompt = await groq_chat(messages, temperature=0.7, max_tokens=300)
 
     if not prompt or not prompt.strip():
-        raise RuntimeError("Gemini returned an empty visual prompt")
+        raise RuntimeError("Groq returned an empty visual prompt")
 
     return prompt.strip()
