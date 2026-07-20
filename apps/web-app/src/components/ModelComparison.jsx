@@ -1,9 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
-import { 
-  Play, RefreshCw, Scale, Cpu, CheckCircle2, AlertTriangle, 
-  Copy, Info, Sparkles, HelpCircle, ChevronRight, CheckSquare, Square
+import { useState, useEffect } from 'react';
+import {
+  Play, RefreshCw, Scale, CheckCircle2, AlertTriangle,
+  Info, Sparkles, HelpCircle, CheckSquare, Square, Zap, Trophy,
 } from 'lucide-react';
 import { getComparisonAdapters, runComparison } from '../services/api';
+import PageHeader from './ui/PageHeader';
+import StatusBadge from './ui/StatusBadge';
+import ActionButton from './ui/ActionButton';
+import CopyButton from './ui/CopyButton';
+import { Card } from './ui/Card';
 
 const PRESET_CASES = {
   grammar: [
@@ -49,21 +54,32 @@ const METRIC_GUIDE = {
   overcorrection: { name: 'Over-correction', poor: 0.30, good: 0.10 } // lower is better
 };
 
+const TASKS = [
+  { id: 'grammar', label: 'Grammar' },
+  { id: 'headline', label: 'Headline' },
+  { id: 'style', label: 'Style' },
+  { id: 'summarizer', label: 'Summarizer' },
+];
+
+const FIELD_LABEL = 'text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.12em] block mb-2';
+const TEXTAREA_CLASS = `w-full border border-ink-200 rounded-xl px-3.5 py-2.5 text-[14px] text-ink-800
+  placeholder:text-ink-400 bg-white transition-all duration-150
+  focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]`;
+
 export default function ModelComparison() {
   const [adaptersGroup, setAdaptersGroup] = useState({});
   const [loadedInGpu, setLoadedInGpu] = useState([]);
   const [serverMode, setServerMode] = useState('checking'); // mock, gpu, checking
-  
+
   const [task, setTask] = useState('grammar');
   const [styleMode, setStyleMode] = useState('formal');
   const [inputText, setInputText] = useState('');
   const [referenceText, setReferenceText] = useState('');
   const [selectedAdapters, setSelectedAdapters] = useState([]);
-  
+
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
   const [error, setError] = useState(null);
-  const [copiedIndex, setCopiedIndex] = useState(null);
   const [loadingProgress, setLoadingProgress] = useState('');
 
   // Fetch list of adapters from server on mount
@@ -75,7 +91,7 @@ export default function ModelComparison() {
       setAdaptersGroup(data.adapters || {});
       setLoadedInGpu(data.loaded_in_gpu || []);
       setServerMode(data.mode || 'gpu');
-      
+
       // Auto-select domain-specific adapters for initial task
       autoSelectForTask(task, data.adapters || {});
     } catch (err) {
@@ -86,6 +102,7 @@ export default function ModelComparison() {
 
   useEffect(() => {
     fetchAdapters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update selection when task changes
@@ -100,7 +117,7 @@ export default function ModelComparison() {
   };
 
   const handleSelectAdapter = (name) => {
-    setSelectedAdapters(prev => 
+    setSelectedAdapters(prev =>
       prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
     );
   };
@@ -144,7 +161,7 @@ export default function ModelComparison() {
     setLoading(true);
     setError(null);
     setResults([]);
-    
+
     // Simulate loading progression since deep models can take 1-5 seconds on start
     setLoadingProgress('Initializing model gateway...');
     const progressSteps = [
@@ -153,7 +170,7 @@ export default function ModelComparison() {
       'Running tokenizers...',
       'Evaluating metrics...'
     ];
-    
+
     let step = 0;
     const progressInterval = setInterval(() => {
       if (step < progressSteps.length) {
@@ -183,28 +200,22 @@ export default function ModelComparison() {
     }
   };
 
-  const copyToClipboard = (text, index) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
-
   // Helper to color-code metric scores
   const getMetricBadgeClass = (metricKey, val) => {
-    if (val === undefined || val === null) return 'bg-gray-100 text-gray-500';
+    if (val === undefined || val === null) return 'bg-ink-100 text-ink-500';
     const thresholds = METRIC_GUIDE[metricKey];
     if (!thresholds) return 'bg-blue-50 text-blue-700';
 
     if (metricKey === 'overcorrection') {
       // For overcorrection, lower is better
-      if (val >= thresholds.poor) return 'bg-red-50 text-red-700 border border-red-200';
-      if (val <= thresholds.good) return 'bg-green-50 text-green-700 border border-green-200';
-      return 'bg-amber-50 text-amber-700 border border-amber-200';
+      if (val >= thresholds.poor) return 'bg-brand-50 text-brand-700 border border-brand-200/70';
+      if (val <= thresholds.good) return 'bg-emerald-50 text-emerald-700 border border-emerald-200/70';
+      return 'bg-amber-50 text-amber-700 border border-amber-200/70';
     } else {
       // Normal metrics, higher is better
-      if (val < thresholds.poor) return 'bg-red-50 text-red-700 border border-red-200';
-      if (val >= thresholds.good) return 'bg-green-50 text-green-700 border border-green-200';
-      return 'bg-amber-50 text-amber-700 border border-amber-200';
+      if (val < thresholds.poor) return 'bg-brand-50 text-brand-700 border border-brand-200/70';
+      if (val >= thresholds.good) return 'bg-emerald-50 text-emerald-700 border border-emerald-200/70';
+      return 'bg-amber-50 text-amber-700 border border-amber-200/70';
     }
   };
 
@@ -215,61 +226,78 @@ export default function ModelComparison() {
     return (val * 100).toFixed(1) + '%';
   };
 
+  const AdapterRow = ({ name, category, displayName }) => {
+    const isSelected = selectedAdapters.includes(name);
+    const isLoaded = loadedInGpu.includes(name);
+    return (
+      <button
+        type="button"
+        onClick={() => handleSelectAdapter(name)}
+        aria-pressed={isSelected}
+        className={`w-full flex items-center justify-between px-2.5 py-2.5 rounded-xl border cursor-pointer transition-all duration-150 text-left
+          ${isSelected
+            ? 'border-brand-300 bg-brand-50/70'
+            : 'border-ink-100 hover:bg-ink-50 hover:border-ink-200'}`}
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          {isSelected
+            ? <CheckSquare size={15} className="text-brand-600 shrink-0" />
+            : <Square size={15} className="text-ink-300 shrink-0" />}
+          <span className={`text-[12px] truncate ${isSelected ? 'font-semibold text-ink-900' : 'font-medium text-ink-600'}`}>
+            {displayName ?? name}
+          </span>
+        </span>
+        <span className="flex items-center gap-1 shrink-0 ml-2">
+          {isLoaded && (
+            <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded" title="Loaded in GPU cache">
+              GPU
+            </span>
+          )}
+          {category && (
+            <span className="text-[9px] bg-ink-100 text-ink-500 font-bold px-1.5 py-0.5 rounded uppercase">
+              {category.substring(0, 4)}
+            </span>
+          )}
+        </span>
+      </button>
+    );
+  };
+
   return (
-    <div className="flex flex-col gap-6 max-w-full pb-10">
-      {/* Page Header */}
-      <div className="flex justify-between items-start flex-wrap gap-4 border-b border-gray-100 pb-5">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
-            <Scale className="text-[#cd191a]" size={26} />
-            Research Model Comparison
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Compare model base capability with fine-tuned LoRA adapters. Track model improvement incrementally.
-          </p>
-        </div>
+    <div className="flex flex-col gap-5 pb-8">
+      <PageHeader
+        icon={Scale}
+        title="Model Comparison"
+        description="Benchmark the SinLLaMA base model against fine-tuned LoRA adapters and track improvement per task."
+        badge={
+          serverMode === 'gpu'      ? <StatusBadge status="online"   label="GPU backend online" /> :
+          serverMode === 'mock'     ? <StatusBadge status="warning"  label="Mock mode" /> :
+          serverMode === 'error'    ? <StatusBadge status="offline"  label="Backend unreachable" /> :
+                                      <StatusBadge status="checking" label="Checking backend…" pulse />
+        }
+        actions={
+          <ActionButton size="sm" variant="secondary" icon={RefreshCw} onClick={fetchAdapters} title="Refresh adapter list">
+            Refresh
+          </ActionButton>
+        }
+      />
 
-        <div className="flex items-center gap-3">
-          <div className={`px-3 py-1.5 rounded-full text-xs font-bold tracking-wide uppercase flex items-center gap-1.5 
-            ${serverMode === 'gpu' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 
-              serverMode === 'mock' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 
-              'bg-gray-50 text-gray-500 border border-gray-200'}`}>
-            <Cpu size={14} />
-            {serverMode === 'gpu' ? 'GPU Backend Online' : 
-             serverMode === 'mock' ? 'Running in Mock Mode' : 'Checking GPU Server...'}
-          </div>
-          <button 
-            onClick={fetchAdapters}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
-            title="Refresh adapter list"
-          >
-            <RefreshCw size={15} />
-          </button>
-        </div>
-      </div>
-
-      {/* Main Settings Input Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        
-        {/* LEFT COLUMN: Inputs & Controls */}
-        <div className="lg:col-span-3 flex flex-col gap-5 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-          {/* Task Selectors */}
+      {/* ── Configuration ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
+        {/* Inputs & controls */}
+        <Card className="lg:col-span-3 p-5 sm:p-6 flex flex-col gap-5">
           <div>
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Select Task Domain</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {[
-                { id: 'grammar', label: 'Grammar' },
-                { id: 'headline', label: 'Headline' },
-                { id: 'style', label: 'Style' },
-                { id: 'summarizer', label: 'Summarizer' }
-              ].map(t => (
+            <label className={FIELD_LABEL}>Task domain</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              {TASKS.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setTask(t.id)}
-                  className={`py-2 px-3 text-sm font-semibold rounded-xl border transition-all cursor-pointer text-center
-                    ${task === t.id 
-                      ? 'bg-[#cd191a] text-white border-transparent shadow-sm' 
-                      : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                  aria-pressed={task === t.id}
+                  className={`py-2 px-3 text-[13px] font-semibold rounded-lg border transition-all duration-150 cursor-pointer text-center
+                    ${task === t.id
+                      ? 'bg-brand-600 text-white border-brand-600 shadow-sm shadow-brand-600/20'
+                      : 'bg-white text-ink-600 border-ink-200 hover:border-ink-300 hover:bg-ink-50'}`}
                 >
                   {t.label}
                 </button>
@@ -277,14 +305,16 @@ export default function ModelComparison() {
             </div>
           </div>
 
-          {/* Style Mode (Conditional) */}
           {task === 'style' && (
             <div>
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Rewrite Style Tone</label>
-              <select 
-                value={styleMode} 
+              <label htmlFor="style-mode" className={FIELD_LABEL}>Rewrite style tone</label>
+              <select
+                id="style-mode"
+                value={styleMode}
                 onChange={(e) => setStyleMode(e.target.value)}
-                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:border-[#cd191a]"
+                className="w-full bg-white border border-ink-200 rounded-xl px-3.5 py-2.5 text-[14px] text-ink-800
+                  cursor-pointer transition-all duration-150
+                  focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]"
               >
                 <option value="formal">Formal News (නිල පුවත්)</option>
                 <option value="sports">Sports Journalism (ක්‍රීඩා පුවත්)</option>
@@ -295,16 +325,17 @@ export default function ModelComparison() {
             </div>
           )}
 
-          {/* Preset Buttons */}
           {PRESET_CASES[task] && PRESET_CASES[task].length > 0 && (
             <div>
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Quick Presets</label>
+              <label className={FIELD_LABEL}>Quick presets</label>
               <div className="flex flex-wrap gap-2">
                 {PRESET_CASES[task].map((preset, i) => (
                   <button
                     key={i}
                     onClick={() => loadPreset(preset)}
-                    className="text-xs bg-gray-50 hover:bg-[#fef2f2] hover:text-[#cd191a] hover:border-[#fca5a5] text-gray-600 border border-gray-200 rounded-lg px-3 py-1.5 transition-all cursor-pointer flex items-center gap-1"
+                    className="inline-flex items-center gap-1.5 text-[12px] font-medium bg-white border border-ink-200
+                      text-ink-600 rounded-full px-3 py-1.5 cursor-pointer transition-all duration-150
+                      hover:border-brand-300 hover:text-brand-700 hover:bg-brand-50 active:scale-[0.98]"
                   >
                     <Sparkles size={11} />
                     {preset.label}
@@ -314,327 +345,233 @@ export default function ModelComparison() {
             </div>
           )}
 
-          {/* Input Text Box */}
           <div>
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Input Sentence / Text</label>
+            <label htmlFor="comparison-input" className={FIELD_LABEL}>Input sentence / text</label>
             <textarea
+              id="comparison-input"
               rows={3}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Enter Sinhala text to run inference..."
-              className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#cd191a] focus:ring-1 focus:ring-[#cd191a]"
+              placeholder="Enter Sinhala text to run inference…"
+              className={TEXTAREA_CLASS}
             />
           </div>
 
-          {/* Reference Text Box (Optional) */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                Expected / Reference Output
-                <span className="text-[10px] bg-blue-50 text-blue-600 font-semibold px-2 py-0.5 rounded-full border border-blue-100">Optional</span>
+              <label htmlFor="comparison-reference" className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.12em] flex items-center gap-1.5">
+                Expected / reference output
+                <span className="text-[9.5px] bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full border border-blue-200/70 normal-case tracking-normal">
+                  Optional
+                </span>
               </label>
               <div className="group relative">
-                <HelpCircle size={14} className="text-gray-400 cursor-pointer" />
-                <span className="pointer-events-none absolute right-0 bottom-full mb-2 w-64 bg-slate-800 text-white text-[11px] p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity leading-relaxed z-30 shadow-md">
+                <HelpCircle size={13} className="text-ink-400 cursor-help" />
+                <span className="pointer-events-none absolute right-0 bottom-full mb-2 w-64 bg-ink-900 text-white text-[11px] p-2.5 rounded-lg
+                  opacity-0 group-hover:opacity-100 transition-opacity leading-relaxed z-30 shadow-pop">
                   Supplying a ground truth reference output allows the backend to calculate quantitative BLEU/GLEU, F1, and over-correction metrics.
                 </span>
               </div>
             </div>
             <textarea
+              id="comparison-reference"
               rows={2}
               value={referenceText}
               onChange={(e) => setReferenceText(e.target.value)}
-              placeholder="Provide expected ground truth for automatic score evaluations..."
-              className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#cd191a] focus:ring-1 focus:ring-[#cd191a]"
+              placeholder="Provide expected ground truth for automatic score evaluations…"
+              className={TEXTAREA_CLASS}
             />
           </div>
-        </div>
+        </Card>
 
-        {/* RIGHT COLUMN: Adapter Checklist & Selector */}
-        <div className="lg:col-span-2 flex flex-col bg-white p-6 rounded-2xl border border-gray-200 shadow-sm justify-between gap-5">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select Models</label>
-              <span className="text-xs font-bold text-gray-600 bg-gray-50 px-2 py-0.5 rounded border border-gray-200">
-                {selectedAdapters.length} Selected
-              </span>
-            </div>
-
-            {/* Quick Multi-Select Controls (Responsive Pill Chips) */}
-            <div className="flex flex-wrap gap-1.5 pb-3 border-b border-gray-100">
-              <button 
-                onClick={selectDomainSpecific} 
-                className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-[#cd191a] transition-all cursor-pointer"
-              >
-                Current Task
-              </button>
-              <button 
-                onClick={selectAllButDomainSpecific} 
-                className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 transition-all cursor-pointer"
-              >
-                All Except Current
-              </button>
-              <button 
-                onClick={selectAll} 
-                className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all cursor-pointer"
-              >
-                Select All
-              </button>
-              <button 
-                onClick={clearSelection} 
-                className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all cursor-pointer"
-              >
-                Clear All
-              </button>
-            </div>
-
-            {/* List of Adapters (Scroll container with hidden horizontal overflow) */}
-            <div className="flex flex-col gap-1.5 max-h-[280px] overflow-y-auto overflow-x-hidden pr-1.5">
-              
-              {/* Base Model (Static option) */}
-              <div 
-                onClick={() => handleSelectAdapter('base')}
-                className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all
-                  ${selectedAdapters.includes('base') 
-                    ? 'border-[#cd191a] bg-[#cd191a]/5 text-black' 
-                    : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {selectedAdapters.includes('base') ? (
-                    <CheckSquare size={16} className="text-[#cd191a] shrink-0" />
-                  ) : (
-                    <Square size={16} className="text-gray-300 shrink-0" />
-                  )}
-                  <span className="text-xs font-semibold truncate">base (SinLLaMA Base)</span>
-                </div>
-                <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded border border-slate-200 shrink-0">Base</span>
-              </div>
-
-              {/* Categorized List */}
-              {Object.keys(adaptersGroup).map(category => {
-                const list = adaptersGroup[category] || [];
-                if (list.length === 0) return null;
-                return (
-                  <div key={category} className="mt-1 flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase pl-1 tracking-wider mt-1">{category} Domain</span>
-                    {list.map(name => {
-                      const isSelected = selectedAdapters.includes(name);
-                      const isLoaded = loadedInGpu.includes(name);
-                      return (
-                        <div
-                          key={name}
-                          onClick={() => handleSelectAdapter(name)}
-                          className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all
-                            ${isSelected 
-                              ? 'border-[#cd191a] bg-[#cd191a]/5 text-black' 
-                              : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            {isSelected ? (
-                              <CheckSquare size={16} className="text-[#cd191a] shrink-0" />
-                            ) : (
-                              <Square size={16} className="text-gray-300" />
-                            )}
-                            <span className="text-xs font-medium truncate max-w-[200px] sm:max-w-[260px]">{name}</span>
-                          </div>
-                          
-                          <div className="flex items-center gap-1 shrink-0">
-                            {isLoaded && (
-                              <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded" title="Loaded in GPU Cache">GPU</span>
-                            )}
-                            <span className="text-[9px] bg-gray-100 text-gray-600 font-bold px-1.5 py-0.5 rounded border border-gray-200 uppercase">{category.substring(0,4)}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
+        {/* Adapter selection */}
+        <Card className="lg:col-span-2 p-5 sm:p-6 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <label className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.12em]">Models under test</label>
+            <span className="text-[11px] font-bold text-ink-600 bg-ink-100 px-2 py-0.5 rounded-full tabular-nums">
+              {selectedAdapters.length} selected
+            </span>
           </div>
 
-          {/* Trigger Button */}
-          <button
-            onClick={handleCompare}
-            disabled={loading || !inputText.trim() || selectedAdapters.length === 0}
-            className="w-full bg-[#cd191a] hover:bg-[#a01010] active:scale-[0.98] transition-all text-white font-bold text-sm py-3 px-4 rounded-xl shadow-lg shadow-red-200 mt-4 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <RefreshCw className="spin" size={16} />
-                <span>{loadingProgress || 'Evaluating...'}</span>
-              </>
-            ) : (
-              <>
-                <Play size={16} fill="white" />
-                <span>Run Model Comparison</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 text-red-700 text-sm">
-          <AlertTriangle className="shrink-0 mt-0.5" size={17} />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {/* Comparative Evaluation Section */}
-      {results.length > 0 && (
-        <div className="flex flex-col gap-6">
-          <div className="border-t border-gray-100 pt-6">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <CheckCircle2 className="text-emerald-500" size={20} />
-              Evaluation Results
-            </h2>
+          {/* Quick multi-select */}
+          <div className="flex flex-wrap gap-1.5 pb-3 border-b border-ink-100">
+            {[
+              { label: 'Current task', action: selectDomainSpecific, accent: true },
+              { label: 'All except current', action: selectAllButDomainSpecific },
+              { label: 'Select all', action: selectAll },
+              { label: 'Clear', action: clearSelection },
+            ].map(({ label, action, accent }) => (
+              <button
+                key={label}
+                onClick={action}
+                className={`text-[10.5px] font-bold px-2.5 py-1 rounded-lg cursor-pointer transition-colors duration-150
+                  ${accent
+                    ? 'bg-brand-50 text-brand-700 hover:bg-brand-100'
+                    : 'bg-ink-100 text-ink-600 hover:bg-ink-200'}`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
-          {/* Side-by-Side Response Panels */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {results.map((res, i) => {
-              const hasMetrics = res.metrics && Object.keys(res.metrics).length > 0;
-              const isBestLatency = results.every(other => other.latency_ms >= res.latency_ms);
-              const isBestRougeL = hasMetrics && results.every(other => 
-                !other.metrics || !other.metrics.rougeL || other.metrics.rougeL <= res.metrics.rougeL
-              );
-
+          {/* Adapter list */}
+          <div className="flex flex-col gap-1.5 max-h-[280px] overflow-y-auto overflow-x-hidden pr-1.5">
+            <AdapterRow name="base" displayName="base (SinLLaMA Base)" />
+            {Object.keys(adaptersGroup).map((category) => {
+              const list = adaptersGroup[category] || [];
+              if (list.length === 0) return null;
               return (
-                <div key={res.adapter_name} className="flex flex-col bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                  
-                  {/* Card Header */}
-                  <div className="bg-gray-50 border-b border-gray-100 p-4 flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{res.category} model</span>
-                      <span className="text-sm font-black text-gray-800 truncate max-w-[150px]" title={res.adapter_name}>
-                        {res.adapter_name === 'base' ? 'SinLLaMA Base' : res.adapter_name}
-                      </span>
-                    </div>
-
-                    <div className="flex gap-1.5">
-                      {isBestLatency && (
-                        <span className="text-[10px] bg-green-100 text-green-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5" title="Fastest inference speed">
-                          🚀 Fast
-                        </span>
-                      )}
-                      {isBestRougeL && (
-                        <span className="text-[10px] bg-yellow-100 text-yellow-800 font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5" title="Highest semantic matches">
-                          🏆 Best Match
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Generated Output */}
-                  <div className="p-4 flex-1 flex flex-col justify-between gap-4">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Output</span>
-                        <button 
-                          onClick={() => copyToClipboard(res.output_text, i)}
-                          className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-900 transition-colors"
-                          title="Copy output text"
-                        >
-                          {copiedIndex === i ? (
-                            <span className="text-[10px] font-bold text-green-600">Copied!</span>
-                          ) : (
-                            <Copy size={13} />
-                          )}
-                        </button>
-                      </div>
-                      <pre className="text-sm text-gray-900 font-normal leading-relaxed whitespace-pre-wrap font-sans bg-gray-50/50 p-3 rounded-xl border border-gray-100 select-all min-h-[70px]">
-                        {res.output_text}
-                      </pre>
-                    </div>
-
-                    {/* Metadata & Secondary Metrics */}
-                    <div className="border-t border-gray-100 pt-3 flex flex-wrap justify-between items-center gap-2 text-xs text-gray-500">
-                      <div>
-                        Latency: <span className="font-bold text-gray-700">{res.latency_ms} ms</span>
-                      </div>
-                      <div>
-                        Throughput: <span className="font-bold text-gray-700">{res.throughput_tokens_per_sec} tok/s</span>
-                      </div>
-                      <div>
-                        Tokens: <span className="font-bold text-gray-700">{res.output_tokens} out</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Reference Scores (Conditional Footer) */}
-                  {hasMetrics && (
-                    <div className="bg-slate-50 border-t border-gray-100 p-4 grid grid-cols-2 gap-2 text-xs">
-                      <div className="flex justify-between items-center bg-white p-2 rounded border border-gray-100">
-                        <span className="text-gray-500">ROUGE-L:</span>
-                        <span className={`px-2 py-0.5 rounded font-black ${getMetricBadgeClass('rougeL', res.metrics.rougeL)}`}>
-                          {(res.metrics.rougeL * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center bg-white p-2 rounded border border-gray-100">
-                        <span className="text-gray-500">GLEU:</span>
-                        <span className={`px-2 py-0.5 rounded font-black ${getMetricBadgeClass('gleu', res.metrics.gleu)}`}>
-                          {(res.metrics.gleu * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center bg-white p-2 rounded border border-gray-100">
-                        <span className="text-gray-500">Char-F1:</span>
-                        <span className={`px-2 py-0.5 rounded font-black ${getMetricBadgeClass('charF1', res.metrics.charF1)}`}>
-                          {(res.metrics.charF1 * 100).toFixed(0)}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center bg-white p-2 rounded border border-gray-100">
-                        <span className="text-gray-500">Over-corr:</span>
-                        <span className={`px-2 py-0.5 rounded font-black ${getMetricBadgeClass('overcorrection', res.metrics.over_correction ? 1 : 0)}`}>
-                          {res.metrics.over_correction ? 'Warning' : 'None'}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                <div key={category} className="mt-1 flex flex-col gap-1.5">
+                  <span className="text-[9.5px] font-bold text-ink-400 uppercase pl-1 tracking-[0.14em] mt-1">
+                    {category} domain
+                  </span>
+                  {list.map((name) => (
+                    <AdapterRow key={name} name={name} category={category} />
+                  ))}
                 </div>
               );
             })}
           </div>
 
-          {/* Detailed Metric comparison matrix */}
+          <ActionButton
+            variant="primary"
+            size="lg"
+            icon={Play}
+            loading={loading}
+            onClick={handleCompare}
+            disabled={loading || !inputText.trim() || selectedAdapters.length === 0}
+            className="w-full mt-auto"
+          >
+            {loading ? (loadingProgress || 'Evaluating…') : 'Run comparison'}
+          </ActionButton>
+        </Card>
+      </div>
+
+      {/* ── Error ── */}
+      {error && (
+        <div className="bg-brand-50 border border-brand-200/70 rounded-xl px-4 py-3.5 flex items-start gap-2.5 text-brand-800 text-[13px]" role="alert">
+          <AlertTriangle className="shrink-0 mt-0.5 text-brand-600" size={16} />
+          <span className="break-words">{error}</span>
+        </div>
+      )}
+
+      {/* ── Results ── */}
+      {results.length > 0 && (
+        <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="border-t border-ink-200/70 pt-5 flex items-center gap-2">
+            <CheckCircle2 className="text-emerald-500" size={18} />
+            <h2 className="text-[16px] font-bold text-ink-900 tracking-tight">Evaluation results</h2>
+            <span className="text-[11.5px] text-ink-400 tabular-nums ml-1">{results.length} model{results.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          {/* Side-by-side response panels */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {results.map((res) => {
+              const hasMetrics = res.metrics && Object.keys(res.metrics).length > 0;
+              const isBestLatency = results.every(other => other.latency_ms >= res.latency_ms);
+              const isBestRougeL = hasMetrics && results.every(other =>
+                !other.metrics || !other.metrics.rougeL || other.metrics.rougeL <= res.metrics.rougeL
+              );
+
+              return (
+                <Card key={res.adapter_name} className="flex flex-col overflow-hidden">
+                  {/* Header */}
+                  <div className="bg-ink-50/70 border-b border-ink-100 px-4 py-3 flex items-center justify-between gap-2">
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[9.5px] font-bold text-ink-400 uppercase tracking-[0.14em]">{res.category} model</span>
+                      <span className="text-[13px] font-bold text-ink-900 truncate" title={res.adapter_name}>
+                        {res.adapter_name === 'base' ? 'SinLLaMA Base' : res.adapter_name}
+                      </span>
+                    </div>
+                    <div className="flex gap-1.5 shrink-0">
+                      {isBestLatency && (
+                        <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200/70 font-bold px-2 py-0.5 rounded-full" title="Fastest inference speed">
+                          <Zap size={10} /> Fastest
+                        </span>
+                      )}
+                      {isBestRougeL && (
+                        <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 border border-amber-200/70 font-bold px-2 py-0.5 rounded-full" title="Highest semantic match">
+                          <Trophy size={10} /> Best match
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Output */}
+                  <div className="p-4 flex-1 flex flex-col justify-between gap-4">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[9.5px] font-bold text-ink-400 uppercase tracking-[0.14em]">Output</span>
+                        <CopyButton text={res.output_text} label="" className="!px-1.5" />
+                      </div>
+                      <pre className="text-[13.5px] text-ink-800 font-sans font-normal leading-relaxed whitespace-pre-wrap
+                        bg-ink-50/60 px-3.5 py-3 rounded-xl border border-ink-100 select-all min-h-[70px] m-0">
+                        {res.output_text}
+                      </pre>
+                    </div>
+
+                    {/* Runtime metadata */}
+                    <div className="border-t border-ink-100 pt-3 flex flex-wrap justify-between items-center gap-2 text-[11.5px] text-ink-500 tabular-nums">
+                      <span>Latency <span className="font-bold text-ink-700">{res.latency_ms} ms</span></span>
+                      <span>Throughput <span className="font-bold text-ink-700">{res.throughput_tokens_per_sec} tok/s</span></span>
+                      <span>Tokens <span className="font-bold text-ink-700">{res.output_tokens} out</span></span>
+                    </div>
+                  </div>
+
+                  {/* Reference scores */}
+                  {hasMetrics && (
+                    <div className="bg-ink-50/70 border-t border-ink-100 p-3.5 grid grid-cols-2 gap-2 text-[11.5px]">
+                      {[
+                        ['ROUGE-L', 'rougeL', res.metrics.rougeL, `${(res.metrics.rougeL * 100).toFixed(0)}%`],
+                        ['GLEU', 'gleu', res.metrics.gleu, `${(res.metrics.gleu * 100).toFixed(0)}%`],
+                        ['Char-F1', 'charF1', res.metrics.charF1, `${(res.metrics.charF1 * 100).toFixed(0)}%`],
+                        ['Over-corr', 'overcorrection', res.metrics.over_correction ? 1 : 0, res.metrics.over_correction ? 'Warning' : 'None'],
+                      ].map(([label, key, val, display]) => (
+                        <div key={label} className="flex justify-between items-center bg-white px-2.5 py-1.5 rounded-lg border border-ink-100">
+                          <span className="text-ink-500">{label}</span>
+                          <span className={`px-2 py-0.5 rounded font-bold tabular-nums ${getMetricBadgeClass(key, val)}`}>
+                            {display}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+
+          {/* Metrics matrix */}
           {results[0] && results[0].metrics && Object.keys(results[0].metrics).length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden mt-2">
-              <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-                <span className="text-sm font-bold text-gray-800">Quantitative Metrics Matrix</span>
-                <span className="text-xs text-gray-400">Score guidelines: Green = Target Good, Orange = Acceptable, Red = Poor</span>
+            <Card className="overflow-hidden">
+              <div className="px-4 py-3.5 border-b border-ink-100 bg-ink-50/70 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[13px] font-bold text-ink-900">Quantitative metrics matrix</span>
+                <span className="text-[11px] text-ink-500">Green = target · Amber = acceptable · Red = poor</span>
               </div>
-              
+
               <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-[11.5px]">
                   <thead>
-                    <tr className="bg-gray-100/50 border-b border-gray-100">
-                      <th className="p-3 font-bold text-gray-500 uppercase tracking-wider">Model Name</th>
-                      <th className="p-3 font-bold text-gray-500 uppercase tracking-wider text-center">Exact Match</th>
-                      <th className="p-3 font-bold text-gray-500 uppercase tracking-wider text-center">ROUGE-L</th>
-                      <th className="p-3 font-bold text-gray-500 uppercase tracking-wider text-center">ROUGE-1</th>
-                      <th className="p-3 font-bold text-gray-500 uppercase tracking-wider text-center">ROUGE-2</th>
-                      <th className="p-3 font-bold text-gray-500 uppercase tracking-wider text-center">GLEU (BLEU)</th>
-                      <th className="p-3 font-bold text-gray-500 uppercase tracking-wider text-center">Char-F1</th>
-                      <th className="p-3 font-bold text-gray-500 uppercase tracking-wider text-center">Token-F1</th>
-                      <th className="p-3 font-bold text-gray-500 uppercase tracking-wider text-center">Over-correction</th>
+                    <tr className="bg-ink-50/60 border-b border-ink-100">
+                      <th className="p-3 font-bold text-ink-500 uppercase tracking-wider text-[10px]">Model</th>
+                      {['Exact match', 'ROUGE-L', 'ROUGE-1', 'ROUGE-2', 'GLEU (BLEU)', 'Char-F1', 'Token-F1', 'Over-correction'].map((h) => (
+                        <th key={h} className="p-3 font-bold text-ink-500 uppercase tracking-wider text-center text-[10px] whitespace-nowrap">{h}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {results.map((res) => {
                       const m = res.metrics || {};
                       return (
-                        <tr key={res.adapter_name} className="border-b border-gray-100 hover:bg-gray-50/50 font-medium">
-                          <td className="p-3 font-bold text-gray-700 whitespace-nowrap">
+                        <tr key={res.adapter_name} className="border-b border-ink-100 last:border-0 hover:bg-ink-50/50 font-medium tabular-nums">
+                          <td className="p-3 font-bold text-ink-800 whitespace-nowrap">
                             {res.adapter_name === 'base' ? 'SinLLaMA Base' : res.adapter_name}
                           </td>
                           <td className="p-3 text-center">
                             {m.exact_match !== undefined ? (
-                              m.exact_match ? (
-                                <span className="bg-green-100 text-green-800 font-bold px-2 py-0.5 rounded border border-green-200">Yes</span>
-                              ) : (
-                                <span className="bg-slate-100 text-slate-500 font-bold px-2 py-0.5 rounded border border-slate-200">No</span>
-                              )
+                              m.exact_match
+                                ? <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/70 font-bold px-2 py-0.5 rounded">Yes</span>
+                                : <span className="bg-ink-100 text-ink-500 font-bold px-2 py-0.5 rounded">No</span>
                             ) : '-'}
                           </td>
                           <td className="p-3 text-center">
@@ -643,12 +580,12 @@ export default function ModelComparison() {
                             </span>
                           </td>
                           <td className="p-3 text-center">
-                            <span className="bg-gray-50 border border-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                            <span className="bg-ink-50 border border-ink-100 text-ink-600 px-2 py-0.5 rounded-full">
                               {formatMetricValue('rouge1', m.rouge1)}
                             </span>
                           </td>
                           <td className="p-3 text-center">
-                            <span className="bg-gray-50 border border-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
+                            <span className="bg-ink-50 border border-ink-100 text-ink-600 px-2 py-0.5 rounded-full">
                               {formatMetricValue('rouge2', m.rouge2)}
                             </span>
                           </td>
@@ -670,12 +607,11 @@ export default function ModelComparison() {
                           <td className="p-3 text-center">
                             {m.over_correction !== undefined ? (
                               m.over_correction ? (
-                                <span className="bg-red-100 text-red-800 font-bold px-2 py-0.5 rounded border border-red-200 flex items-center justify-center gap-1 max-w-[90px] mx-auto">
-                                  <AlertTriangle size={11} />
-                                  Yes
+                                <span className="inline-flex items-center justify-center gap-1 bg-brand-50 text-brand-700 border border-brand-200/70 font-bold px-2 py-0.5 rounded">
+                                  <AlertTriangle size={10} /> Yes
                                 </span>
                               ) : (
-                                <span className="bg-green-100 text-green-800 font-bold px-2.5 py-0.5 rounded border border-green-200">No</span>
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/70 font-bold px-2.5 py-0.5 rounded">No</span>
                               )
                             ) : '-'}
                           </td>
@@ -685,17 +621,19 @@ export default function ModelComparison() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Card>
           )}
 
-          {/* Metric Threshold Guidelines Block */}
+          {/* Benchmark guide */}
           {results[0] && results[0].metrics && Object.keys(results[0].metrics).length > 0 && (
-            <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">
-              <Info className="text-blue-500 mt-0.5 shrink-0" size={17} />
-              <div className="flex flex-col gap-1 text-xs text-blue-800">
-                <span className="font-bold">Linguistic Benchmark Guide for Sinhala LLM:</span>
+            <div className="bg-blue-50/60 border border-blue-200/60 rounded-2xl px-4 py-3.5 flex items-start gap-3">
+              <Info className="text-blue-500 mt-0.5 shrink-0" size={16} />
+              <div className="flex flex-col gap-1 text-[12px] text-blue-900">
+                <span className="font-bold">Linguistic benchmark guide for Sinhala LLM</span>
                 <p className="leading-relaxed">
-                  In a spelling and grammar correction task, a high <b>Char-F1 (&gt;95%)</b> indicates solid character spelling accuracy, while a high <b>ROUGE-L (&gt;93%)</b> confirms correct sentence structure. <b>Over-correction</b> highlights cases where the model incorrectly alters grammatically sound input and should be kept below 10% on test datasets.
+                  In a spelling and grammar correction task, a high <b>Char-F1 (&gt;95%)</b> indicates solid character spelling accuracy,
+                  while a high <b>ROUGE-L (&gt;93%)</b> confirms correct sentence structure. <b>Over-correction</b> highlights cases where
+                  the model incorrectly alters grammatically sound input and should be kept below 10% on test datasets.
                 </p>
               </div>
             </div>

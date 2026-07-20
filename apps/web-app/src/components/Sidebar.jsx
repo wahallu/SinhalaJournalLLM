@@ -1,72 +1,76 @@
 import { useState } from 'react';
 import {
   LayoutDashboard, SpellCheck, Newspaper, PenLine, FileText,
-  Menu, X, History, Settings, ChevronLeft, ChevronRight, User, LogOut, Zap, Bot, Scale
+  History, Settings, ChevronLeft, ChevronRight, User, Zap, Bot, Scale, X,
 } from 'lucide-react';
 import DotField from './DotField';
 
-const MAIN_NAV = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, color: 'text-blue-500' },
-  { id: 'grammar', label: 'Grammar Checker', icon: SpellCheck, color: 'text-red-500' },
-  { id: 'headlines', label: 'Headline Generator', icon: Newspaper, color: 'text-orange-500' },
-  { id: 'rewriter', label: 'Style Rewriter', icon: PenLine, color: 'text-purple-500' },
-  { id: 'summarizer', label: 'News Summarizer', icon: FileText, color: 'text-cyan-500' },
-  { id: 'sinllama',   label: 'SinLLaMA Playground', icon: Bot, color: 'text-emerald-500' },
-  { id: 'comparison',  label: 'Model Comparison', icon: Scale, color: 'text-blue-400' },
+const NAV_SECTIONS = [
+  {
+    label: 'Workspace',
+    items: [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: 'Writing tools',
+    items: [
+      { id: 'grammar',    label: 'Grammar Checker',    icon: SpellCheck },
+      { id: 'headlines',  label: 'Headline Generator', icon: Newspaper },
+      { id: 'rewriter',   label: 'Style Rewriter',     icon: PenLine },
+      { id: 'summarizer', label: 'News Summarizer',    icon: FileText },
+    ],
+  },
+  {
+    label: 'Research',
+    items: [
+      { id: 'sinllama',   label: 'SinLLaMA Playground', icon: Bot },
+      { id: 'comparison', label: 'Model Comparison',    icon: Scale },
+    ],
+  },
 ];
 
 const BOTTOM_NAV = [
-  { id: 'history', label: 'History', icon: History, color: 'text-rose-500' }
+  { id: 'history',  label: 'History',  icon: History },
+  { id: 'settings', label: 'Settings', icon: Settings },
 ];
-
-const SIDEBAR_ACCENT = '#cd191a';
 
 export default function Sidebar({ activeTool, onSelectTool, isOpen, onToggle, collapsed, onCollapse }) {
   const [profileOpen, setProfileOpen] = useState(false);
-  const [adVisible, setAdVisible] = useState(true);
+
+  const select = (id) => {
+    onSelectTool(id);
+    if (window.innerWidth < 1024) onToggle();
+  };
 
   const renderNavItem = ({ id, label, icon: Icon }) => {
     const isActive = activeTool === id;
     return (
-      <div key={id} className={`relative flex items-center w-full ${isActive ? 'z-20' : 'z-10'}`}>
-        <button
-          id={`nav-${id}`}
-          onClick={() => {
-            onSelectTool(id);
-            if (window.innerWidth < 1024) onToggle();
-          }}
-          title={collapsed ? label : undefined}
-          className={`
-            group w-full flex items-center ${collapsed ? 'justify-center' : ''} gap-4
-            ${collapsed ? 'pl-0 py-3' : 'pl-6 py-3'}
-            text-[15px] font-medium transition-all duration-300 cursor-pointer
-            ${isActive
-              ? 'bg-white text-black rounded-l-[1.5rem] translate-x-4'
-              : 'text-white hover:bg-black/10 hover:text-white hover:rounded-l-[1.5rem] hover:translate-x-4 hover:mr-[-1rem]'
-            }
-          `}
-          style={{
-            marginRight: isActive ? '-1rem' : '1rem',
-            paddingRight: isActive ? '1rem' : '1rem',
-            marginLeft: isActive ? '1rem' : '1rem',
-            borderRadius: isActive ? '2.5rem 0 0 2.5rem' : '0.75rem',
-            minHeight: '34px',
-          }}
-        >
-          {/* Icon Circle */}
-          <div className={`
-            w-9 h-9 rounded-full flex items-center justify-center shrink-0
-            ${isActive ? 'bg-white/0' : 'bg-white/0'}
-          `}>
-            <Icon
-              size={18}
-              strokeWidth={2.5}
-              className={isActive ? 'text-black' : 'text-white'}
-            />
-          </div>
-          {!collapsed && <span className="tracking-wide">{label}</span>}
-        </button>
-      </div>
+      <button
+        key={id}
+        id={`nav-${id}`}
+        onClick={() => select(id)}
+        title={collapsed ? label : undefined}
+        aria-current={isActive ? 'page' : undefined}
+        className={`
+          relative w-full flex items-center gap-3 rounded-lg cursor-pointer
+          ${collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'}
+          text-[13px] font-medium transition-colors duration-150
+          ${isActive
+            ? 'bg-white/[0.08] text-white'
+            : 'text-white/55 hover:text-white hover:bg-white/[0.05]'}
+        `}
+      >
+        {isActive && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4.5 w-[3px] rounded-full bg-brand-500" aria-hidden="true" />
+        )}
+        <Icon
+          size={17}
+          strokeWidth={2}
+          className={`shrink-0 ${isActive ? 'text-brand-400' : 'text-white/45 group-hover:text-white/70'}`}
+        />
+        {!collapsed && <span className="truncate">{label}</span>}
+      </button>
     );
   };
 
@@ -74,196 +78,150 @@ export default function Sidebar({ activeTool, onSelectTool, isOpen, onToggle, co
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/20 z-40 lg:hidden"
+          className="fixed inset-0 bg-ink-950/50 backdrop-blur-[2px] z-40 lg:hidden"
           onClick={onToggle}
+          aria-hidden="true"
         />
       )}
 
-      {/* Mobile toggle */}
-      <button
-        id="sidebar-toggle"
-        onClick={onToggle}
-        className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-lg bg-white border border-gray-200 shadow-sm cursor-pointer"
-      >
-        {isOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
-
       <aside
+        aria-label="Primary navigation"
         className={`
-          fixed inset-y-0 left-0 z-40 overflow-hidden
-          ${collapsed ? 'w-20' : 'w-[20rem]'} bg-[#cd191a]
+          fixed inset-y-0 left-0 z-50 overflow-hidden
+          ${collapsed ? 'w-[4.75rem]' : 'w-[17rem]'} bg-ink-950
           flex flex-col shrink-0
-          transition-transform duration-200 ease-in-out
+          transition-all duration-200 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
+        {/* Ambient dot field — kept subtle so text stays readable */}
         <DotField
-          className="absolute inset-0 z-0 opacity-40"
-          dotRadius={1.5}
-          dotSpacing={19}
-          bulgeStrength={14}
-          glowRadius={6}
+          className="absolute inset-0 z-0 opacity-25 pointer-events-none"
+          dotRadius={1.2}
+          dotSpacing={22}
+          bulgeStrength={10}
+          glowRadius={5}
           sparkle={false}
           waveAmplitude={0}
-          cursorRadius={500}
-          cursorForce={0.02}
+          cursorRadius={400}
+          cursorForce={0.015}
           bulgeOnly
-          gradientFrom="#ffffff"
-          gradientTo="#950a1f"
+          gradientFrom="rgba(233,115,113,0.35)"
+          gradientTo="rgba(255,255,255,0.05)"
           glowColor="#cd191a"
         />
 
-        {/* Logo */}
-        <div className={`relative z-10 pt-8 pb-6 flex items-center gap-3 ${collapsed ? 'justify-center px-2' : 'px-10'}`}>
-          <div className={`flex items-center gap-5.5 ${!collapsed ? 'pl-12' : ''} min-w-0`}>
-            {collapsed && (
-              <div className="w-10 h-10 flex items-center justify-center shrink-0 relative">
-                <img src="/logo.png" alt="SinAi logo" className="w-full h-full object-contain" />
-              </div>
-            )}
-            {!collapsed && (
-              <div className="flex flex-col">
-                <span className="font-regular text-white tracking-tight leading-none drop-shadow-sm" style={{ fontSize: '36px', fontFamily: "'Gwen', serif" }}>SinAi</span>
-              </div>
-            )}
+        {/* Brand */}
+        <div className={`relative z-10 flex items-center gap-3 pt-5 pb-4 ${collapsed ? 'justify-center px-2' : 'px-5'}`}>
+          <div className="w-9 h-9 rounded-xl bg-brand-600 shadow-lg shadow-brand-950/40 flex items-center justify-center shrink-0">
+            <img src="/logo.png" alt="" className="w-full h-full object-contain p-1.5" />
           </div>
-
+          {!collapsed && (
+            <div className="flex flex-col min-w-0">
+              <span
+                className="text-white leading-none tracking-tight"
+                style={{ fontSize: '22px', fontFamily: "'Gwen', 'Satoshi', sans-serif" }}
+              >
+                SinAi
+              </span>
+              <span className="text-[9.5px] text-white/35 uppercase tracking-[0.18em] mt-1">
+                Journalism AI
+              </span>
+            </div>
+          )}
           <button
             id="sidebar-collapse"
             onClick={onCollapse}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="hidden lg:flex items-center justify-center ml-auto w-8 h-8 rounded-lg text-white hover:bg-white/20 transition-colors duration-100 cursor-pointer"
+            className={`hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-white/40
+              hover:text-white hover:bg-white/10 transition-colors duration-150 cursor-pointer
+              ${collapsed ? 'absolute top-1.5 right-1.5' : 'ml-auto'}`}
           >
-            {collapsed ? <ChevronRight size={20} strokeWidth={2} /> : <ChevronLeft size={20} strokeWidth={2} />}
+            {collapsed ? <ChevronRight size={15} strokeWidth={2} /> : <ChevronLeft size={15} strokeWidth={2} />}
+          </button>
+          {/* Mobile close */}
+          <button
+            onClick={onToggle}
+            className="lg:hidden ml-auto flex items-center justify-center w-8 h-8 rounded-lg text-white/50 hover:text-white hover:bg-white/10 cursor-pointer"
+            aria-label="Close navigation"
+          >
+            <X size={17} />
           </button>
         </div>
 
-        {/* Main navigation */}
-        <nav className={`relative z-10 flex-1 min-h-0 overflow-y-auto py-4 space-y-5`}>
-          {MAIN_NAV.map(renderNavItem)}
-        </nav>
-
-        {/* Upgrade Ad Overlay */}
-        {!collapsed && adVisible && (
-          <div className="relative z-10 mx-4 mb-2 mt-auto">
-            <div
-              onClick={() => {
-                onSelectTool('plans');
-                if (window.innerWidth < 1024) onToggle();
-              }}
-              className="relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-2xl p-4 cursor-pointer hover:bg-white/20 transition-all duration-300 group shadow-lg"
-            >
-              {/* Subtle glassmorphism glow */}
-              <div className="absolute -inset-2 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setAdVisible(false);
-                }}
-                className="absolute top-2 right-2 text-white/40 hover:text-white transition-colors p-1 rounded-md"
-              >
-                <X size={14} strokeWidth={3} />
-              </button>
-
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0 border border-white/20">
-                  <Zap size={14} className="text-white" strokeWidth={2.5} />
-                </div>
-                <h3 className="text-[13px] font-bold text-white tracking-wide">Upgrade to Plus</h3>
-              </div>
-              <p className="text-[11px] text-white/70 leading-relaxed mb-3">
-                Unlock advanced grammar features & unlimited headlines.
-              </p>
-
-              <div className="text-[11px] font-bold text-white/90 group-hover:text-white flex items-center gap-1 transition-colors uppercase tracking-wider">
-                Explore Plans <ChevronRight size={12} strokeWidth={3} />
+        {/* Navigation */}
+        <nav className={`relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-2 space-y-5 ${collapsed ? 'px-3' : 'px-3.5'}`}>
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.label}>
+              {!collapsed && (
+                <p className="px-3 mb-1.5 text-[9.5px] font-bold text-white/30 uppercase tracking-[0.16em]">
+                  {section.label}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {section.items.map(renderNavItem)}
               </div>
             </div>
-          </div>
-        )}
+          ))}
+        </nav>
 
-        {/* Bottom section */}
-        <div className={`relative z-10 py-4 space-y-2`}>
+        {/* Bottom navigation */}
+        <div className={`relative z-10 py-3 space-y-0.5 border-t border-white/[0.07] ${collapsed ? 'px-3' : 'px-3.5'}`}>
           {BOTTOM_NAV.map(renderNavItem)}
         </div>
 
-        {/* User profile */}
-        <div className={`relative z-10 px-4 pb-6 pt-2`}>
+        {/* User */}
+        <div className={`relative z-10 pb-4 pt-1 ${collapsed ? 'px-3' : 'px-3.5'}`}>
           <button
             id="user-profile-btn"
             onClick={() => setProfileOpen((v) => !v)}
             className={`
-              w-full flex items-center ${collapsed ? 'justify-center' : ''} gap-3
-              px-2 py-2.5 rounded-xl
-              hover:bg-white/20 transition-colors duration-100 cursor-pointer
+              w-full flex items-center gap-2.5 rounded-xl cursor-pointer
+              ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}
+              hover:bg-white/[0.06] transition-colors duration-150
             `}
           >
-            <div className="w-10 h-10 rounded-full bg-white/30 flex items-center justify-center shrink-0 border-2 border-white/40">
-              <User size={18} className="text-white" />
+            <div className="w-8.5 h-8.5 rounded-lg bg-gradient-to-br from-brand-500 to-brand-800 flex items-center justify-center shrink-0 text-white text-[12px] font-bold">
+              J
             </div>
             {!collapsed && (
-              <div className="text-left min-w-0 flex flex-col items-start">
-                <div className="flex items-center gap-2 w-full">
-                  <p className="text-[15px] font-bold text-white truncate max-w-[100px]">Journalist</p>
-                  <span className="inline-flex items-center gap-1 bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+              <div className="text-left min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-[12.5px] font-semibold text-white truncate">Journalist</p>
+                  <span className="text-[8.5px] font-bold text-white/50 bg-white/10 px-1.5 py-px rounded uppercase tracking-wider">
                     Free
                   </span>
                 </div>
-                <p className="text-[12px] text-white/80 truncate w-full">journalist@sinai.lk</p>
+                <p className="text-[10.5px] text-white/40 truncate">journalist@sinai.lk</p>
               </div>
             )}
           </button>
 
-          {/* Profile dropdown */}
           {profileOpen && (
             <>
               <div className="fixed inset-0 z-50" onClick={() => setProfileOpen(false)} />
-              <div className={`absolute ${collapsed ? 'left-full ml-2' : 'left-4 right-4'} bottom-[6rem] z-50 bg-white rounded-xl shadow-xl py-2 border border-gray-100`}>
-                <button
-                  id="profile-view-btn"
-                  onClick={() => {
-                    onSelectTool('profile');
-                    setProfileOpen(false);
-                    if (window.innerWidth < 1024) onToggle();
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-[14px] font-medium text-gray-700 hover:bg-gray-50 hover:text-red-600 cursor-pointer transition-colors"
-                >
-                  <User size={18} strokeWidth={2} />
-                  <span>View Profile</span>
-                </button>
-                <button
-                  id="profile-upgrade-btn"
-                  onClick={() => {
-                    onSelectTool('plans');
-                    setProfileOpen(false);
-                    if (window.innerWidth < 1024) onToggle();
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-[14px] font-medium text-gray-700 hover:bg-gray-50 hover:text-red-600 cursor-pointer transition-colors"
-                >
-                  <Zap size={18} strokeWidth={2} />
-                  <span>Upgrade Plan</span>
-                </button>
-                <button
-                  id="profile-settings-btn"
-                  onClick={() => {
-                    onSelectTool('settings');
-                    setProfileOpen(false);
-                    if (window.innerWidth < 1024) onToggle();
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-[14px] font-medium text-gray-700 hover:bg-gray-50 hover:text-red-600 cursor-pointer transition-colors"
-                >
-                  <Settings size={18} strokeWidth={2} />
-                  <span>Settings</span>
-                </button>
-                <div className="h-px bg-gray-100 my-1 mx-2" />
-                <button
-                  id="profile-logout-btn"
-                  className="w-full flex items-center gap-3 px-4 py-2 text-[14px] font-medium text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
-                >
-                  <LogOut size={18} strokeWidth={2} />
-                  <span>Sign Out</span>
-                </button>
+              <div className={`absolute ${collapsed ? 'left-full ml-2 w-48' : 'left-3.5 right-3.5'} bottom-[4.25rem] z-50
+                bg-white rounded-xl shadow-pop py-1.5 border border-ink-200/80
+                animate-in fade-in slide-in-from-bottom-1 duration-150`}>
+                {[
+                  { id: 'profile-view-btn',     label: 'View profile', icon: User, tool: 'profile' },
+                  { id: 'profile-upgrade-btn',  label: 'Plans',        icon: Zap,  tool: 'plans' },
+                  { id: 'profile-settings-btn', label: 'Settings',     icon: Settings, tool: 'settings' },
+                ].map(({ id, label, icon: Icon, tool }) => (
+                  <button
+                    key={id}
+                    id={id}
+                    onClick={() => {
+                      select(tool);
+                      setProfileOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[12.5px] font-medium text-ink-700
+                      hover:bg-ink-50 hover:text-brand-700 cursor-pointer transition-colors"
+                  >
+                    <Icon size={15} strokeWidth={2} className="text-ink-400" />
+                    <span>{label}</span>
+                  </button>
+                ))}
               </div>
             </>
           )}

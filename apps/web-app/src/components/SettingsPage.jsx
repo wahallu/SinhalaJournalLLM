@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { ArrowLeft, Globe, Sliders, RotateCcw, CheckCircle2, Info } from 'lucide-react';
+import { ArrowLeft, Globe, Sliders, RotateCcw, CheckCircle2, Info, Settings as SettingsIcon } from 'lucide-react';
+import PageHeader from './ui/PageHeader';
+import ActionButton from './ui/ActionButton';
+import { Card } from './ui/Card';
+import { DEFAULT_API_BASE } from '../services/api';
 
 function getSettings() {
   try {
@@ -20,7 +24,30 @@ const DEFAULT_SETTINGS = {
   headlineCount: 5,
 };
 
-export default function SettingsPage({ onBack }) {
+const LABEL_CLASS = 'block text-[12.5px] font-semibold text-ink-700 mb-1.5';
+const INPUT_CLASS = `w-full px-3.5 py-2.5 text-[14px] text-ink-800 border border-ink-200 rounded-xl bg-white
+  placeholder:text-ink-400 transition-all duration-150
+  focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]`;
+const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer`;
+
+function SettingsSection({ icon: Icon, title, description, children }) {
+  return (
+    <Card className="p-5 sm:p-6">
+      <div className="flex items-start gap-3 mb-5">
+        <div className="w-8.5 h-8.5 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
+          <Icon size={15} className="text-brand-600" strokeWidth={2.25} />
+        </div>
+        <div>
+          <h2 className="text-[13.5px] font-bold text-ink-900">{title}</h2>
+          {description && <p className="text-[11.5px] text-ink-500 mt-0.5">{description}</p>}
+        </div>
+      </div>
+      {children}
+    </Card>
+  );
+}
+
+export default function SettingsPage({ onBack, onDefaultsChange }) {
   const [settings, setSettings] = useState(() => ({
     ...DEFAULT_SETTINGS,
     ...getSettings(),
@@ -34,6 +61,7 @@ export default function SettingsPage({ onBack }) {
 
   const handleSave = () => {
     saveSettings(settings);
+    onDefaultsChange?.(settings);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -43,75 +71,55 @@ export default function SettingsPage({ onBack }) {
     setSaved(false);
   };
 
-  const labelClass = 'block text-sm font-medium text-gray-600 mb-1.5';
-  const inputClass =
-    'w-full px-4 py-3 text-[15px] border border-gray-200 rounded-xl focus:outline-none focus:border-[#cd191a]/50 focus:ring-2 focus:ring-[#cd191a]/10 transition-all duration-150 bg-white';
-  const selectClass = `${inputClass} cursor-pointer`;
-  const hintClass = 'flex items-center gap-1.5 text-xs text-gray-400 mt-1.5';
-
   return (
-    <div className="max-w-xl">
-      {/* Back button header */}
-      <div className="flex items-center gap-3 mb-8">
-        <button
-          id="settings-back"
-          onClick={onBack}
-          className="flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 text-gray-400
-            hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50
-            transition-all duration-150 cursor-pointer shrink-0"
-          title="Back to Dashboard"
+    <div>
+      <PageHeader
+        icon={SettingsIcon}
+        title="Settings"
+        description="Tool defaults and API connection."
+        actions={
+          <ActionButton id="settings-back" size="sm" variant="ghost" icon={ArrowLeft} onClick={onBack}>
+            Dashboard
+          </ActionButton>
+        }
+      />
+
+      <div className="space-y-4">
+        {/* API configuration */}
+        <SettingsSection
+          icon={Globe}
+          title="API configuration"
+          description="Where SinAi sends grammar, headline, rewrite, and summary requests."
         >
-          <ArrowLeft size={17} strokeWidth={2.5} />
-        </button>
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 leading-tight">Settings</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Configure tool defaults and API connection</p>
-        </div>
-      </div>
+          <label htmlFor="api-url" className={LABEL_CLASS}>API base URL</label>
+          <input
+            id="api-url"
+            type="url"
+            value={settings.apiBaseUrl}
+            onChange={(e) => update('apiBaseUrl', e.target.value)}
+            placeholder={DEFAULT_API_BASE}
+            className={INPUT_CLASS}
+          />
+          <p className="flex items-center gap-1.5 text-[11.5px] text-ink-500 mt-2">
+            <Info size={11} className="shrink-0" />
+            Leave empty to use the default hosted endpoint.
+          </p>
+        </SettingsSection>
 
-      <div className="space-y-7">
-        {/* API Configuration */}
-        <section className="p-5 rounded-2xl border border-gray-100 bg-gray-50/50">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-              <Globe size={14} className="text-blue-500" />
-            </div>
-            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">API Configuration</h2>
-          </div>
-          <div>
-            <label htmlFor="api-url" className={labelClass}>API Base URL</label>
-            <input
-              id="api-url"
-              type="url"
-              value={settings.apiBaseUrl}
-              onChange={(e) => update('apiBaseUrl', e.target.value)}
-              placeholder="http://localhost:8000/api"
-              className={`${inputClass} placeholder-gray-300`}
-            />
-            <p className={hintClass}>
-              <Info size={11} />
-              Leave empty to use the default endpoint
-            </p>
-          </div>
-        </section>
-
-        {/* Default Tool Settings */}
-        <section className="p-5 rounded-2xl border border-gray-100 bg-gray-50/50">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center">
-              <Sliders size={14} className="text-purple-500" />
-            </div>
-            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Default Tool Settings</h2>
-          </div>
-
+        {/* Tool defaults */}
+        <SettingsSection
+          icon={Sliders}
+          title="Tool defaults"
+          description="Starting values used when you open each writing tool."
+        >
           <div className="space-y-4">
             <div>
-              <label htmlFor="default-tone" className={labelClass}>Default Tone — Style Rewriter</label>
+              <label htmlFor="default-tone" className={LABEL_CLASS}>Default tone — Style Rewriter</label>
               <select
                 id="default-tone"
                 value={settings.defaultTone}
                 onChange={(e) => update('defaultTone', e.target.value)}
-                className={selectClass}
+                className={SELECT_CLASS}
               >
                 <option value="formal">Formal</option>
                 <option value="editorial">Editorial</option>
@@ -119,14 +127,14 @@ export default function SettingsPage({ onBack }) {
               </select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="default-length" className={labelClass}>Default Summary Length</label>
+                <label htmlFor="default-length" className={LABEL_CLASS}>Default summary length</label>
                 <select
                   id="default-length"
                   value={settings.defaultLength}
                   onChange={(e) => update('defaultLength', e.target.value)}
-                  className={selectClass}
+                  className={SELECT_CLASS}
                 >
                   <option value="short">Short</option>
                   <option value="medium">Medium</option>
@@ -134,53 +142,37 @@ export default function SettingsPage({ onBack }) {
               </div>
 
               <div>
-                <label htmlFor="headline-count" className={labelClass}>Default Headline Count</label>
+                <label htmlFor="headline-count" className={LABEL_CLASS}>Default headline count</label>
                 <select
                   id="headline-count"
                   value={settings.headlineCount}
                   onChange={(e) => update('headlineCount', Number(e.target.value))}
-                  className={selectClass}
+                  className={SELECT_CLASS}
                 >
-                  <option value={3}>3 Headlines</option>
-                  <option value={5}>5 Headlines</option>
-                  <option value={7}>7 Headlines</option>
+                  <option value={3}>3 headlines</option>
+                  <option value={5}>5 headlines</option>
+                  <option value={7}>7 headlines</option>
                 </select>
               </div>
             </div>
           </div>
-        </section>
+        </SettingsSection>
 
-        <hr className="border-gray-100" />
-
-        <div className="flex items-center gap-3">
-          <button
+        {/* Actions */}
+        <div className="flex items-center gap-2.5 pt-1">
+          <ActionButton
             id="save-settings"
+            variant="primary"
+            size="lg"
+            icon={saved ? CheckCircle2 : undefined}
             onClick={handleSave}
-            className={`flex items-center gap-2 px-6 py-2.5 text-white text-sm font-semibold rounded-xl
-              active:scale-[0.98] transition-all duration-150 cursor-pointer shadow-sm
-              ${saved
-                ? 'bg-emerald-500 hover:bg-emerald-600'
-                : 'bg-[#cd191a] hover:bg-[#b01517]'}`}
+            className={saved ? '!bg-emerald-500 hover:!bg-emerald-600 !shadow-emerald-500/25' : ''}
           >
-            {saved ? (
-              <>
-                <CheckCircle2 size={15} />
-                Saved
-              </>
-            ) : (
-              'Save Settings'
-            )}
-          </button>
-          <button
-            id="reset-settings"
-            onClick={handleReset}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-400 rounded-xl
-              hover:text-gray-600 hover:bg-gray-50 border border-transparent hover:border-gray-200
-              transition-all duration-150 cursor-pointer"
-          >
-            <RotateCcw size={14} />
-            Reset Defaults
-          </button>
+            {saved ? 'Saved' : 'Save settings'}
+          </ActionButton>
+          <ActionButton id="reset-settings" variant="ghost" size="lg" icon={RotateCcw} onClick={handleReset}>
+            Reset defaults
+          </ActionButton>
         </div>
       </div>
     </div>

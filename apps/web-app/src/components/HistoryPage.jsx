@@ -1,179 +1,195 @@
 import { useState } from 'react';
-import { Clock, SpellCheck, Newspaper, PenLine, FileText, Trash2, ArrowLeft, Search } from 'lucide-react';
+import { Clock, Trash2, ArrowLeft, Search, ArrowUpRight, History as HistoryIcon, CornerDownRight } from 'lucide-react';
+import PageHeader from './ui/PageHeader';
+import ActionButton from './ui/ActionButton';
+import EmptyState from './ui/EmptyState';
+import CopyButton from './ui/CopyButton';
+import { Card } from './ui/Card';
+import { TOOL_META } from '../lib/toolMeta';
+import { getHistory, clearHistory } from '../lib/history';
 
-const TOOL_ICONS = {
-  grammar: SpellCheck,
-  headlines: Newspaper,
-  rewriter: PenLine,
-  summarizer: FileText,
-};
-
-const TOOL_LABELS = {
-  grammar: 'Grammar Checker',
-  headlines: 'Headline Generator',
-  rewriter: 'Style Rewriter',
-  summarizer: 'News Summarizer',
-};
-
-const TOOL_COLORS = {
-  grammar: 'bg-red-50 text-red-500',
-  headlines: 'bg-orange-50 text-orange-500',
-  rewriter: 'bg-purple-50 text-purple-500',
-  summarizer: 'bg-cyan-50 text-cyan-500',
-};
-
-function getHistory() {
-  try {
-    return JSON.parse(localStorage.getItem('sinai_history') || '[]');
-  } catch {
-    return [];
-  }
+function formatTime(iso) {
+  const d = new Date(iso);
+  const diff = Date.now() - d.getTime();
+  if (diff < 60000)    return 'Just now';
+  if (diff < 3600000)  return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function saveToHistory(tool, input) {
-  const history = getHistory();
-  history.unshift({
-    id: Date.now(),
-    tool,
-    input: input.slice(0, 200),
-    timestamp: new Date().toISOString(),
-  });
-  localStorage.setItem('sinai_history', JSON.stringify(history.slice(0, 50)));
+function dayGroup(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const t = d.getTime();
+  if (t >= startOfToday) return 'Today';
+  if (t >= startOfToday - 86400000) return 'Yesterday';
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export function clearHistory() {
-  localStorage.removeItem('sinai_history');
-}
-
-export default function HistoryPage({ onSelectTool, onBack }) {
+export default function HistoryPage({ onRerun, onBack }) {
   const [history, setHistory] = useState(getHistory);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const filtered = history
     .filter((h) => filter === 'all' || h.tool === filter)
-    .filter((h) => !search || h.input.toLowerCase().includes(search.toLowerCase()));
+    .filter((h) => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return h.input.toLowerCase().includes(q) || (h.result || '').toLowerCase().includes(q);
+    });
+
+  // Group entries by day, preserving order
+  const groups = [];
+  filtered.forEach((item) => {
+    const g = dayGroup(item.timestamp);
+    const last = groups[groups.length - 1];
+    if (last && last.label === g) last.items.push(item);
+    else groups.push({ label: g, items: [item] });
+  });
 
   const handleClear = () => {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      setTimeout(() => setConfirmClear(false), 3500);
+      return;
+    }
     clearHistory();
     setHistory([]);
-  };
-
-  const formatTime = (iso) => {
-    const d = new Date(iso);
-    const now = new Date();
-    const diff = now - d;
-    if (diff < 60000)    return 'Just now';
-    if (diff < 3600000)  return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    setConfirmClear(false);
   };
 
   const allFilters = [
     { id: 'all', label: 'All' },
-    ...Object.entries(TOOL_LABELS).map(([id, label]) => ({ id, label })),
+    ...Object.values(TOOL_META).map(({ id, label }) => ({ id, label })),
   ];
 
   return (
-    <div className="max-w-2xl">
-      {/* Back button header */}
-      <div className="flex items-center gap-3 mb-8">
-        <button
-          id="history-back"
-          onClick={onBack}
-          className="flex items-center justify-center w-9 h-9 rounded-xl border border-gray-200 text-gray-400
-            hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50
-            transition-all duration-150 cursor-pointer shrink-0"
-          title="Back to Dashboard"
-        >
-          <ArrowLeft size={17} strokeWidth={2.5} />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-semibold text-gray-900 leading-tight">History</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{history.length} saved entries</p>
-        </div>
-        {history.length > 0 && (
-          <button
-            id="clear-history"
-            onClick={handleClear}
-            className="flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-gray-400 rounded-xl
-              hover:text-red-500 hover:bg-red-50 border border-transparent hover:border-red-100
-              transition-all duration-150 cursor-pointer"
-          >
-            <Trash2 size={15} />
-            <span className="hidden sm:inline">Clear all</span>
-          </button>
-        )}
-      </div>
+    <div>
+      <PageHeader
+        icon={HistoryIcon}
+        title="History"
+        description={`${history.length} saved ${history.length === 1 ? 'entry' : 'entries'} — stored locally in this browser.`}
+        actions={
+          <>
+            <ActionButton id="history-back" size="sm" variant="ghost" icon={ArrowLeft} onClick={onBack}>
+              Dashboard
+            </ActionButton>
+            {history.length > 0 && (
+              <ActionButton
+                id="clear-history"
+                size="sm"
+                variant={confirmClear ? 'primary' : 'danger'}
+                icon={Trash2}
+                onClick={handleClear}
+              >
+                {confirmClear ? 'Confirm clear?' : 'Clear all'}
+              </ActionButton>
+            )}
+          </>
+        }
+      />
 
-      {/* Search bar */}
-      <div className="relative mb-4">
-        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
+      {/* Search */}
+      <div className="relative mb-3">
+        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400 pointer-events-none" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search history…"
-          className="w-full pl-9 pr-4 py-2.5 text-[14px] border border-gray-200 rounded-xl
-            focus:outline-none focus:border-gray-300 focus:ring-2 focus:ring-gray-100
-            placeholder-gray-300 bg-white transition-all duration-150"
+          placeholder="Search inputs and results…"
+          aria-label="Search history"
+          className="w-full pl-9.5 pr-4 py-2.5 text-[13.5px] border border-ink-200 rounded-xl bg-white
+            placeholder:text-ink-400 transition-all duration-150
+            focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]"
         />
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1">
+      {/* Filter chips */}
+      <div className="flex gap-1.5 mb-6 overflow-x-auto pb-1" role="tablist" aria-label="Filter by tool">
         {allFilters.map(({ id, label }) => (
           <button
             key={id}
             onClick={() => setFilter(id)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap cursor-pointer
+            role="tab"
+            aria-selected={filter === id}
+            className={`px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold whitespace-nowrap cursor-pointer
               transition-all duration-150 border
               ${filter === id
-                ? 'bg-gray-900 text-white border-gray-900'
-                : 'text-gray-400 hover:text-gray-700 hover:bg-gray-50 border-transparent'}`}
+                ? 'bg-ink-900 text-white border-ink-900'
+                : 'text-ink-500 bg-white hover:text-ink-800 hover:bg-ink-50 border-ink-200'}`}
           >
             {label}
           </button>
         ))}
       </div>
 
-      {/* History list */}
+      {/* Feed */}
       {filtered.length === 0 ? (
-        <div className="text-center py-20 border border-dashed border-gray-200 rounded-2xl">
-          <Clock size={36} className="mx-auto text-gray-200 mb-3" />
-          <p className="text-base font-medium text-gray-400">No history found</p>
-          <p className="text-sm text-gray-300 mt-1">
-            {search ? 'Try a different search term' : 'Run a tool to see your history here'}
-          </p>
+        <div className="rounded-2xl border border-dashed border-ink-300/70">
+          <EmptyState
+            icon={Clock}
+            title={search || filter !== 'all' ? 'No matching entries' : 'No history yet'}
+            description={
+              search
+                ? 'Try a different search term or clear the filters.'
+                : 'Run any writing tool and your work will be saved here automatically.'
+            }
+          />
         </div>
       ) : (
-        <div className="space-y-1">
-          {filtered.map((item) => {
-            const Icon = TOOL_ICONS[item.tool] || Clock;
-            const colorClass = TOOL_COLORS[item.tool] || 'bg-gray-100 text-gray-400';
-            return (
-              <button
-                key={item.id}
-                onClick={() => onSelectTool(item.tool)}
-                className="w-full flex items-start gap-4 px-4 py-3.5 rounded-xl group
-                  hover:bg-gray-50 border border-transparent hover:border-gray-100
-                  transition-all duration-150 text-left cursor-pointer"
-              >
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${colorClass}`}>
-                  <Icon size={16} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold text-gray-600">
-                      {TOOL_LABELS[item.tool] || item.tool}
-                    </span>
-                    <span className="text-xs text-gray-300 shrink-0">{formatTime(item.timestamp)}</span>
-                  </div>
-                  <p className="text-[14px] text-gray-700 mt-0.5 truncate group-hover:text-gray-900 transition-colors">{item.input}</p>
-                </div>
-              </button>
-            );
-          })}
+        <div className="space-y-6">
+          {groups.map(({ label, items }) => (
+            <section key={label} aria-label={label}>
+              <h2 className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.14em] mb-2 px-1">
+                {label}
+              </h2>
+              <div className="space-y-2">
+                {items.map((item) => {
+                  const meta = TOOL_META[item.tool];
+                  const Icon = meta?.icon ?? Clock;
+                  return (
+                    <Card key={item.id} hover className="group px-4 py-3.5">
+                      <div className="flex items-start gap-3.5">
+                        <div className="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0 mt-0.5">
+                          <Icon size={15} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">
+                              {meta?.label ?? item.tool}
+                            </span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span className="text-[11px] text-ink-400 tabular-nums mr-1">{formatTime(item.timestamp)}</span>
+                              <CopyButton text={item.input} label="" className="!px-1.5 opacity-0 group-hover:opacity-100" />
+                              <button
+                                onClick={() => onRerun?.(item.tool, item.input)}
+                                title="Reopen in tool"
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11.5px] font-semibold
+                                  text-ink-500 hover:text-brand-700 hover:bg-brand-50 cursor-pointer
+                                  transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                              >
+                                Reopen <ArrowUpRight size={12} />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-[13.5px] text-ink-800 mt-1 line-clamp-2 leading-relaxed">{item.input}</p>
+                          {item.result && (
+                            <p className="flex items-start gap-1.5 text-[12px] text-ink-500 mt-1.5 line-clamp-1">
+                              <CornerDownRight size={11} className="shrink-0 mt-0.5 text-ink-300" />
+                              {item.result}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
     </div>

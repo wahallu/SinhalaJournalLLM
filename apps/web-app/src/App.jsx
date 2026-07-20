@@ -1,6 +1,9 @@
 import { useState, useCallback } from 'react';
+import { Menu } from 'lucide-react';
 import Sidebar from './components/Sidebar';
-import ToolHeader from './components/ToolHeader';
+import { TOOL_META } from './lib/toolMeta';
+import PageHeader from './components/ui/PageHeader';
+import StatusBadge from './components/ui/StatusBadge';
 import InputBox from './components/InputBox';
 import OutputPanel from './components/OutputPanel';
 import HeadlineOutputPanel from './components/HeadlineOutputPanel';
@@ -14,52 +17,89 @@ import SinLLamaPage from './components/SinLLamaPage';
 import ModelComparison from './components/ModelComparison';
 import { useToolProcessor } from './hooks/useToolProcessor';
 import { checkGrammar, generateHeadlines, rewriteStyle, summarizeNews } from './services/api';
-import { saveToHistory } from './components/HistoryPage';
+import { saveToHistory } from './lib/history';
 
 const TOOL_CONFIG = {
   grammar: {
-    title: 'Grammar Checker',
-    description: 'Check and correct Sinhala grammar',
+    title: TOOL_META.grammar.label,
+    description: 'Detect and fix Sinhala spelling, grammar, and agreement issues before publishing.',
     placeholder: 'මෙහි ඔබගේ සිංහල වාක්‍යය ඇතුළත් කරන්න…',
     actionLabel: 'Correct',
     outputType: 'text',
+    icon: TOOL_META.grammar.icon,
+    helper: 'Paste or type Sinhala text to check grammar',
+    sample: TOOL_META.grammar.sample,
   },
   headlines: {
-    title: 'Headline Generator',
-    description: 'Generate headline options from an article',
+    title: TOOL_META.headlines.label,
+    description: 'Generate ranked Sinhala headline candidates from a full article.',
     placeholder: 'මෙහි ප්‍රවෘත්ති ලිපිය ඇතුළත් කරන්න…',
     actionLabel: 'Generate',
     outputType: 'headlines',
+    icon: TOOL_META.headlines.icon,
+    helper: 'Paste the full article to generate headlines',
+    sample: TOOL_META.headlines.sample,
   },
   rewriter: {
-    title: 'Style Rewriter',
-    description: 'Rewrite text in a different tone',
+    title: TOOL_META.rewriter.label,
+    description: 'Rewrite copy for a different desk — formal, editorial, sports, feature, or youth.',
     placeholder: 'නැවත ලිවීමට අවශ්‍ය පෙළ ඇතුළත් කරන්න…',
     actionLabel: 'Rewrite',
     outputType: 'text',
+    icon: TOOL_META.rewriter.icon,
+    helper: 'Paste text to rewrite in a different tone',
+    sample: TOOL_META.rewriter.sample,
   },
   summarizer: {
-    title: 'News Summarizer',
-    description: 'Summarize long-form articles',
+    title: TOOL_META.summarizer.label,
+    description: 'Condense long-form Sinhala articles into publication-ready summaries.',
     placeholder: 'සාරාංශ කිරීමට ලිපිය ඇතුළත් කරන්න…',
     actionLabel: 'Summarize',
     outputType: 'text',
+    icon: TOOL_META.summarizer.icon,
+    helper: 'Paste the article to summarize',
+    sample: TOOL_META.summarizer.sample,
   },
 };
 
 const TOOL_IDS = ['grammar', 'headlines', 'rewriter', 'summarizer', 'plans', 'sinllama', 'comparison'];
 
+const MAX_WIDTHS = {
+  dashboard: 'max-w-7xl',
+  grammar: 'max-w-7xl',
+  headlines: 'max-w-7xl',
+  rewriter: 'max-w-7xl',
+  summarizer: 'max-w-7xl',
+  comparison: 'max-w-7xl',
+  sinllama: 'max-w-5xl',
+  history: 'max-w-4xl',
+  settings: 'max-w-3xl',
+  profile: 'max-w-3xl',
+  plans: 'max-w-6xl',
+};
+
+function loadDefaultSettings() {
+  let stored = {};
+  try {
+    stored = JSON.parse(localStorage.getItem('sinai_settings') || '{}');
+  } catch {
+    stored = {};
+  }
+  return {
+    tone: stored.defaultTone || 'formal',
+    length: stored.defaultLength || 'short',
+    count: stored.headlineCount || 3,
+    headlineStyle: 'formal',
+    headlineMaxLength: 80,
+    summaryView: 'paragraph',
+  };
+}
+
 function App() {
   const [activeTool, setActiveTool] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [settings, setSettings] = useState({
-    tone: 'formal',
-    length: 'short',
-    count: 3,
-    headlineStyle: 'formal',
-    headlineMaxLength: 80,
-  });
+  const [settings, setSettings] = useState(loadDefaultSettings);
 
   const { input, setInput, output, loading, error, process, clear } = useToolProcessor();
 
@@ -69,6 +109,23 @@ function App() {
       clear();
     }
   }, [clear]);
+
+  // Open a tool with text prefilled (dashboard quick actions, history rerun)
+  const handleQuickStart = useCallback((toolId, text = '') => {
+    clear();
+    setActiveTool(toolId);
+    if (text) setInput(text);
+  }, [clear, setInput]);
+
+  // Settings page saved new defaults — reflect them in the live tool settings
+  const handleDefaultsChange = useCallback((d) => {
+    setSettings((prev) => ({
+      ...prev,
+      tone: d.defaultTone ?? prev.tone,
+      length: d.defaultLength ?? prev.length,
+      count: d.headlineCount ?? prev.count,
+    }));
+  }, []);
 
   const handleRun = useCallback(() => {
     if (!input.trim()) return;
@@ -103,16 +160,22 @@ function App() {
   }, [activeTool, input, settings, process]);
 
   const config = TOOL_CONFIG[activeTool];
-  const isTool = TOOL_IDS.includes(activeTool);
+  const isChat = activeTool === 'sinllama';
 
   const renderContent = () => {
     switch (activeTool) {
       case 'dashboard':
-        return <Dashboard onSelectTool={handleSelectTool} />;
+        return <Dashboard onSelectTool={handleSelectTool} onQuickStart={handleQuickStart} />;
       case 'history':
-        return <HistoryPage onSelectTool={handleSelectTool} onBack={() => handleSelectTool('dashboard')} />;
+        return (
+          <HistoryPage
+            onSelectTool={handleSelectTool}
+            onRerun={handleQuickStart}
+            onBack={() => handleSelectTool('dashboard')}
+          />
+        );
       case 'settings':
-        return <SettingsPage onBack={() => handleSelectTool('dashboard')} />;
+        return <SettingsPage onBack={() => handleSelectTool('dashboard')} onDefaultsChange={handleDefaultsChange} />;
       case 'profile':
         return <ProfilePage onBack={() => handleSelectTool('dashboard')} />;
       case 'plans':
@@ -125,93 +188,72 @@ function App() {
         if (!config) return null;
         return (
           <>
-            <ToolHeader title={config.title} description={config.description} />
-
-            <InputBox
-              value={input}
-              onChange={setInput}
-              placeholder={config.placeholder}
-              onSubmit={handleRun}
-              disabled={loading}
-              activeTool={activeTool}
+            <PageHeader
+              icon={config.icon}
+              title={config.title}
+              description={config.description}
+              badge={<StatusBadge status="brand" label="SinLLaMA adapter" />}
             />
 
-            <div className="flex items-center gap-3 mt-4 justify-end w-full">
-              <button
-                id="btn-run"
-                onClick={handleRun}
-                disabled={loading || !input.trim()}
-                className={`px-8 py-2 text-white text-[15px] font-semibold rounded-full shadow-sm
-                  ${getButtonColor(activeTool)} active:scale-[0.98]
-                  disabled:opacity-40 disabled:cursor-not-allowed
-                  transition-all duration-100 cursor-pointer`}
-              >
-                {config.actionLabel}
-              </button>
-              <button
-                id="btn-clear"
-                onClick={clear}
-                disabled={loading}
-                className={`px-6 py-2 text-[15px] font-semibold text-white rounded-full shadow-sm
-                  ${getButtonColor(activeTool)} active:scale-[0.98]
-                  disabled:opacity-40 disabled:cursor-not-allowed
-                  transition-all duration-100 cursor-pointer`}
-              >
-                Clear
-              </button>
-            </div>
+            <div className="tool-grid">
+              <div className="tg-input">
+                <InputBox
+                  value={input}
+                  onChange={setInput}
+                  placeholder={config.placeholder}
+                  onSubmit={handleRun}
+                  disabled={loading}
+                  activeTool={activeTool}
+                  helper={config.helper}
+                  sample={config.sample}
+                  actionLabel={config.actionLabel}
+                  loading={loading}
+                  onRun={handleRun}
+                  onClear={clear}
+                />
+              </div>
 
-            {/* Use dedicated panel for headlines, generic for others */}
-            {activeTool === 'headlines' ? (
-              <HeadlineOutputPanel
-                output={output}
-                loading={loading}
-                error={error}
-                articleText={input}
-              />
-            ) : (
-              <OutputPanel
-                output={output}
-                loading={loading}
-                error={error}
-                type={config.outputType}
-              />
-            )}
+              <div className="tg-panel">
+                <div className="xl:sticky xl:top-6 space-y-4">
+                  <RightPanel
+                    activeTool={activeTool}
+                    settings={settings}
+                    onSettingsChange={setSettings}
+                    output={output}
+                    loading={loading}
+                    input={input}
+                  />
+                </div>
+              </div>
+
+              <div className="tg-output">
+                {activeTool === 'headlines' ? (
+                  <HeadlineOutputPanel
+                    output={output}
+                    loading={loading}
+                    error={error}
+                    articleText={input}
+                  />
+                ) : (
+                  <OutputPanel
+                    output={output}
+                    loading={loading}
+                    error={error}
+                    type={config.outputType}
+                    activeTool={activeTool}
+                    input={input}
+                    summaryView={settings.summaryView}
+                  />
+                )}
+              </div>
+            </div>
           </>
         );
     }
   };
 
-  const getBgColor = () => {
-    return 'bg-[#cd191a]';
-  };
-
-  const getButtonColor = (tool) => {
-    switch (tool) {
-      case 'dashboard': return 'bg-[#cd191a] hover:bg-[#cd191a]';
-      case 'grammar': return 'bg-[#cd191a] hover:bg-[#cd191a]';
-      case 'headlines': return 'bg-[#cd191a] hover:bg-[#cd191a]';
-      case 'rewriter': return 'bg-[#cd191a] hover:bg-[#cd191a]';
-      case 'summarizer': return 'bg-[#cd191a] hover:bg-[#cd191a]';
-      case 'history': return 'bg-[#cd191a] hover:bg-[#cd191a]';
-      case 'settings': return 'bg-[#cd191a] hover:bg-[#cd191a]';
-      case 'profile': return 'bg-[#cd191a] hover:bg-[#cd191a]';
-      case 'plans': return 'bg-[#cd191a] hover:bg-[#cd191a]';
-      default: return 'bg-[#cd191a] hover:bg-[#cd191a]';
-    }
-  };
-
   return (
-    <div className={`relative h-full flex ${getBgColor()} transition-colors duration-500 overflow-hidden`}>
-      <div
-        className="pointer-events-none absolute inset-0 z-0 bg-center bg-repeat"
-        style={{
-          backgroundImage: "url('/t.svg')",
-          backgroundSize: '2840px auto',
-          opacity: 0.18,
-        }}
-      />
-
+    <div className="relative h-full flex bg-canvas overflow-hidden">
       <Sidebar
         activeTool={activeTool}
         onSelectTool={handleSelectTool}
@@ -224,29 +266,40 @@ function App() {
       {/* Desktop sidebar spacer — gives the fixed sidebar its flex-row space on lg+ */}
       <div className={`
         hidden lg:block shrink-0 transition-all duration-200
-        ${sidebarCollapsed ? 'w-20' : 'w-[20rem]'}
+        ${sidebarCollapsed ? 'w-[4.75rem]' : 'w-[17rem]'}
       `} />
 
-      <main className="relative z-10 flex-1 flex flex-col bg-[#f8fafc] rounded-[2rem] lg:rounded-tl-[3rem] lg:rounded-tr-none lg:rounded-bl-none lg:rounded-br-none my-2 mx-2 sm:my-4 sm:mr-4 sm:ml-0 shadow-2xl overflow-hidden">
-        <div className="flex-1 flex min-w-0 overflow-y-auto">
-          <div className="flex-1 min-w-0 flex justify-center">
-            <div className={`w-full ${activeTool === 'comparison' ? 'max-w-6xl' : 'max-w-4xl'} px-4 pt-16 pb-6 lg:pt-8 sm:px-8 sm:py-8 transition-all duration-300`}>
-              {renderContent()}
-            </div>
+      <div className="flex-1 min-w-0 h-full flex flex-col">
+        {/* Mobile top bar */}
+        <header className="lg:hidden sticky top-0 z-30 h-14 shrink-0 flex items-center gap-3 px-4
+          bg-white/85 backdrop-blur border-b border-ink-200/70">
+          <button
+            id="sidebar-toggle"
+            onClick={() => setSidebarOpen((v) => !v)}
+            className="flex items-center justify-center w-9 h-9 rounded-lg text-ink-600 hover:bg-ink-100 cursor-pointer"
+            aria-label="Open navigation"
+          >
+            <Menu size={19} />
+          </button>
+          <div className="flex items-center gap-2.5">
+            <img src="/logored.svg" alt="" className="w-6 h-6 object-contain" />
+            <span className="text-[17px] text-ink-900 tracking-tight" style={{ fontFamily: "'Gwen', 'Satoshi', sans-serif" }}>
+              SinAi
+            </span>
           </div>
+        </header>
 
-          {isTool && (
-            <RightPanel
-              activeTool={activeTool}
-              settings={settings}
-              onSettingsChange={setSettings}
-              output={output}
-              loading={loading}
-              input={input}
-            />
-          )}
-        </div>
-      </main>
+        <main className={`flex-1 min-h-0 ${isChat ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
+          <div
+            key={activeTool}
+            className={`mx-auto w-full ${MAX_WIDTHS[activeTool] ?? 'max-w-5xl'} px-4 sm:px-6 lg:px-8 py-6 lg:py-8
+              animate-in fade-in slide-in-from-bottom-2 duration-300
+              ${isChat ? 'flex-1 min-h-0 flex flex-col' : ''}`}
+          >
+            {renderContent()}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

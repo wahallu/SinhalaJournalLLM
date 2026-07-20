@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { Copy, Check } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileSearch, ArrowRight } from 'lucide-react';
+import { Card } from './ui/Card';
+import CopyButton from './ui/CopyButton';
+import { SkeletonLines } from './ui/Skeleton';
 
 /**
  * Generic output panel for grammar, style rewriter, and summarizer tools.
@@ -10,126 +12,144 @@ import { Copy, Check } from 'lucide-react';
  *   - Summarizer: { summary, length }
  */
 
-// Rule → category mapping for grammar corrections
-const RULE_CATEGORY = {
-  spelling:        { label: 'Spelling',     dot: 'bg-red-400',    text: 'text-red-600',    badge: 'bg-red-50 border-red-100 text-red-700' },
-  grammar:         { label: 'Grammar',      dot: 'bg-orange-400', text: 'text-orange-600', badge: 'bg-orange-50 border-orange-100 text-orange-700' },
-  punctuation:     { label: 'Punctuation',  dot: 'bg-yellow-400', text: 'text-yellow-600', badge: 'bg-yellow-50 border-yellow-100 text-yellow-700' },
-  word_order:      { label: 'Word Order',   dot: 'bg-purple-400', text: 'text-purple-600', badge: 'bg-purple-50 border-purple-100 text-purple-700' },
-  agreement:       { label: 'Agreement',    dot: 'bg-blue-400',   text: 'text-blue-600',   badge: 'bg-blue-50 border-blue-100 text-blue-700' },
-  style:           { label: 'Style',        dot: 'bg-teal-400',   text: 'text-teal-600',   badge: 'bg-teal-50 border-teal-100 text-teal-700' },
-};
+/* Wrap each applied correction in a subtle highlight so edits are scannable */
+function renderCorrectedText(text, corrections) {
+  if (!text || !corrections?.length) return text;
+  const found = [];
+  corrections.forEach((c) => {
+    if (!c.corrected) return;
+    const i = text.indexOf(c.corrected);
+    if (i !== -1) found.push([i, c.corrected]);
+  });
+  if (!found.length) return text;
+  found.sort((a, b) => a[0] - b[0]);
 
-function resolveCategory(rule = '') {
-  const lower = rule.toLowerCase();
-  if (lower.includes('spell'))      return RULE_CATEGORY.spelling;
-  if (lower.includes('word_order') || lower.includes('order')) return RULE_CATEGORY.word_order;
-  if (lower.includes('punct'))      return RULE_CATEGORY.punctuation;
-  if (lower.includes('agreement') || lower.includes('concord')) return RULE_CATEGORY.agreement;
-  if (lower.includes('style'))      return RULE_CATEGORY.style;
-  return RULE_CATEGORY.grammar;
+  const nodes = [];
+  let cursor = 0;
+  found.forEach(([i, term], k) => {
+    if (i < cursor) return;
+    if (i > cursor) nodes.push(text.slice(cursor, i));
+    nodes.push(
+      <mark key={k} className="bg-emerald-100/90 text-emerald-900 rounded-[3px] px-0.5">
+        {term}
+      </mark>
+    );
+    cursor = i + term.length;
+  });
+  nodes.push(text.slice(cursor));
+  return nodes;
 }
 
-function CorrectionCard({ correction, index }) {
-  const cat = resolveCategory(correction.rule);
+function splitSentences(text) {
+  return text
+    .split(/(?<=[.!?…])\s+/u)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function ResultLabel({ children }) {
   return (
-    <div className="flex items-start gap-3 px-4 py-3 bg-white border border-gray-100 rounded-xl group hover:border-gray-200 hover:shadow-sm transition-all duration-150">
-      {/* Index dot */}
-      <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${cat.dot}`} />
-
-      <div className="min-w-0 flex-1">
-        {/* Before → After */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[13px] text-gray-400 line-through">{correction.original}</span>
-          <span className="text-gray-300 text-[11px]">→</span>
-          <span className="text-[13px] font-semibold text-gray-800">{correction.corrected}</span>
-        </div>
-
-        {/* Rule label */}
-        {correction.rule && (
-          <p className={`text-[10px] font-medium mt-0.5 uppercase tracking-wider ${cat.text}`}>
-            {correction.rule.replace(/_/g, ' ')}
-          </p>
-        )}
-      </div>
-
-      {/* Category badge */}
-      <span className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cat.badge} uppercase tracking-wide`}>
-        {cat.label}
-      </span>
-    </div>
+    <span className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.14em]">{children}</span>
   );
 }
 
-export default function OutputPanel({ output, loading, error, type }) {
-  const [copied, setCopied] = useState(false);
+function TextCard({ children, muted = false, className = '' }) {
+  return (
+    <Card className={`px-5 py-4 ${muted ? 'bg-ink-50/60' : ''} ${className}`}>
+      <p className={`text-[15px] leading-[1.85] whitespace-pre-wrap ${muted ? 'text-ink-500' : 'text-ink-800'}`}>
+        {children}
+      </p>
+    </Card>
+  );
+}
 
+export default function OutputPanel({ output, loading, error, type, input, summaryView = 'paragraph' }) {
   if (loading) {
     return (
-      <div id="output-loading" className="mt-6 space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-semibold text-gray-300 uppercase tracking-widest">Processing…</span>
+      <div id="output-loading" className="space-y-3">
+        <div className="flex items-center gap-2">
+          <ResultLabel>Processing</ResultLabel>
+          <span className="flex gap-1" aria-hidden="true">
+            {[0, 1, 2].map((n) => (
+              <span
+                key={n}
+                className="w-1 h-1 rounded-full bg-brand-400 animate-subtle-pulse"
+                style={{ animationDelay: `${n * 0.2}s` }}
+              />
+            ))}
+          </span>
         </div>
-        <div className="px-5 py-4 bg-white rounded-xl border border-gray-100 space-y-3">
-          {[100, 92, 97, 88, 45].map((w, i) => (
-            <div
-              key={i}
-              className="h-3.5 rounded-md animate-shimmer"
-              style={{ width: `${w}%`, backgroundSize: '200% 100%' }}
-            />
-          ))}
-        </div>
+        <Card className="px-5 py-5">
+          <SkeletonLines widths={[100, 92, 97, 88, 45]} />
+        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div id="output-error" className="mt-6 px-4 py-3.5 text-[14px] text-red-600 bg-red-50 rounded-xl border border-red-100 flex items-start gap-2">
-        <svg className="w-4 h-4 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
-        <span>{error}</span>
+      <div
+        id="output-error"
+        className="px-4 py-3.5 bg-brand-50 rounded-xl border border-brand-200/70 flex items-start gap-2.5
+          animate-in fade-in slide-in-from-bottom-1 duration-200"
+        role="alert"
+      >
+        <AlertTriangle size={16} className="text-brand-600 shrink-0 mt-0.5" />
+        <div className="min-w-0">
+          <p className="text-[13.5px] font-semibold text-brand-800">Request failed</p>
+          <p className="text-[12.5px] text-brand-700/90 mt-0.5 break-words">{error}</p>
+        </div>
       </div>
     );
   }
 
-  if (!output) return null;
+  if (!output) {
+    return (
+      <div className="rounded-2xl border border-dashed border-ink-300/70 px-6 py-9 text-center">
+        <FileSearch size={22} className="mx-auto text-ink-300 mb-2.5" strokeWidth={1.75} />
+        <p className="text-[13px] font-semibold text-ink-500">Results will appear here</p>
+        <p className="text-[12px] text-ink-400 mt-1">
+          Add Sinhala text above and run the tool to see the output.
+        </p>
+      </div>
+    );
+  }
 
   // Resolve primary display text
   const displayText =
-    output.corrected   ??
-    output.rewritten   ??
-    output.summary     ??
+    output.corrected ??
+    output.rewritten ??
+    output.summary ??
     (typeof output === 'string' ? output : JSON.stringify(output, null, 2));
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(displayText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
 
   const corrections = output.corrections ?? [];
   const correctionCount = output.correction_count ?? corrections.length;
   const isGrammar = type === 'text' && (output.corrected !== undefined || output.corrections !== undefined);
+  const isRewrite = output.rewritten !== undefined;
+  const isSummary = output.summary !== undefined;
   const isPerfect = isGrammar && correctionCount === 0;
+  const originalText = output.original ?? input ?? '';
 
   return (
-    <div id="output-panel" className="mt-6 space-y-3">
+    <div id="output-panel" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
 
       {/* ── Status banner (grammar only) ── */}
       {isGrammar && (
-        <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-[13px] font-medium ${
-          isPerfect
-            ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
-            : 'bg-amber-50 border-amber-100 text-amber-700'
-        }`}>
+        <div
+          className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border text-[13px] font-medium ${
+            isPerfect
+              ? 'bg-emerald-50 border-emerald-200/70 text-emerald-800'
+              : 'bg-amber-50 border-amber-200/70 text-amber-800'
+          }`}
+        >
           {isPerfect ? (
             <>
-              <svg className="w-4 h-4 shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+              <CheckCircle2 size={15} className="shrink-0 text-emerald-500" />
               <span>No grammar issues detected — your text is correct.</span>
             </>
           ) : (
             <>
-              <svg className="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+              <AlertTriangle size={15} className="shrink-0 text-amber-500" />
               <span>
                 <strong>{correctionCount}</strong> correction{correctionCount !== 1 ? 's' : ''} applied to your text.
               </span>
@@ -138,34 +158,78 @@ export default function OutputPanel({ output, loading, error, type }) {
         </div>
       )}
 
-      {/* ── Corrected / result text ── */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-            {isGrammar ? 'Corrected Text' : type === 'summarizer' ? 'Summary' : 'Result'}
-          </span>
-          <button
-            id="copy-output"
-            onClick={handleCopy}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer text-[11px] font-medium"
-            title="Copy to clipboard"
-          >
-            {copied
-              ? <><Check size={13} className="text-emerald-500" /><span className="text-emerald-500">Copied</span></>
-              : <><Copy size={13} /><span>Copy</span></>
-            }
-          </button>
+      {/* ── Before / after (grammar + rewriter) ── */}
+      {(isGrammar && !isPerfect) || isRewrite ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center justify-between mb-2 h-7">
+              <ResultLabel>Original</ResultLabel>
+            </div>
+            <TextCard muted className="h-[calc(100%-2.25rem)]">{originalText}</TextCard>
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center justify-between mb-2 h-7">
+              <span className="inline-flex items-center gap-1.5">
+                <ArrowRight size={12} className="text-ink-400 md:hidden" />
+                <ResultLabel>{isGrammar ? 'Corrected' : 'Rewritten'}</ResultLabel>
+                {isRewrite && output.tone && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-brand-700 bg-brand-50 border border-brand-200/70 rounded-full px-2 py-0.5">
+                    {output.tone}
+                  </span>
+                )}
+              </span>
+              <CopyButton id="copy-output" text={displayText} />
+            </div>
+            <Card className="px-5 py-4 border-emerald-200/60 h-[calc(100%-2.25rem)]">
+              <p className="text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
+                {isGrammar ? renderCorrectedText(displayText, corrections) : displayText}
+              </p>
+            </Card>
+          </div>
         </div>
+      ) : (
+        /* ── Single result card (perfect grammar / summary / fallback) ── */
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <ResultLabel>{isGrammar ? 'Corrected text' : isSummary ? 'Summary' : 'Result'}</ResultLabel>
+              {isSummary && output.length && (
+                <span className="text-[10px] font-bold uppercase tracking-wider text-ink-500 bg-ink-100 rounded-full px-2 py-0.5">
+                  {output.length}
+                </span>
+              )}
+            </div>
+            <CopyButton id="copy-output" text={displayText} />
+          </div>
 
-        <div className="px-5 py-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-[15px] text-gray-800 leading-[1.85] whitespace-pre-wrap">{displayText}</p>
+          <Card className="px-5 py-4">
+            {isSummary && summaryView === 'bullets' ? (
+              <ul className="space-y-2.5">
+                {splitSentences(displayText).map((s, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[15px] leading-[1.7] text-ink-800">
+                    <span className="mt-[0.65em] w-1.5 h-1.5 rounded-full bg-brand-400 shrink-0" aria-hidden="true" />
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[15px] text-ink-800 leading-[1.85] whitespace-pre-wrap">{displayText}</p>
+            )}
+          </Card>
+
+          {/* Compression stat for summaries */}
+          {isSummary && input && displayText && input.length > displayText.length && (
+            <p className="text-[11.5px] text-ink-500 mt-2 tabular-nums">
+              Condensed by {Math.round((1 - displayText.length / input.length) * 100)}% —{' '}
+              {input.length.toLocaleString()} → {displayText.length.toLocaleString()} characters
+            </p>
+          )}
         </div>
-      </div>
-      
-      <p className="text-center text-[11px] font-light text-gray-400 mt-4">
-        Sin Ai can make mistakes. Please double-check responses.
+      )}
+
+      <p className="text-center text-[11px] text-ink-400 pt-1">
+        SinAi can make mistakes. Please double-check responses.
       </p>
-
     </div>
   );
 }

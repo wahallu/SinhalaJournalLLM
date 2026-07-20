@@ -1,14 +1,14 @@
-@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
 
+/* ── Gwen — display face used for the SinAi wordmark ── */
 @font-face {
   font-family: 'Gwen';
   src: url('./assets/font/WEB/WOFF2/Gwen-Trial-Bold.woff2') format('woff2');
   font-weight: bold;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -16,21 +16,49 @@
   src: url('./assets/font/WEB/WOFF2/Gwen-Trial-Regular.woff2') format('woff2');
   font-weight: normal;
   font-style: normal;
-}
-
-@font-face {
-  font-family: 'GwenText';
-  src: url('./assets/font/WEB/WOFF2/GwenText-Trial-Regular.woff2') format('woff2');
-  font-weight: normal;
-  font-style: normal;
+  font-display: swap;
 }
 
 @custom-variant dark (&:is(.dark *));
 
+/* ─────────────────────────────────────────────────────────────
+   SinAi design tokens
+   Brand: single warm-red ramp anchored on #cd191a.
+   Neutrals: "ink" — one warm-tinted gray family used everywhere.
+   ───────────────────────────────────────────────────────────── */
 @theme {
-  --color-accent: #e21d48;
-  --color-accent-hover: #be123c;
-  --font-sans: 'Satoshi', 'Inter', 'Roboto', 'Outfit', system-ui, sans-serif;
+  --font-sans: 'Satoshi', 'Noto Sans Sinhala', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Gwen', 'Satoshi', ui-sans-serif, sans-serif;
+
+  --color-brand-50:  #fdf3f2;
+  --color-brand-100: #fce5e4;
+  --color-brand-200: #f9cecd;
+  --color-brand-300: #f3a8a7;
+  --color-brand-400: #e97371;
+  --color-brand-500: #dc4341;
+  --color-brand-600: #cd191a;
+  --color-brand-700: #ab1112;
+  --color-brand-800: #8d1213;
+  --color-brand-900: #751516;
+  --color-brand-950: #400607;
+
+  --color-ink-50:  #f8f7f7;
+  --color-ink-100: #f0efef;
+  --color-ink-200: #e4e2e2;
+  --color-ink-300: #d2cfcf;
+  --color-ink-400: #a6a2a2;
+  --color-ink-500: #7b7676;
+  --color-ink-600: #5b5656;
+  --color-ink-700: #443f40;
+  --color-ink-800: #2c2728;
+  --color-ink-900: #1d1819;
+  --color-ink-950: #161112;
+
+  --color-canvas: #f5f4f4;
+
+  --shadow-card: 0 1px 2px rgb(22 17 18 / 0.04), 0 1px 3px rgb(22 17 18 / 0.05);
+  --shadow-card-hover: 0 2px 4px rgb(22 17 18 / 0.05), 0 8px 24px -6px rgb(22 17 18 / 0.10);
+  --shadow-pop: 0 4px 12px -2px rgb(22 17 18 / 0.08), 0 16px 40px -8px rgb(22 17 18 / 0.14);
 }
 
 html, body, #root {
@@ -42,37 +70,26 @@ html, body, #root {
 
 body {
   font-family: var(--font-sans);
-  color: #111827;
-  background: #ffffff;
+  color: var(--color-ink-900);
+  background: var(--color-canvas);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-.pattern-bg {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke='rgba(255, 255, 255, 0.1)' stroke-width='3'%3E%3Cpath d='M15,15 L25,35 L5,35 Z' stroke-linejoin='round' /%3E%3Cpath d='M70,20 L80,30 L70,40 L80,50' stroke-linejoin='round' /%3E%3Ccircle cx='30' cy='80' r='8' /%3E%3Cpath d='M80,75 L80,85 M75,80 L85,80' stroke-linecap='round' /%3E%3C/g%3E%3C/svg%3E");
-  background-size: 150px 150px;
-  background-repeat: repeat;
-  transition: background-color 0.4s ease;
+::selection {
+  background: color-mix(in srgb, var(--color-brand-600) 16%, transparent);
 }
-
-/* Global font-size bump */
-p, span, div, li, td, th, label, input, select, textarea, button {
-  font-size: inherit;
-}
-
-h1 { font-size: 1.25rem; font-weight: 600; }
-h2 { font-size: 1.1rem;  font-weight: 600; }
-h3 { font-size: 1rem;    font-weight: 500; }
 
 input, select, textarea {
   font-size: 0.9375rem; /* 15px */
 }
 
 /* Subtle scrollbar */
-::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+::-webkit-scrollbar-thumb { background: var(--color-ink-300); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-ink-400); }
 
 textarea { resize: vertical; }
 
@@ -84,9 +101,32 @@ textarea { resize: vertical; }
   animation: subtle-pulse 1.5s ease-in-out infinite;
 }
 
+/* ── Tool workspace grid: center editor + right context panel.
+     Below xl the panel slots between input and output so tool
+     options stay reachable on tablet. ── */
+.tool-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-areas: "input" "panel" "output";
+}
+.tool-grid > .tg-input  { grid-area: input;  min-width: 0; }
+.tool-grid > .tg-panel  { grid-area: panel;  min-width: 0; }
+.tool-grid > .tg-output { grid-area: output; min-width: 0; }
+
+@media (min-width: 80rem) {
+  .tool-grid {
+    grid-template-columns: minmax(0, 1fr) 21rem;
+    grid-template-areas:
+      "input panel"
+      "output panel";
+    align-items: start;
+    gap: 1.5rem;
+  }
+}
+
+/* ── shadcn semantic tokens mapped onto the SinAi palette ── */
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -128,83 +168,87 @@ textarea { resize: vertical; }
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --background: #f5f4f4;
+  --foreground: #1d1819;
+  --card: #ffffff;
+  --card-foreground: #1d1819;
+  --popover: #ffffff;
+  --popover-foreground: #1d1819;
+  --primary: #cd191a;
+  --primary-foreground: #ffffff;
+  --secondary: #f0efef;
+  --secondary-foreground: #2c2728;
+  --muted: #f0efef;
+  --muted-foreground: #7b7676;
+  --accent: #fdf3f2;
+  --accent-foreground: #ab1112;
+  --destructive: #cd191a;
+  --border: #e4e2e2;
+  --input: #e4e2e2;
+  --ring: #e97371;
+  --chart-1: #cd191a;
+  --chart-2: #7b7676;
+  --chart-3: #443f40;
+  --chart-4: #f3a8a7;
+  --chart-5: #2c2728;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #161112;
+  --sidebar-foreground: #f8f7f7;
+  --sidebar-primary: #cd191a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2c2728;
+  --sidebar-accent-foreground: #f8f7f7;
+  --sidebar-border: rgb(255 255 255 / 8%);
+  --sidebar-ring: #e97371;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #161112;
+  --foreground: #f8f7f7;
+  --card: #1d1819;
+  --card-foreground: #f8f7f7;
+  --popover: #1d1819;
+  --popover-foreground: #f8f7f7;
+  --primary: #dc4341;
+  --primary-foreground: #ffffff;
+  --secondary: #2c2728;
+  --secondary-foreground: #f8f7f7;
+  --muted: #2c2728;
+  --muted-foreground: #a6a2a2;
+  --accent: #2c2728;
+  --accent-foreground: #f8f7f7;
+  --destructive: #e97371;
+  --border: rgb(255 255 255 / 10%);
+  --input: rgb(255 255 255 / 15%);
+  --ring: #dc4341;
+  --chart-1: #dc4341;
+  --chart-2: #a6a2a2;
+  --chart-3: #d2cfcf;
+  --chart-4: #f3a8a7;
+  --chart-5: #e4e2e2;
+  --sidebar: #1d1819;
+  --sidebar-foreground: #f8f7f7;
+  --sidebar-primary: #dc4341;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2c2728;
+  --sidebar-accent-foreground: #f8f7f7;
+  --sidebar-border: rgb(255 255 255 / 10%);
+  --sidebar-ring: #dc4341;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+  }
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-brand-600) 55%, transparent);
+    outline-offset: 2px;
   }
 }
 
@@ -217,10 +261,10 @@ textarea { resize: vertical; }
 .animate-shimmer {
   background: linear-gradient(
     90deg,
-    #e5e7eb 0%,
-    #f3f4f6 40%,
-    #e5e7eb 80%
+    var(--color-ink-100) 0%,
+    var(--color-ink-50) 40%,
+    var(--color-ink-100) 80%
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
-}
+}

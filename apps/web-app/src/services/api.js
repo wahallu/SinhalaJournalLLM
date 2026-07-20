@@ -3,7 +3,18 @@
  * Base URL defaults to the local FastAPI server on port 8000.
  */
 
-const API_BASE = 'https://sinhalajournalllm.onrender.com/api/v1';
+export const DEFAULT_API_BASE = 'https://sinhalajournalllm.onrender.com/api/v1';
+
+// A custom base URL can be set on the Settings page; falls back to the default.
+function getApiBase() {
+  try {
+    const settings = JSON.parse(localStorage.getItem('sinai_settings') || '{}');
+    const url = (settings.apiBaseUrl || '').trim();
+    return url ? url.replace(/\/+$/, '') : DEFAULT_API_BASE;
+  } catch {
+    return DEFAULT_API_BASE;
+  }
+}
 
 async function request(endpoint, body = null, method = 'POST') {
   const options = {
@@ -15,7 +26,7 @@ async function request(endpoint, body = null, method = 'POST') {
     options.body = JSON.stringify(body);
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, options);
+  const res = await fetch(`${getApiBase()}${endpoint}`, options);
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
