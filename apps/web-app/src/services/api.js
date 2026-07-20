@@ -114,3 +114,13 @@ export function chatSinLlama(prompt) {
 export function getSinLlamaHealth() {
   return request('/sinllama/health', null, 'GET');
 }
+
+// ── Model Comparison ──
+export function getComparisonAdapters() {
+  return request('/comparison/adapters', null, 'GET');
+}
+
+export function runComparison(payload) {
+  return request('/comparison/compare', payload);
+}
+

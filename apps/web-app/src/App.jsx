@@ -11,6 +11,7 @@ import SettingsPage from './components/SettingsPage';
 import ProfilePage from './components/ProfilePage';
 import Plans from './components/Plans';
 import SinLLamaPage from './components/SinLLamaPage';
+import ModelComparison from './components/ModelComparison';
 import { useToolProcessor } from './hooks/useToolProcessor';
 import { checkGrammar, generateHeadlines, rewriteStyle, summarizeNews } from './services/api';
 import { saveToHistory } from './components/HistoryPage';
@@ -46,7 +47,7 @@ const TOOL_CONFIG = {
   },
 };
 
-const TOOL_IDS = ['grammar', 'headlines', 'rewriter', 'summarizer', 'plans', 'sinllama'];
+const TOOL_IDS = ['grammar', 'headlines', 'rewriter', 'summarizer', 'plans', 'sinllama', 'comparison'];
 
 function App() {
   const [activeTool, setActiveTool] = useState('dashboard');
@@ -118,6 +119,8 @@ function App() {
         return <Plans />;
       case 'sinllama':
         return <SinLLamaPage />;
+      case 'comparison':
+        return <ModelComparison />;
       default:
         if (!config) return null;
         return (

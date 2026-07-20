@@ -43,10 +43,12 @@ class Settings(BaseSettings):
     MODEL_FALLBACK: bool = True
 
     # SinLlama inference server (serve_sinai.py) base URL.
-    SINLLAMA_API_URL: str = "http://localhost:8001"
+    SINLLAMA_API_URL: str = "http://localhost:8000"
+    # Comparison server base URL (merged with serve_sinai.py on port 8000).
+    SINLLAMA_COMPARISON_API_URL: str = "http://localhost:8000"
     SINLLAMA_TIMEOUT_SECONDS: float = 120.0
 
-    @field_validator("SINLLAMA_API_URL")
+    @field_validator("SINLLAMA_API_URL", "SINLLAMA_COMPARISON_API_URL")
     @classmethod
     def _strip_model_url_slash(cls, v: str) -> str:
         return v.rstrip("/")
