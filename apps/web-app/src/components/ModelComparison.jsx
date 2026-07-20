@@ -249,10 +249,10 @@ export default function ModelComparison() {
       </div>
 
       {/* Main Settings Input Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         
         {/* LEFT COLUMN: Inputs & Controls */}
-        <div className="lg:col-span-2 flex flex-col gap-5 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+        <div className="lg:col-span-3 flex flex-col gap-5 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
           {/* Task Selectors */}
           <div>
             <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Select Task Domain</label>
@@ -351,7 +351,7 @@ export default function ModelComparison() {
         </div>
 
         {/* RIGHT COLUMN: Adapter Checklist & Selector */}
-        <div className="flex flex-col bg-white p-6 rounded-2xl border border-gray-200 shadow-sm justify-between">
+        <div className="lg:col-span-2 flex flex-col bg-white p-6 rounded-2xl border border-gray-200 shadow-sm justify-between gap-5">
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select Models</label>
@@ -360,24 +360,36 @@ export default function ModelComparison() {
               </span>
             </div>
 
-            {/* Quick Multi-Select Controls */}
-            <div className="grid grid-cols-2 gap-1.5 pb-2 border-b border-gray-100">
-              <button onClick={selectDomainSpecific} className="text-[10.5px] font-bold text-left px-2 py-1.5 rounded hover:bg-[#fef2f2] hover:text-[#cd191a] text-gray-600 transition-colors">
-                • Current Task Only
+            {/* Quick Multi-Select Controls (Responsive Pill Chips) */}
+            <div className="flex flex-wrap gap-1.5 pb-3 border-b border-gray-100">
+              <button 
+                onClick={selectDomainSpecific} 
+                className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-[#cd191a] transition-all cursor-pointer"
+              >
+                Current Task
               </button>
-              <button onClick={selectAllButDomainSpecific} className="text-[10.5px] font-bold text-left px-2 py-1.5 rounded hover:bg-[#fef2f2] hover:text-[#cd191a] text-gray-600 transition-colors">
-                • All But Domain Specific
+              <button 
+                onClick={selectAllButDomainSpecific} 
+                className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 transition-all cursor-pointer"
+              >
+                All Except Current
               </button>
-              <button onClick={selectAll} className="text-[10.5px] font-bold text-left px-2 py-1.5 rounded hover:bg-gray-100 text-gray-600 transition-colors">
-                • Select All
+              <button 
+                onClick={selectAll} 
+                className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all cursor-pointer"
+              >
+                Select All
               </button>
-              <button onClick={clearSelection} className="text-[10.5px] font-bold text-left px-2 py-1.5 rounded hover:bg-gray-100 text-gray-600 transition-colors">
-                • Clear All
+              <button 
+                onClick={clearSelection} 
+                className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all cursor-pointer"
+              >
+                Clear All
               </button>
             </div>
 
-            {/* List of Adapters */}
-            <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto pr-1">
+            {/* List of Adapters (Scroll container with hidden horizontal overflow) */}
+            <div className="flex flex-col gap-1.5 max-h-[280px] overflow-y-auto overflow-x-hidden pr-1.5">
               
               {/* Base Model (Static option) */}
               <div 
@@ -387,15 +399,15 @@ export default function ModelComparison() {
                     ? 'border-[#cd191a] bg-[#cd191a]/5 text-black' 
                     : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0">
                   {selectedAdapters.includes('base') ? (
-                    <CheckSquare size={16} className="text-[#cd191a]" />
+                    <CheckSquare size={16} className="text-[#cd191a] shrink-0" />
                   ) : (
-                    <Square size={16} className="text-gray-300" />
+                    <Square size={16} className="text-gray-300 shrink-0" />
                   )}
-                  <span className="text-xs font-semibold">base (SinLLaMA Base)</span>
+                  <span className="text-xs font-semibold truncate">base (SinLLaMA Base)</span>
                 </div>
-                <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded border border-slate-200">Base</span>
+                <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-1.5 py-0.5 rounded border border-slate-200 shrink-0">Base</span>
               </div>
 
               {/* Categorized List */}
@@ -417,16 +429,16 @@ export default function ModelComparison() {
                               ? 'border-[#cd191a] bg-[#cd191a]/5 text-black' 
                               : 'border-gray-100 hover:bg-gray-50 text-gray-600'}`}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             {isSelected ? (
-                              <CheckSquare size={16} className="text-[#cd191a]" />
+                              <CheckSquare size={16} className="text-[#cd191a] shrink-0" />
                             ) : (
                               <Square size={16} className="text-gray-300" />
                             )}
-                            <span className="text-xs font-medium truncate max-w-[170px]">{name}</span>
+                            <span className="text-xs font-medium truncate max-w-[200px] sm:max-w-[260px]">{name}</span>
                           </div>
                           
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 shrink-0">
                             {isLoaded && (
                               <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded" title="Loaded in GPU Cache">GPU</span>
                             )}

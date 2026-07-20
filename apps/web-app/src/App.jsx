@@ -230,7 +230,7 @@ function App() {
       <main className="relative z-10 flex-1 flex flex-col bg-[#f8fafc] rounded-[2rem] lg:rounded-tl-[3rem] lg:rounded-tr-none lg:rounded-bl-none lg:rounded-br-none my-2 mx-2 sm:my-4 sm:mr-4 sm:ml-0 shadow-2xl overflow-hidden">
         <div className="flex-1 flex min-w-0 overflow-y-auto">
           <div className="flex-1 min-w-0 flex justify-center">
-            <div className="w-full max-w-4xl px-4 pt-16 pb-6 lg:pt-8 sm:px-8 sm:py-8">
+            <div className={`w-full ${activeTool === 'comparison' ? 'max-w-6xl' : 'max-w-4xl'} px-4 pt-16 pb-6 lg:pt-8 sm:px-8 sm:py-8 transition-all duration-300`}>
               {renderContent()}
             </div>
           </div>
