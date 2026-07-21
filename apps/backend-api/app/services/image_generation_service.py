@@ -1,174 +1,88 @@
 """
-Cloudflare Workers AI image generation service.
+OpenRouter image generation service.
 
-Upgraded to `flux-2-dev` — a high-fidelity, prompt-adherent model that
-requires multipart/form-data input instead of JSON.
+Calls the OpenRouter dedicated Image API using the `krea/krea-2-large` model.
 
 Endpoint:
-    POST https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/run/{MODEL}
+    POST https://openrouter.ai/api/v1/images
 
 Auth:
-    Authorization: Bearer {API_TOKEN}
-
-Request format:
-    multipart/form-data with fields: prompt, steps, width, height
-    (httpx sends this automatically when you use the `files=` parameter)
-
-Response format:
-    The REST API wraps the image in a JSON envelope:
-        {"result": {"image": "<base64-encoded PNG>"}, "success": true, ...}
-    Raw-binary fallback is also handled for forward-compatibility.
-
-References:
-    https://developers.cloudflare.com/workers-ai/models/flux-2-dev/
+    Authorization: Bearer {OPENROUTER_IMAGE_API_KEY}
 """
-
-import base64
 
 import httpx
 
 from app.core.config import get_settings
 
-# Upgraded to flux-2-dev for hyper-accurate, high-fidelity image generation.
-CF_MODEL = "@cf/black-forest-labs/flux-2-dev"
-
-# flux-2-dev is more compute-intensive; allow up to 3 minutes.
-REQUEST_TIMEOUT = 180.0
+OPENROUTER_IMAGE_ENDPOINT = "https://openrouter.ai/api/v1/images"
+OPENROUTER_MODEL = "krea/krea-2-large"
+REQUEST_TIMEOUT = 120.0
 
 
-async def generate_image(
-    prompt: str,
-    steps: int = 24,
-    width: int = 1024,
-    height: int = 1024,
-) -> str:
+async def generate_image(prompt: str) -> str:
     """
-    Generate an image from *prompt* using Cloudflare Workers AI (Flux 2 Dev).
-
-    flux-2-dev requires multipart/form-data input (not JSON).  httpx handles
-    this automatically via the ``files=`` parameter — each field is sent as a
-    form part with no filename, matching ``new FormData()`` behaviour in JS.
+    Generate an image from *prompt* using OpenRouter (Krea 2 Large).
 
     Args:
         prompt: English image prompt (should be the visual prompt from the headline tool).
-        steps:  Diffusion steps (1–50). 24 is recommended for flux-2-dev to achieve
-                high prompt-adherence while keeping generation time reasonable.
-        width:  Output image width in pixels.
-        height: Output image height in pixels.
 
     Returns:
-        A base64 data URL string: ``data:image/png;base64,<data>``.
+        An image URL or base64 data URL string.
 
     Raises:
-        RuntimeError: If credentials are missing, the API returns an error, or
-                      the response body is unexpectedly empty / malformed.
+        RuntimeError: If API key is missing or the API returns an error.
     """
     settings = get_settings()
+    api_key = settings.OPENROUTER_IMAGE_API_KEY
 
-    account_id = settings.CLOUDFLARE_ACCOUNT_ID
-    api_token = settings.CLOUDFLARE_API_TOKEN
-
-    if not account_id or account_id == "your_account_id_here":
+    if not api_key:
         raise RuntimeError(
-            "CLOUDFLARE_ACCOUNT_ID is not set. "
-            "Open apps/backend-api/.env and paste your Cloudflare account ID "
-            "(visible in the dashboard URL: https://dash.cloudflare.com/<ACCOUNT_ID>/)."
-        )
-    if not api_token:
-        raise RuntimeError(
-            "CLOUDFLARE_API_TOKEN is not configured in apps/backend-api/.env."
+            "OPENROUTER_IMAGE_API_KEY is not configured in apps/backend-api/.env."
         )
 
-    url = (
-        f"https://api.cloudflare.com/client/v4/accounts"
-        f"/{account_id}/ai/run/{CF_MODEL}"
-    )
-
-    # ── Auth header only — do NOT set Content-Type manually.
-    # httpx sets the correct multipart/form-data boundary automatically.
-    headers = {"Authorization": f"Bearer {api_token}"}
-
-    # ── Build multipart/form-data payload ────────────────────────────────────
-    # Each tuple is (filename, value): passing None as the filename produces a
-    # plain form field, equivalent to `form.append('key', value)` in JS.
-    #
-    # JS equivalent:
-    #   const form = new FormData();
-    #   form.append('prompt', prompt);
-    #   form.append('steps',  steps.toString());
-    #   form.append('width',  width.toString());
-    #   form.append('height', height.toString());
-    form_data = {
-        "prompt": (None, str(prompt)),
-        "steps":  (None, str(steps)),
-        "width":  (None, str(width)),
-        "height": (None, str(height)),
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "model": OPENROUTER_MODEL,
+        "prompt": prompt,
     }
 
     async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
-        response = await client.post(url, headers=headers, files=form_data)
+        response = await client.post(OPENROUTER_IMAGE_ENDPOINT, headers=headers, json=payload)
 
-    # ── Error handling ────────────────────────────────────────────────────────
     if response.status_code != 200:
         try:
             error_body = response.json()
-            errors = error_body.get("errors", [])
-            detail = (
-                errors[0].get("message") if errors
-                else error_body.get("message", str(error_body))
-            )
+            error_msg = error_body.get("error", {}).get("message") or error_body.get("message") or str(error_body)
         except Exception:
-            detail = response.text[:400] or f"HTTP {response.status_code}"
-        raise RuntimeError(f"Cloudflare AI error ({response.status_code}): {detail}")
+            error_msg = response.text[:400] or f"HTTP {response.status_code}"
+        raise RuntimeError(f"OpenRouter AI error ({response.status_code}): {error_msg}")
 
-    # ── Response parsing ──────────────────────────────────────────────────────
-    #
-    # The Cloudflare Workers AI REST API wraps image data in a JSON envelope:
-    #
-    #   {
-    #     "result":   { "image": "<base64-encoded PNG>" },
-    #     "success":  true,
-    #     "errors":   [],
-    #     "messages": []
-    #   }
-    #
-    # The "image" value is ALREADY base64-encoded — do NOT re-encode it.
-    #
-    # Raw-binary fallback handles any future model that streams bytes directly.
+    try:
+        data = response.json()
+    except Exception as exc:
+        raise RuntimeError(
+            f"OpenRouter AI returned non-parseable JSON: {response.text[:300]}"
+        ) from exc
 
-    content_type = response.headers.get("content-type", "")
-
-    if "application/json" in content_type or response.content.startswith(b"{"):
-        # ── JSON envelope path ────────────────────────────────────────────────
-        try:
-            data = response.json()
-        except Exception as exc:
-            raise RuntimeError(
-                f"Cloudflare AI returned non-parseable JSON: {response.text[:300]}"
-            ) from exc
-
-        if not data.get("success", True) and data.get("errors"):
-            errors = data["errors"]
-            detail = errors[0].get("message") if errors else str(data)
-            raise RuntimeError(f"Cloudflare AI reported failure: {detail}")
-
-        b64 = (
-            data.get("result", {}).get("image")   # standard path
-            or data.get("image")                   # flat fallback
+    results = data.get("data", [])
+    if not results:
+        raise RuntimeError(
+            f"OpenRouter AI response is missing data array. Full response: {str(data)[:300]}"
         )
-        if not b64:
-            raise RuntimeError(
-                "Cloudflare AI JSON response is missing result.image. "
-                f"Full response: {str(data)[:300]}"
-            )
 
-        # Already valid base64 — build the data URL and return.
-        return f"data:image/png;base64,{b64}"
+    first_result = results[0]
+    image_url = first_result.get("url") or first_result.get("b64_json")
 
-    else:
-        # ── Raw binary path ───────────────────────────────────────────────────
-        image_bytes = response.content
-        if not image_bytes:
-            raise RuntimeError("Cloudflare AI returned an empty response body.")
-        b64 = base64.b64encode(image_bytes).decode("utf-8")
-        return f"data:image/png;base64,{b64}"
+    if not image_url:
+        raise RuntimeError(
+            f"OpenRouter AI response contains no image URL or base64 data. Full response: {str(data)[:300]}"
+        )
+
+    # If it's pure base64 without prefix, check and prefix it (though usually OpenRouter/providers return full URLs or full data URLs)
+    if not image_url.startswith("http") and not image_url.startswith("data:"):
+        image_url = f"data:image/png;base64,{image_url}"
+
+    return image_url
