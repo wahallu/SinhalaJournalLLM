@@ -87,10 +87,55 @@ async def generate_image(prompt: str, steps: int = 8) -> str:
             detail = response.text[:400] or f"HTTP {response.status_code}"
         raise RuntimeError(f"Cloudflare AI error ({response.status_code}): {detail}")
 
-    image_bytes = response.content
-    if not image_bytes:
-        raise RuntimeError("Cloudflare AI returned an empty response body.")
+    # ── Cloudflare Workers AI returns a JSON envelope, NOT raw bytes ──────────
+    #
+    # Successful response shape:
+    #   {
+    #     "result": { "image": "<base64-encoded PNG>" },
+    #     "success": true,
+    #     "errors": [],
+    #     "messages": []
+    #   }
+    #
+    # The "image" value is ALREADY base64-encoded by Cloudflare.
+    # DO NOT re-encode it — that would corrupt the data URL.
+    #
+    # We try JSON first; if the response is genuinely raw binary (future
+    # binary-response model variants), we fall back to encoding it ourselves.
 
-    # Encode to base64 and build a data URL the browser can use directly.
-    b64 = base64.b64encode(image_bytes).decode("utf-8")
-    return f"data:image/png;base64,{b64}"
+    content_type = response.headers.get("content-type", "")
+
+    if "application/json" in content_type or response.content.startswith(b"{"):
+        # JSON envelope path (current behaviour for flux-1-schnell via REST API)
+        try:
+            data = response.json()
+        except Exception as exc:
+            raise RuntimeError(
+                f"Cloudflare AI returned non-parseable JSON: {response.text[:300]}"
+            ) from exc
+
+        if not data.get("success", True) and data.get("errors"):
+            errors = data["errors"]
+            detail = errors[0].get("message") if errors else str(data)
+            raise RuntimeError(f"Cloudflare AI error: {detail}")
+
+        b64 = (
+            data.get("result", {}).get("image")          # normal path
+            or data.get("image")                          # flat fallback
+        )
+        if not b64:
+            raise RuntimeError(
+                f"Cloudflare AI JSON response missing result.image. "
+                f"Full response: {str(data)[:300]}"
+            )
+
+        # The value is already a valid base64 string — use it directly.
+        return f"data:image/png;base64,{b64}"
+
+    else:
+        # Raw binary path (binary-response model variants)
+        image_bytes = response.content
+        if not image_bytes:
+            raise RuntimeError("Cloudflare AI returned an empty response body.")
+        b64 = base64.b64encode(image_bytes).decode("utf-8")
+        return f"data:image/png;base64,{b64}"
