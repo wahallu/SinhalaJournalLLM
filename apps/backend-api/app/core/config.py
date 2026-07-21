@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
 
+    # Cloudflare Workers AI — used for image generation from visual prompts.
+    CLOUDFLARE_ACCOUNT_ID: str = ""
+    CLOUDFLARE_API_TOKEN: str = ""
+
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173"
 

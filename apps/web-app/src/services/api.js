@@ -135,3 +135,8 @@ export function runComparison(payload) {
   return request('/comparison/compare', payload);
 }
 
+// ── Image Generation (Cloudflare Workers AI — Flux 1 Schnell) ──
+// The backend proxies to Cloudflare and returns a base64 PNG data URL.
+export function generateImage(prompt, steps = 8) {
+  return request('/image/generate', { prompt, steps });
+}
