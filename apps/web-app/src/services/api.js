@@ -135,7 +135,3 @@ export function runComparison(payload) {
   return request('/comparison/compare', payload);
 }
 
-// ── Image Generation (Pixazo Flux 2 Max) ──
-export function generateImage(prompt, width = 1024, height = 1024) {
-  return request('/image/generate', { prompt, width, height, num_inference_steps: 30 });
-}
