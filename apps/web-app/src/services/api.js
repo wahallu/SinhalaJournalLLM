@@ -135,8 +135,10 @@ export function runComparison(payload) {
   return request('/comparison/compare', payload);
 }
 
-// ── Image Generation (Cloudflare Workers AI — Flux 1 Schnell) ──
+// ── Image Generation (Cloudflare Workers AI — Flux 2 Dev) ──
 // The backend proxies to Cloudflare and returns a base64 PNG data URL.
-export function generateImage(prompt, steps = 8) {
-  return request('/image/generate', { prompt, steps });
+// flux-2-dev uses multipart/form-data and requires more steps (default 24)
+// for high prompt-adherence versus the faster flux-1-schnell (was 8 steps).
+export function generateImage(prompt, steps = 24, width = 1024, height = 1024) {
+  return request('/image/generate', { prompt, steps, width, height });
 }
