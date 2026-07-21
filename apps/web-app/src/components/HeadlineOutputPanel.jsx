@@ -3,12 +3,13 @@ import {
   ChevronDown, ChevronUp, Trophy, AlertTriangle,
   CheckCircle2, XCircle, Sparkles, Tag, Eye, BarChart3,
   Camera, RefreshCw, Loader2, ImageOff, Edit3, FileSearch,
+  Image, Download, Wand2, ExternalLink,
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
 import ActionButton from './ui/ActionButton';
 import { Skeleton } from './ui/Skeleton';
-import { generateVisualPrompt } from '../services/api';
+import { generateVisualPrompt, generateImage } from '../services/api';
 
 /* ── Metric bar ─────────────────────────────────────────────────── */
 function MetricBar({ label, value, threshold }) {
@@ -135,15 +136,34 @@ function VisualPromptModule({ headline, articleText }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Image generation state
+  const [imageUrl, setImageUrl] = useState(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(null);
+
   const generate = (cancelledRef) => {
     if (!articleText) return;
     setLoading(true);
     setError(null);
     setPrompt('');
+    // Reset image when regenerating prompt
+    setImageUrl(null);
+    setImageError(null);
     generateVisualPrompt(articleText, headline)
       .then((res) => { if (!cancelledRef?.cancelled) setPrompt(res.visual_prompt || ''); })
       .catch((err) => { if (!cancelledRef?.cancelled) setError(err.message || 'Failed to generate visual prompt'); })
       .finally(() => { if (!cancelledRef?.cancelled) setLoading(false); });
+  };
+
+  const handleGenerateImage = () => {
+    if (!prompt) return;
+    setImageLoading(true);
+    setImageError(null);
+    setImageUrl(null);
+    generateImage(prompt)
+      .then((res) => setImageUrl(res.image_url || ''))
+      .catch((err) => setImageError(err.message || 'Image generation failed'))
+      .finally(() => setImageLoading(false));
   };
 
   // Auto-generate once when the article changes
@@ -214,6 +234,94 @@ function VisualPromptModule({ headline, articleText }) {
             >
               නැවත සාදන්න / Regenerate prompt
             </ActionButton>
+          )}
+
+          {/* ── Generate Image button ── */}
+          {!loading && prompt && (
+            <ActionButton
+              variant="primary"
+              size="md"
+              icon={imageLoading ? Loader2 : Wand2}
+              onClick={handleGenerateImage}
+              disabled={imageLoading || !prompt}
+              className={`w-full ${imageLoading ? 'opacity-80' : ''}`}
+            >
+              {imageLoading
+                ? <span className="flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Generating image…</span>
+                : 'රූපය සාදන්න / Generate Image'
+              }
+            </ActionButton>
+          )}
+
+          {/* ── Generated image display ── */}
+          {imageLoading && !imageUrl && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[12px] text-ink-500">
+                <Loader2 size={12} className="animate-spin text-brand-500" />
+                <span>Generating image with Flux 2 Max via Pixazo…</span>
+              </div>
+              <Skeleton className="h-64 w-full rounded-xl" />
+            </div>
+          )}
+
+          {imageUrl && !imageLoading && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.12em] flex items-center gap-1.5">
+                  <Image size={11} className="text-brand-500" /> Generated image
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <a
+                    href={imageUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-brand-600 font-semibold hover:underline"
+                  >
+                    <ExternalLink size={11} /> Open
+                  </a>
+                  <a
+                    href={imageUrl}
+                    download="sinai-generated-image.png"
+                    className="inline-flex items-center gap-1 text-[11px] text-ink-500 font-semibold hover:text-ink-700"
+                  >
+                    <Download size={11} /> Download
+                  </a>
+                </div>
+              </div>
+              <div className="relative rounded-xl overflow-hidden border border-ink-200 bg-ink-50">
+                <img
+                  src={imageUrl}
+                  alt="AI-generated news image"
+                  className="w-full h-auto object-cover max-h-96"
+                  onError={() => setImageError('Image failed to load. The URL may have expired.')}
+                />
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.15) 0%, transparent 40%)',
+                  }}
+                />
+              </div>
+              <p className="text-[10px] text-ink-400 text-center">
+                Generated by Flux 2 Max via Pixazo · For editorial use only
+              </p>
+            </div>
+          )}
+
+          {imageError && !imageLoading && (
+            <div className="p-3 bg-brand-50 rounded-lg border border-brand-200/70 flex items-start gap-2.5">
+              <ImageOff size={15} className="text-brand-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] text-brand-800 font-medium">Image generation failed</p>
+                <p className="text-[11px] text-brand-700/80 mt-0.5 break-words">{imageError}</p>
+                <button
+                  onClick={handleGenerateImage}
+                  className="mt-2 text-[11px] text-brand-700 font-semibold hover:underline cursor-pointer"
+                >
+                  නැවත උත්සාහ කරන්න / Retry
+                </button>
+              </div>
+            </div>
           )}
 
           {error && !loading && (
