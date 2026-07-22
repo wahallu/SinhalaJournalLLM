@@ -135,3 +135,8 @@ export function runComparison(payload) {
   return request('/comparison/compare', payload);
 }
 
+// ── Image Generation (OpenRouter — Krea 2 Large) ──
+// The backend proxies to OpenRouter and returns a base64 PNG data URL or hosted image URL.
+export function generateImage(prompt) {
+  return request('/image/generate', { prompt });
+}

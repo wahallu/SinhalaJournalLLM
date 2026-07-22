@@ -3,12 +3,13 @@ import {
   ChevronDown, ChevronUp, Trophy, AlertTriangle,
   CheckCircle2, XCircle, Sparkles, Tag, Eye, BarChart3,
   Camera, RefreshCw, Loader2, ImageOff, Edit3, FileSearch,
+  Wand2, Download, ExternalLink, ImageIcon,
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
 import ActionButton from './ui/ActionButton';
 import { Skeleton } from './ui/Skeleton';
-import { generateVisualPrompt } from '../services/api';
+import { generateVisualPrompt, generateImage } from '../services/api';
 
 /* ── Metric bar ─────────────────────────────────────────────────── */
 function MetricBar({ label, value, threshold }) {
@@ -131,19 +132,40 @@ function EntityTag({ entity }) {
 /* ── Visual prompt module ───────────────────────────────────────── */
 function VisualPromptModule({ headline, articleText }) {
   const [open, setOpen] = useState(true);
+
+  // Visual prompt state
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Image generation state
+  const [imageData, setImageData] = useState(null);   // base64 data URL
+  const [imgLoading, setImgLoading] = useState(false);
+  const [imgError, setImgError] = useState(null);
 
   const generate = (cancelledRef) => {
     if (!articleText) return;
     setLoading(true);
     setError(null);
     setPrompt('');
+    // Clear previous image when regenerating the prompt
+    setImageData(null);
+    setImgError(null);
     generateVisualPrompt(articleText, headline)
       .then((res) => { if (!cancelledRef?.cancelled) setPrompt(res.visual_prompt || ''); })
       .catch((err) => { if (!cancelledRef?.cancelled) setError(err.message || 'Failed to generate visual prompt'); })
       .finally(() => { if (!cancelledRef?.cancelled) setLoading(false); });
+  };
+
+  const handleGenerateImage = () => {
+    if (!prompt) return;
+    setImgLoading(true);
+    setImgError(null);
+    setImageData(null);
+    generateImage(prompt)
+      .then((res) => setImageData(res.image_data || ''))
+      .catch((err) => setImgError(err.message || 'Image generation failed'))
+      .finally(() => setImgLoading(false));
   };
 
   // Auto-generate once when the article changes
@@ -170,6 +192,8 @@ function VisualPromptModule({ headline, articleText }) {
 
       {open && (
         <div className="p-4 space-y-3">
+
+          {/* ── Prompt loading skeleton ── */}
           {loading && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-[12px] text-ink-500">
@@ -180,20 +204,21 @@ function VisualPromptModule({ headline, articleText }) {
             </div>
           )}
 
+          {/* ── Editable prompt textarea ── */}
           {!loading && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <Edit3 size={11} className="text-ink-400 shrink-0" />
                   <span className="text-[11px] text-ink-500 font-medium truncate">
-                    AI-generated English image prompt — edit before copying
+                    AI-generated English image prompt — edit before generating
                   </span>
                 </div>
                 {prompt && <CopyButton text={prompt} />}
               </div>
               <textarea
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={(e) => { setPrompt(e.target.value); setImageData(null); setImgError(null); }}
                 rows={4}
                 className="w-full px-3 py-2.5 text-[13px] text-ink-700 bg-ink-50 border border-ink-200 rounded-lg resize-none
                   focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300 leading-relaxed font-mono"
@@ -203,6 +228,7 @@ function VisualPromptModule({ headline, articleText }) {
             </div>
           )}
 
+          {/* ── Regenerate prompt button ── */}
           {!loading && (
             <ActionButton
               variant="secondary"
@@ -216,6 +242,100 @@ function VisualPromptModule({ headline, articleText }) {
             </ActionButton>
           )}
 
+          {/* ── Generate Image button ── */}
+          {!loading && prompt && (
+            <ActionButton
+              variant="primary"
+              size="md"
+              icon={imgLoading ? Loader2 : Wand2}
+              onClick={handleGenerateImage}
+              disabled={imgLoading}
+              className={`w-full${imgLoading ? ' opacity-80' : ''}`}
+            >
+              {imgLoading ? 'රූපය සාදමින්… / Generating image…' : 'රූපය සාදන්න / Generate Image'}
+            </ActionButton>
+          )}
+
+          {/* ── Image loading skeleton ── */}
+          {imgLoading && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-[12px] text-ink-500">
+                <Loader2 size={12} className="animate-spin text-brand-500" />
+                <span>Generating with OpenRouter · Krea 2 Large…</span>
+              </div>
+              <Skeleton className="h-64 w-full rounded-xl" />
+            </div>
+          )}
+
+          {/* ── Generated image display ── */}
+          {imageData && !imgLoading && (
+            <div className="space-y-2 animate-in fade-in duration-300">
+              <div className="flex items-center justify-between">
+                <p className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.12em] flex items-center gap-1.5">
+                  <ImageIcon size={11} className="text-brand-500" />
+                  AI-generated image
+                </p>
+                <div className="flex items-center gap-3">
+                  <a
+                    href={imageData}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-brand-600 font-semibold hover:underline"
+                  >
+                    <ExternalLink size={11} /> Open full size
+                  </a>
+                  <a
+                    href={imageData}
+                    download="sinai-image.png"
+                    className="inline-flex items-center gap-1 text-[11px] text-ink-500 font-semibold hover:text-ink-800"
+                  >
+                    <Download size={11} /> Download
+                  </a>
+                </div>
+              </div>
+              <div className="relative rounded-xl overflow-hidden border border-ink-200 shadow-sm bg-ink-100">
+                <img
+                  src={imageData}
+                  alt="AI-generated news image"
+                  className="w-full h-auto object-cover max-h-96 block"
+                />
+                {/* subtle bottom vignette */}
+                <div
+                  className="absolute inset-x-0 bottom-0 h-12 pointer-events-none"
+                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.18), transparent)' }}
+                />
+              </div>
+              <p className="text-[10px] text-ink-400 text-center">
+                Generated by OpenRouter (Krea 2 Large) · For editorial reference only
+              </p>
+              {/* Re-generate image button */}
+              <button
+                onClick={handleGenerateImage}
+                className="w-full text-[11px] text-ink-400 hover:text-ink-600 font-medium py-1 transition-colors cursor-pointer"
+              >
+                ↺ Generate a different image
+              </button>
+            </div>
+          )}
+
+          {/* ── Image generation error ── */}
+          {imgError && !imgLoading && (
+            <div className="p-3 bg-brand-50 rounded-lg border border-brand-200/70 flex items-start gap-2.5">
+              <ImageOff size={15} className="text-brand-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] text-brand-800 font-medium">Image generation failed</p>
+                <p className="text-[11px] text-brand-700/80 mt-0.5 break-words">{imgError}</p>
+                <button
+                  onClick={handleGenerateImage}
+                  className="mt-2 text-[11px] text-brand-700 font-semibold hover:underline cursor-pointer"
+                >
+                  නැවත උත්සාහ කරන්න / Retry
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Prompt generation error ── */}
           {error && !loading && (
             <div className="p-3 bg-brand-50 rounded-lg border border-brand-200/70 flex items-start gap-2.5">
               <ImageOff size={15} className="text-brand-500 shrink-0 mt-0.5" />
@@ -413,9 +533,8 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
               <div className="space-y-1">
                 {pipelineLog.map((log, i) => (
                   <div key={i} className="flex items-center gap-3 py-1.5 text-[12px]">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      log.status === 'success' ? 'bg-emerald-400' : log.status === 'warning' ? 'bg-amber-400' : 'bg-brand-400'
-                    }`} />
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${log.status === 'success' ? 'bg-emerald-400' : log.status === 'warning' ? 'bg-amber-400' : 'bg-brand-400'
+                      }`} />
                     <span className="text-ink-500 font-mono w-32 shrink-0 truncate">{log.stage}</span>
                     <span className="text-ink-400 flex-1 truncate">{log.message}</span>
                     <span className="text-ink-400 shrink-0 font-mono tabular-nums">{log.duration_ms.toFixed(1)}ms</span>
