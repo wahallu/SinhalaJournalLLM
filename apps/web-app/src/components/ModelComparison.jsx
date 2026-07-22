@@ -86,7 +86,7 @@ export default function ModelComparison() {
   // Helper to heal broken BPE subword token splits (e.g. 'ප්‍ර දේශයේ' -> 'ප්‍රදේශයේ')
   const healSinhalaText = (text) => {
     if (!text) return text;
-    let healed = text.replace(/([\u0D80-\u0DFF]+[්‍්]?[ර්‍ර])\s+([\u0D80-\u0DFF]+)/gu, '$1$2');
+    let healed = text.replace(/\b([\u0D80-\u0DFF][්‍්]?[ර්‍ර])\s+([\u0D80-\u0DFF]+)/gu, '$1$2');
     const splits = [
       [/ප්‍ර\s+දේශ/gu, 'ප්‍රදේශ'],
       [/පා\s+රිභෝගික/gu, 'පාරිභෝගික'],
