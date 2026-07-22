@@ -185,7 +185,8 @@ export default function ModelComparison() {
     const list = groups[currentTask] || [];
     if (currentTask === 'summarizer') {
       const extList = groups['extractive'] || ['tfidf', 'textrank', 'rake', 'yake', 'keybert'];
-      setSelectedAdapters([...list, ...extList, 'base']);
+      const mt5List = groups['mt5'] || ['mt5-base'];
+      setSelectedAdapters([...list, ...mt5List, ...extList, 'base']);
     } else {
       setSelectedAdapters([...list, 'base']);
     }
@@ -587,6 +588,8 @@ export default function ModelComparison() {
                       <span className="text-[13px] font-bold text-ink-900 truncate" title={res.adapter_name}>
                         {res.adapter_name === 'base'
                           ? 'SinLLaMA Base'
+                          : ['mt5-base', 'mt5'].includes(res.adapter_name)
+                          ? 'mT5 Base (Teacher Model)'
                           : ['tfidf', 'textrank', 'rake', 'yake', 'keybert'].includes(res.adapter_name)
                           ? `${res.adapter_name.toUpperCase()} (Extractive)`
                           : res.adapter_name}
