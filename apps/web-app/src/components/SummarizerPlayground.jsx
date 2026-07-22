@@ -172,7 +172,8 @@ export default function SummarizerPlayground() {
         adapters: selectedAdapters,
         task: 'summarizer',
       });
-      setResults(data.results || []);
+      const list = Array.isArray(data) ? data : data.results || [];
+      setResults(list);
     } catch (err) {
       setError(err.message || 'Error running summarization benchmark.');
     } finally {
