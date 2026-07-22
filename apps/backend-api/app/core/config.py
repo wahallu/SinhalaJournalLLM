@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     # OpenRouter Image Generation
     OPENROUTER_IMAGE_API_KEY: str = ""
 
+    # Hugging Face Image Generation
+    HUGGINGFACE_API_KEY: str = ""
+
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173"
 

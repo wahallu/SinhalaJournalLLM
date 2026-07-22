@@ -1,14 +1,14 @@
 """
-Pydantic schemas for the AI Image Generation API (OpenRouter).
+Pydantic schemas for the AI Image Generation API (Hugging Face).
 """
 
 from pydantic import BaseModel, Field
 
-OPENROUTER_MODEL = "krea/krea-2-large"
+HUGGINGFACE_MODEL = "stabilityai/stable-diffusion-xl-base-1.0"
 
 
 class ImageGenerationRequest(BaseModel):
-    """Input payload for image generation via OpenRouter."""
+    """Input payload for image generation via Hugging Face."""
     prompt: str = Field(
         ...,
         min_length=1,
@@ -25,6 +25,6 @@ class ImageGenerationResponse(BaseModel):
     )
     prompt: str = Field(..., description="The prompt that was used")
     model: str = Field(
-        default=OPENROUTER_MODEL,
-        description="OpenRouter model used for generation",
+        default=HUGGINGFACE_MODEL,
+        description="Hugging Face model used for generation",
     )

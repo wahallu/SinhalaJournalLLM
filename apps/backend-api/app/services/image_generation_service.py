@@ -1,88 +1,60 @@
 """
-OpenRouter image generation service.
+Hugging Face image generation service.
 
-Calls the OpenRouter dedicated Image API using the `krea/krea-2-large` model.
-
-Endpoint:
-    POST https://openrouter.ai/api/v1/images
+Calls Hugging Face Inference API using `stabilityai/stable-diffusion-xl-base-1.0`.
 
 Auth:
-    Authorization: Bearer {OPENROUTER_IMAGE_API_KEY}
+    Authorization: Bearer {HUGGINGFACE_API_KEY}
 """
 
-import httpx
+import asyncio
+import base64
+from io import BytesIO
+
+from huggingface_hub import InferenceClient
 
 from app.core.config import get_settings
+from app.schemas.image_generation import HUGGINGFACE_MODEL
 
-OPENROUTER_IMAGE_ENDPOINT = "https://openrouter.ai/api/v1/images"
-OPENROUTER_MODEL = "krea/krea-2-large"
-REQUEST_TIMEOUT = 120.0
+
+def _sync_generate_image(api_key: str, prompt: str) -> str:
+    """Synchronous worker to call Hugging Face Inference Client."""
+    client = InferenceClient(api_key=api_key)
+    pil_image = client.text_to_image(
+        prompt=prompt,
+        model=HUGGINGFACE_MODEL,
+        negative_prompt="blurry, low quality, distorted anatomy, extra limbs",
+        guidance_scale=7.5,
+    )
+    buf = BytesIO()
+    pil_image.save(buf, format="PNG")
+    b64_str = base64.b64encode(buf.getvalue()).decode("utf-8")
+    return f"data:image/png;base64,{b64_str}"
 
 
 async def generate_image(prompt: str) -> str:
     """
-    Generate an image from *prompt* using OpenRouter (Krea 2 Large).
+    Generate an image from *prompt* using Hugging Face (Stable Diffusion XL).
 
     Args:
         prompt: English image prompt (should be the visual prompt from the headline tool).
 
     Returns:
-        An image URL or base64 data URL string.
+        Base64 PNG data URL string.
 
     Raises:
         RuntimeError: If API key is missing or the API returns an error.
     """
     settings = get_settings()
-    api_key = settings.OPENROUTER_IMAGE_API_KEY
+    api_key = settings.HUGGINGFACE_API_KEY
 
     if not api_key:
         raise RuntimeError(
-            "OPENROUTER_IMAGE_API_KEY is not configured in apps/backend-api/.env."
+            "HUGGINGFACE_API_KEY is not configured in apps/backend-api/.env."
         )
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-    payload = {
-        "model": OPENROUTER_MODEL,
-        "prompt": prompt,
-    }
-
-    async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
-        response = await client.post(OPENROUTER_IMAGE_ENDPOINT, headers=headers, json=payload)
-
-    if response.status_code != 200:
-        try:
-            error_body = response.json()
-            error_msg = error_body.get("error", {}).get("message") or error_body.get("message") or str(error_body)
-        except Exception:
-            error_msg = response.text[:400] or f"HTTP {response.status_code}"
-        raise RuntimeError(f"OpenRouter AI error ({response.status_code}): {error_msg}")
 
     try:
-        data = response.json()
+        return await asyncio.to_thread(_sync_generate_image, api_key, prompt)
     except Exception as exc:
-        raise RuntimeError(
-            f"OpenRouter AI returned non-parseable JSON: {response.text[:300]}"
-        ) from exc
+        raise RuntimeError(f"Hugging Face image generation error: {exc}") from exc
 
-    results = data.get("data", [])
-    if not results:
-        raise RuntimeError(
-            f"OpenRouter AI response is missing data array. Full response: {str(data)[:300]}"
-        )
-
-    first_result = results[0]
-    image_url = first_result.get("url") or first_result.get("b64_json")
-
-    if not image_url:
-        raise RuntimeError(
-            f"OpenRouter AI response contains no image URL or base64 data. Full response: {str(data)[:300]}"
-        )
-
-    # If it's pure base64 without prefix, check and prefix it (though usually OpenRouter/providers return full URLs or full data URLs)
-    if not image_url.startswith("http") and not image_url.startswith("data:"):
-        image_url = f"data:image/png;base64,{image_url}"
-
-    return image_url
