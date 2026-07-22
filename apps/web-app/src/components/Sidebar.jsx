@@ -24,8 +24,9 @@ const NAV_SECTIONS = [
   {
     label: 'Research',
     items: [
-      { id: 'sinllama',   label: 'SinLLaMA Playground', icon: Bot },
-      { id: 'comparison', label: 'Model Comparison',    icon: Scale },
+      { id: 'sinllama',              label: 'SinLLaMA Playground', icon: Bot },
+      { id: 'summarizer_playground', label: 'Summarizer Lab',      icon: Layers },
+      { id: 'comparison',            label: 'Model Comparison',    icon: Scale },
     ],
   },
 ];
