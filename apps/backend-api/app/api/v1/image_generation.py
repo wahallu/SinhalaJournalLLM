@@ -1,13 +1,13 @@
 """
 Image Generation API endpoint.
 
-POST /image/generate  —  Generate an image from a visual prompt via Hugging Face
-                         (stabilityai/stable-diffusion-xl-base-1.0). Returns a base64 PNG data URL.
+POST /image/generate  —  Generate an image from a visual prompt via OpenRouter
+                         (krea/krea-2-large). Returns a base64 PNG data URL or hosted image URL.
 """
 
 from fastapi import APIRouter, HTTPException
 
-from app.schemas.image_generation import HUGGINGFACE_MODEL, ImageGenerationRequest, ImageGenerationResponse
+from app.schemas.image_generation import OPENROUTER_MODEL, ImageGenerationRequest, ImageGenerationResponse
 from app.services.image_generation_service import generate_image
 
 router = APIRouter(prefix="/image", tags=["Image Generation"])
@@ -19,7 +19,7 @@ async def generate_image_endpoint(payload: ImageGenerationRequest):
     Generate a photorealistic image from an English text prompt.
 
     Designed to consume the visual prompt produced by the headline generator.
-    Proxies the request to Hugging Face so the API token never leaves the backend.
+    Proxies the request to OpenRouter so the API token never leaves the backend.
     """
     try:
         image_data = await generate_image(prompt=payload.prompt)
@@ -34,5 +34,5 @@ async def generate_image_endpoint(payload: ImageGenerationRequest):
     return ImageGenerationResponse(
         image_data=image_data,
         prompt=payload.prompt,
-        model=HUGGINGFACE_MODEL,
+        model=OPENROUTER_MODEL,
     )
