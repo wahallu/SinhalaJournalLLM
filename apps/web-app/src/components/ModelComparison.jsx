@@ -83,13 +83,31 @@ export default function ModelComparison() {
   const [loadingProgress, setLoadingProgress] = useState('');
   const [highlightMatches, setHighlightMatches] = useState(true);
 
+  // Helper to heal broken BPE subword token splits (e.g. 'ප්‍ර දේශයේ' -> 'ප්‍රදේශයේ')
+  const healSinhalaText = (text) => {
+    if (!text) return text;
+    let healed = text.replace(/([\u0D80-\u0DFF]+[්‍්]?[ර්‍ර])\s+([\u0D80-\u0DFF]+)/gu, '$1$2');
+    const splits = [
+      [/ප්‍ර\s+දේශ/gu, 'ප්‍රදේශ'],
+      [/පා\s+රිභෝගික/gu, 'පාරිභෝගික'],
+      [/වී\s+යාජ/gu, 'ව්‍යාජ'],
+      [/මහේස්ත්‍\s+රාත්/gu, 'මහේස්ත්‍රාත්'],
+      [/අත්\s+අඩංගුවට/gu, 'අත්අඩංගුවට'],
+    ];
+    splits.forEach(([pattern, repl]) => {
+      healed = healed.replace(pattern, repl);
+    });
+    return healed.replace(/\s+/gu, ' ').trim();
+  };
+
   // Helper to calculate verbatim overlap percentage
   const getVerbatimStats = (outputText, input) => {
-    if (!outputText || !input) return { matchPct: 0, total: 0, matched: 0 };
+    const cleanedOutput = healSinhalaText(outputText);
+    if (!cleanedOutput || !input) return { matchPct: 0, total: 0, matched: 0 };
     const inputWordSet = new Set(
       input.toLowerCase().split(/[^\w\u0D80-\u0DFF]+/u).filter(w => w.trim().length > 0)
     );
-    const outputWords = outputText.toLowerCase().split(/[^\w\u0D80-\u0DFF]+/u).filter(w => w.trim().length > 0);
+    const outputWords = cleanedOutput.toLowerCase().split(/[^\w\u0D80-\u0DFF]+/u).filter(w => w.trim().length > 0);
     if (outputWords.length === 0) return { matchPct: 0, total: 0, matched: 0 };
     let matchedCount = 0;
     outputWords.forEach(w => {
@@ -104,14 +122,15 @@ export default function ModelComparison() {
 
   // Helper to render output text with light yellow highlights for verbatim matches
   const renderHighlightedOutput = (outputText, input, shouldHighlight = true) => {
-    if (!outputText) return null;
+    const cleanedOutput = healSinhalaText(outputText);
+    if (!cleanedOutput) return null;
     if (!shouldHighlight || !input) {
-      return <pre className="text-[13.5px] text-ink-800 font-sans font-normal leading-relaxed whitespace-pre-wrap bg-ink-50/60 px-3.5 py-3 rounded-xl border border-ink-100 select-all min-h-[70px] m-0">{outputText}</pre>;
+      return <pre className="text-[13.5px] text-ink-800 font-sans font-normal leading-relaxed whitespace-pre-wrap bg-ink-50/60 px-3.5 py-3 rounded-xl border border-ink-100 select-all min-h-[70px] m-0">{cleanedOutput}</pre>;
     }
     const inputWordSet = new Set(
       input.toLowerCase().split(/[^\w\u0D80-\u0DFF]+/u).filter(w => w.trim().length > 0)
     );
-    const tokens = outputText.split(/([^\w\u0D80-\u0DFF]+)/u);
+    const tokens = cleanedOutput.split(/([^\w\u0D80-\u0DFF]+)/u);
     return (
       <div className="text-[13.5px] text-ink-800 font-sans font-normal leading-[1.85] bg-ink-50/60 px-3.5 py-3 rounded-xl border border-ink-100 min-h-[70px] select-all">
         {tokens.map((tok, i) => {
