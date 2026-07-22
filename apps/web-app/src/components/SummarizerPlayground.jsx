@@ -167,7 +167,11 @@ export default function SummarizerPlayground() {
     setLoading(true);
     setError(null);
     try {
-      const data = await runComparison(inputArticle, selectedAdapters, 'summarizer', null, null);
+      const data = await runComparison({
+        input_text: inputArticle,
+        adapters: selectedAdapters,
+        task: 'summarizer',
+      });
       setResults(data.results || []);
     } catch (err) {
       setError(err.message || 'Error running summarization benchmark.');

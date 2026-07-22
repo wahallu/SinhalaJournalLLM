@@ -131,7 +131,17 @@ export function getComparisonAdapters() {
   return request('/comparison/adapters', null, 'GET');
 }
 
-export function runComparison(payload) {
+export function runComparison(inputOrPayload, adapters, task = 'grammar', style = null, referenceText = null) {
+  let payload = inputOrPayload;
+  if (typeof inputOrPayload === 'string') {
+    payload = {
+      input_text: inputOrPayload,
+      adapters: adapters || [],
+      task: task || 'grammar',
+      style: style || null,
+      reference_text: referenceText || null,
+    };
+  }
   return request('/comparison/compare', payload);
 }
 
