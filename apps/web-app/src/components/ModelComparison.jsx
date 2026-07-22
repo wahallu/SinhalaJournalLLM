@@ -112,8 +112,12 @@ export default function ModelComparison() {
 
   const autoSelectForTask = (currentTask, groups) => {
     const list = groups[currentTask] || [];
-    // Always preselect "base" as a point of reference
-    setSelectedAdapters([...list, 'base']);
+    if (currentTask === 'summarizer') {
+      const extList = groups['extractive'] || ['tfidf', 'textrank', 'rake', 'yake', 'keybert'];
+      setSelectedAdapters([...list, ...extList, 'base']);
+    } else {
+      setSelectedAdapters([...list, 'base']);
+    }
   };
 
   const handleSelectAdapter = (name) => {
@@ -480,7 +484,11 @@ export default function ModelComparison() {
                     <div className="flex flex-col min-w-0">
                       <span className="text-[9.5px] font-bold text-ink-400 uppercase tracking-[0.14em]">{res.category} model</span>
                       <span className="text-[13px] font-bold text-ink-900 truncate" title={res.adapter_name}>
-                        {res.adapter_name === 'base' ? 'SinLLaMA Base' : res.adapter_name}
+                        {res.adapter_name === 'base'
+                          ? 'SinLLaMA Base'
+                          : ['tfidf', 'textrank', 'rake', 'yake', 'keybert'].includes(res.adapter_name)
+                          ? `${res.adapter_name.toUpperCase()} (Extractive)`
+                          : res.adapter_name}
                       </span>
                     </div>
                     <div className="flex gap-1.5 shrink-0">
