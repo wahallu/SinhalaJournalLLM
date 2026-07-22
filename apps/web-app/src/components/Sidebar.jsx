@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   LayoutDashboard, SpellCheck, Newspaper, PenLine, FileText,
-  History, Settings, ChevronLeft, ChevronRight, User, Zap, Bot, Scale, X,
+  History, Settings, ChevronLeft, ChevronRight, User, Zap, Bot, Scale, X, Layers,
 } from 'lucide-react';
 import DotField from './DotField';
 
