@@ -81,6 +81,58 @@ export default function ModelComparison() {
   const [results, setResults] = useState([]);
   const [error, setError] = useState(null);
   const [loadingProgress, setLoadingProgress] = useState('');
+  const [highlightMatches, setHighlightMatches] = useState(true);
+
+  // Helper to calculate verbatim overlap percentage
+  const getVerbatimStats = (outputText, input) => {
+    if (!outputText || !input) return { matchPct: 0, total: 0, matched: 0 };
+    const inputWordSet = new Set(
+      input.toLowerCase().split(/[^\w\u0D80-\u0DFF]+/u).filter(w => w.trim().length > 0)
+    );
+    const outputWords = outputText.toLowerCase().split(/[^\w\u0D80-\u0DFF]+/u).filter(w => w.trim().length > 0);
+    if (outputWords.length === 0) return { matchPct: 0, total: 0, matched: 0 };
+    let matchedCount = 0;
+    outputWords.forEach(w => {
+      if (inputWordSet.has(w)) matchedCount++;
+    });
+    return {
+      matchPct: Math.round((matchedCount / outputWords.length) * 100),
+      total: outputWords.length,
+      matched: matchedCount
+    };
+  };
+
+  // Helper to render output text with light yellow highlights for verbatim matches
+  const renderHighlightedOutput = (outputText, input, shouldHighlight = true) => {
+    if (!outputText) return null;
+    if (!shouldHighlight || !input) {
+      return <pre className="text-[13.5px] text-ink-800 font-sans font-normal leading-relaxed whitespace-pre-wrap bg-ink-50/60 px-3.5 py-3 rounded-xl border border-ink-100 select-all min-h-[70px] m-0">{outputText}</pre>;
+    }
+    const inputWordSet = new Set(
+      input.toLowerCase().split(/[^\w\u0D80-\u0DFF]+/u).filter(w => w.trim().length > 0)
+    );
+    const tokens = outputText.split(/([^\w\u0D80-\u0DFF]+)/u);
+    return (
+      <div className="text-[13.5px] text-ink-800 font-sans font-normal leading-[1.85] bg-ink-50/60 px-3.5 py-3 rounded-xl border border-ink-100 min-h-[70px] select-all">
+        {tokens.map((tok, i) => {
+          const clean = tok.toLowerCase().trim();
+          const isMatch = clean.length > 0 && inputWordSet.has(clean);
+          if (isMatch) {
+            return (
+              <mark
+                key={i}
+                className="bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px] border border-yellow-300/70"
+                title="Verbatim match from input text (Extracted)"
+              >
+                {tok}
+              </mark>
+            );
+          }
+          return <span key={i}>{tok}</span>;
+        })}
+      </div>
+    );
+  };
 
   // Fetch list of adapters from server on mount
   const fetchAdapters = async () => {
@@ -462,11 +514,40 @@ export default function ModelComparison() {
       {/* ── Results ── */}
       {results.length > 0 && (
         <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="border-t border-ink-200/70 pt-5 flex items-center gap-2">
-            <CheckCircle2 className="text-emerald-500" size={18} />
-            <h2 className="text-[16px] font-bold text-ink-900 tracking-tight">Evaluation results</h2>
-            <span className="text-[11.5px] text-ink-400 tabular-nums ml-1">{results.length} model{results.length !== 1 ? 's' : ''}</span>
+          <div className="border-t border-ink-200/70 pt-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="text-emerald-500" size={18} />
+              <h2 className="text-[16px] font-bold text-ink-900 tracking-tight">Evaluation results</h2>
+              <span className="text-[11.5px] text-ink-400 tabular-nums ml-1">{results.length} model{results.length !== 1 ? 's' : ''}</span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setHighlightMatches(prev => !prev)}
+                className={`inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-full border transition-all duration-150 cursor-pointer
+                  ${highlightMatches
+                    ? 'bg-yellow-100/90 text-yellow-900 border-yellow-300 shadow-sm'
+                    : 'bg-white text-ink-600 border-ink-200 hover:bg-ink-50'}`}
+                title="Highlight words in output that appear verbatim in the input text"
+              >
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 border border-yellow-500 shrink-0" />
+                Highlight verbatim matches
+              </button>
+            </div>
           </div>
+
+          {highlightMatches && (
+            <div className="bg-yellow-50/70 border border-yellow-200/80 rounded-xl px-4 py-2.5 flex items-center justify-between text-[12px] text-yellow-900">
+              <span className="flex items-center gap-2">
+                <span className="bg-yellow-200/90 text-yellow-950 font-bold px-1.5 py-0.5 rounded border border-yellow-300 text-[11px]">Yellow highlight</span>
+                Exact word/phrase copied verbatim from input (Extracted)
+              </span>
+              <span className="text-[11.5px] text-yellow-800 font-medium hidden sm:inline">
+                Plain text = Model generated / synthesized rephrasing (Abstractive)
+              </span>
+            </div>
+          )}
 
           {/* Side-by-side response panels */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -476,6 +557,7 @@ export default function ModelComparison() {
               const isBestRougeL = hasMetrics && results.every(other =>
                 !other.metrics || !other.metrics.rougeL || other.metrics.rougeL <= res.metrics.rougeL
               );
+              const vStats = getVerbatimStats(res.output_text, inputText);
 
               return (
                 <Card key={res.adapter_name} className="flex flex-col overflow-hidden">
@@ -509,13 +591,26 @@ export default function ModelComparison() {
                   <div className="p-4 flex-1 flex flex-col justify-between gap-4">
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[9.5px] font-bold text-ink-400 uppercase tracking-[0.14em]">Output</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9.5px] font-bold text-ink-400 uppercase tracking-[0.14em]">Output</span>
+                          {vStats.total > 0 && (
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border tabular-nums ${
+                                vStats.matchPct >= 85
+                                  ? 'bg-yellow-100 text-yellow-900 border-yellow-300'
+                                  : 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                              }`}
+                              title={`${vStats.matched} of ${vStats.total} words match input text`}
+                            >
+                              {vStats.matchPct >= 85
+                                ? `Extracted (${vStats.matchPct}% verbatim)`
+                                : `Abstractive (${vStats.matchPct}% verbatim)`}
+                            </span>
+                          )}
+                        </div>
                         <CopyButton text={res.output_text} label="" className="!px-1.5" />
                       </div>
-                      <pre className="text-[13.5px] text-ink-800 font-sans font-normal leading-relaxed whitespace-pre-wrap
-                        bg-ink-50/60 px-3.5 py-3 rounded-xl border border-ink-100 select-all min-h-[70px] m-0">
-                        {res.output_text}
-                      </pre>
+                      {renderHighlightedOutput(res.output_text, inputText, highlightMatches)}
                     </div>
 
                     {/* Runtime metadata */}
@@ -525,6 +620,7 @@ export default function ModelComparison() {
                       <span>Tokens <span className="font-bold text-ink-700">{res.output_tokens} out</span></span>
                     </div>
                   </div>
+
 
                   {/* Reference scores */}
                   {hasMetrics && (
