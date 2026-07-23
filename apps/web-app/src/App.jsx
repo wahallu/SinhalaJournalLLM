@@ -16,7 +16,6 @@ import Plans from './components/Plans';
 import SinLLamaPage from './components/SinLLamaPage';
 import ModelComparison from './components/ModelComparison';
 import SummarizerPlayground from './components/SummarizerPlayground';
-import ImageGenerator from './components/ImageGenerator';
 import { useToolProcessor } from './hooks/useToolProcessor';
 import { checkGrammar, generateHeadlines, rewriteStyle, summarizeNews } from './services/api';
 import { saveToHistory } from './lib/history';
@@ -64,7 +63,7 @@ const TOOL_CONFIG = {
   },
 };
 
-const TOOL_IDS = ['grammar', 'headlines', 'rewriter', 'summarizer', 'image_generator', 'plans', 'sinllama', 'comparison', 'summarizer_playground'];
+const TOOL_IDS = ['grammar', 'headlines', 'rewriter', 'summarizer', 'plans', 'sinllama', 'comparison', 'summarizer_playground'];
 
 const MAX_WIDTHS = {
   dashboard: 'max-w-7xl',
@@ -72,7 +71,6 @@ const MAX_WIDTHS = {
   headlines: 'max-w-7xl',
   rewriter: 'max-w-7xl',
   summarizer: 'max-w-7xl',
-  image_generator: 'max-w-5xl',
   comparison: 'max-w-7xl',
   summarizer_playground: 'max-w-7xl',
   sinllama: 'max-w-5xl',
@@ -190,8 +188,6 @@ function App() {
         return <ModelComparison />;
       case 'summarizer_playground':
         return <SummarizerPlayground />;
-      case 'image_generator':
-        return <ImageGenerator />;
       default:
         if (!config) return null;
         return (
