@@ -145,8 +145,43 @@ export function runComparison(inputOrPayload, adapters, task = 'grammar', style 
   return request('/comparison/compare', payload);
 }
 
-// ── Image Generation (OpenRouter — Krea 2 Large) ──
-// The backend proxies to OpenRouter and returns a base64 PNG data URL or hosted image URL.
-export function generateImage(prompt) {
-  return request('/image/generate', { prompt });
+// ── Image Generation (Pollinations AI) ──
+// 100% Frontend-based image generation using Pollinations AI.
+export function generatePollinationsUrl(prompt, seed = null) {
+  if (!prompt || typeof prompt !== 'string') return '';
+  const sanitized = prompt.replace(/[\r\n]+/g, ' ').trim();
+  if (!sanitized) return '';
+  let url = `https://image.pollinations.ai/prompt/${encodeURIComponent(sanitized)}`;
+  if (seed !== null && seed !== undefined) {
+    url += `?seed=${seed}`;
+  }
+  return url;
 }
+
+export async function generateImage(prompt, seed = null) {
+  const imageUrl = generatePollinationsUrl(prompt, seed);
+  if (!imageUrl) {
+    throw new Error('Invalid prompt provided for image generation.');
+  }
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const timeout = setTimeout(() => {
+      img.src = '';
+      reject(new Error('Network timeout while loading image from Pollinations AI'));
+    }, 30000);
+
+    img.onload = () => {
+      clearTimeout(timeout);
+      resolve({ image_data: imageUrl, prompt });
+    };
+
+    img.onerror = () => {
+      clearTimeout(timeout);
+      reject(new Error('Failed to load image from Pollinations AI'));
+    };
+
+    img.src = imageUrl;
+  });
+}
+

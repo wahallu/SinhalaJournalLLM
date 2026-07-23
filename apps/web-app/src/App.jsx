@@ -17,6 +17,7 @@ import Plans from './components/Plans';
 import SinLLamaPage from './components/SinLLamaPage';
 import ModelComparison from './components/ModelComparison';
 import SummarizerPlayground from './components/SummarizerPlayground';
+import ImageGenerator from './components/ImageGenerator';
 import { useToolProcessor } from './hooks/useToolProcessor';
 import { checkGrammar, generateHeadlines, rewriteStyle, summarizeNews } from './services/api';
 import { saveToHistory } from './lib/history';
@@ -100,6 +101,7 @@ const MAX_WIDTHS = {
   headlines: 'max-w-7xl',
   rewriter: 'max-w-7xl',
   summarizer: 'max-w-7xl',
+  image_generator: 'max-w-5xl',
   comparison: 'max-w-7xl',
   summarizer_playground: 'max-w-7xl',
   sinllama: 'max-w-5xl',
