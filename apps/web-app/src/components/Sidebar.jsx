@@ -1,9 +1,25 @@
 import { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, SpellCheck, Newspaper, PenLine, FileText,
   History, Settings, ChevronLeft, ChevronRight, User, Zap, Bot, Scale, X, Layers,
 } from 'lucide-react';
 import DotField from './DotField';
+
+const TOOL_PATHS = {
+  dashboard: '/dashboard',
+  grammar: '/grammar',
+  headlines: '/headlines',
+  rewriter: '/rewriter',
+  summarizer: '/summarizer',
+  sinllama: '/sinllama',
+  summarizer_playground: '/summarizer-playground',
+  comparison: '/comparison',
+  history: '/history',
+  settings: '/settings',
+  profile: '/profile',
+  plans: '/plans',
+};
 
 const NAV_SECTIONS = [
   {
@@ -38,14 +54,24 @@ const BOTTOM_NAV = [
 
 export default function Sidebar({ activeTool, onSelectTool, isOpen, onToggle, collapsed, onCollapse }) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const select = (id) => {
-    onSelectTool(id);
-    if (window.innerWidth < 1024) onToggle();
+    if (onSelectTool) {
+      onSelectTool(id);
+    } else {
+      navigate(TOOL_PATHS[id] || `/${id}`);
+    }
+    if (window.innerWidth < 1024 && onToggle) onToggle();
   };
 
   const renderNavItem = ({ id, label, icon: Icon }) => {
-    const isActive = activeTool === id;
+    const targetPath = TOOL_PATHS[id] || `/${id}`;
+    const isActive = activeTool
+      ? activeTool === id
+      : (location.pathname === targetPath || (id === 'dashboard' && location.pathname === '/'));
+
     return (
       <button
         key={id}
