@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, SpellCheck, Newspaper, PenLine, FileText, ImageIcon,
+  LayoutDashboard, SpellCheck, Newspaper, PenLine, FileText,
   History, Settings, ChevronLeft, ChevronRight, User, Zap, Bot, Scale, X, Layers,
 } from 'lucide-react';
 import DotField from './DotField';
@@ -31,25 +31,24 @@ const NAV_SECTIONS = [
   {
     label: 'Writing tools',
     items: [
-      { id: 'grammar',         label: 'Grammar Checker',    icon: SpellCheck },
-      { id: 'headlines',       label: 'Headline Generator', icon: Newspaper },
-      { id: 'rewriter',        label: 'Style Rewriter',     icon: PenLine },
-      { id: 'summarizer',      label: 'News Summarizer',    icon: FileText },
-      { id: 'image_generator', label: 'Image Generator',    icon: ImageIcon },
+      { id: 'grammar', label: 'Grammar Checker', icon: SpellCheck },
+      { id: 'headlines', label: 'Headline Generator', icon: Newspaper },
+      { id: 'rewriter', label: 'Style Rewriter', icon: PenLine },
+      { id: 'summarizer', label: 'News Summarizer', icon: FileText },
     ],
   },
   {
     label: 'Research',
     items: [
-      { id: 'sinllama',              label: 'SinLLaMA Playground', icon: Bot },
-      { id: 'summarizer_playground', label: 'Summarizer Lab',      icon: Layers },
-      { id: 'comparison',            label: 'Model Comparison',    icon: Scale },
+      { id: 'sinllama', label: 'SinLLaMA Playground', icon: Bot },
+      { id: 'summarizer_playground', label: 'Summarizer Lab', icon: Layers },
+      { id: 'comparison', label: 'Model Comparison', icon: Scale },
     ],
   },
 ];
 
 const BOTTOM_NAV = [
-  { id: 'history',  label: 'History',  icon: History },
+  { id: 'history', label: 'History', icon: History },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -232,9 +231,9 @@ export default function Sidebar({ activeTool, onSelectTool, isOpen, onToggle, co
                 bg-white rounded-xl shadow-pop py-1.5 border border-ink-200/80
                 animate-in fade-in slide-in-from-bottom-1 duration-150`}>
                 {[
-                  { id: 'profile-view-btn',     label: 'View profile', icon: User, tool: 'profile' },
-                  { id: 'profile-upgrade-btn',  label: 'Plans',        icon: Zap,  tool: 'plans' },
-                  { id: 'profile-settings-btn', label: 'Settings',     icon: Settings, tool: 'settings' },
+                  { id: 'profile-view-btn', label: 'View profile', icon: User, tool: 'profile' },
+                  { id: 'profile-upgrade-btn', label: 'Plans', icon: Zap, tool: 'plans' },
+                  { id: 'profile-settings-btn', label: 'Settings', icon: Settings, tool: 'settings' },
                 ].map(({ id, label, icon: Icon, tool }) => (
                   <button
                     key={id}
