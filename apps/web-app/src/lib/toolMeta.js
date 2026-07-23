@@ -1,4 +1,4 @@
-import { SpellCheck, Newspaper, PenLine, FileText } from 'lucide-react';
+import { SpellCheck, Newspaper, PenLine, FileText, ImageIcon } from 'lucide-react';
 
 /**
  * Shared metadata for the four writing tools.
@@ -40,6 +40,15 @@ export const TOOL_META = {
     sample:
       'ශ්‍රී ලංකා ක්‍රිකට් කණ්ඩායම සහ ඉන්දීය ක්‍රිකට් කණ්ඩායම අතර පැවැත්වෙන තරග තුනකින් සමන්විත එක්දින ක්‍රිකට් තරගාවලියේ පළමු තරගය අද කොළඹ ආර්. ප්‍රේමදාස ක්‍රීඩාංගණයේ දී පැවැත්වීමට නියමිතව තිබේ. මෙම තරගාවලිය සඳහා දෙරටේම ප්‍රධාන ක්‍රීඩකයින් රැසක් එක්ව සිටින අතර ප්‍රේක්ෂක උනන්දුව ද ඉහළ මට්ටමක පවතී.',
   },
+  image_generator: {
+    id: 'image_generator',
+    label: 'AI Image Generator',
+    shortDesc: 'Generate AI images dynamically with Pollinations AI.',
+    icon: ImageIcon,
+    sampleLabel: 'Cyberpunk landscape',
+    sample: 'A futuristic cyberpunk city at sunset with neon reflections',
+  },
 };
 
 export const TOOL_LIST = Object.values(TOOL_META);
+

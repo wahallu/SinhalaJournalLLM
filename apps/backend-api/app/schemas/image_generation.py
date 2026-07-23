@@ -1,30 +1,32 @@
 """
-Pydantic schemas for the AI Image Generation API (OpenRouter).
+Pydantic schemas for the AI Image Generation API (Pollinations AI).
 """
 
 from pydantic import BaseModel, Field
 
-OPENROUTER_MODEL = "krea/krea-2-large"
+POLLINATIONS_MODEL = "pollinations-ai"
 
 
 class ImageGenerationRequest(BaseModel):
-    """Input payload for image generation via OpenRouter."""
+    """Input payload for image generation via Pollinations AI."""
+
     prompt: str = Field(
         ...,
         min_length=1,
         max_length=2000,
-        description="English image-generation prompt (the visual prompt from the headline tool)",
+        description="English image-generation prompt",
     )
 
 
 class ImageGenerationResponse(BaseModel):
     """Response after image generation."""
+
     image_data: str = Field(
         ...,
-        description="Image URL or Base64-encoded image data URL",
+        description="Pollinations AI image URL",
     )
     prompt: str = Field(..., description="The prompt that was used")
     model: str = Field(
-        default=OPENROUTER_MODEL,
-        description="OpenRouter model used for generation",
+        default=POLLINATIONS_MODEL,
+        description="Image generation provider used",
     )

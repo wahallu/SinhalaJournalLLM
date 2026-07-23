@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  LayoutDashboard, SpellCheck, Newspaper, PenLine, FileText,
+  LayoutDashboard, SpellCheck, Newspaper, PenLine, FileText, ImageIcon,
   History, Settings, ChevronLeft, ChevronRight, User, Zap, Bot, Scale, X, Layers,
 } from 'lucide-react';
 import DotField from './DotField';
@@ -15,10 +15,11 @@ const NAV_SECTIONS = [
   {
     label: 'Writing tools',
     items: [
-      { id: 'grammar',    label: 'Grammar Checker',    icon: SpellCheck },
-      { id: 'headlines',  label: 'Headline Generator', icon: Newspaper },
-      { id: 'rewriter',   label: 'Style Rewriter',     icon: PenLine },
-      { id: 'summarizer', label: 'News Summarizer',    icon: FileText },
+      { id: 'grammar',         label: 'Grammar Checker',    icon: SpellCheck },
+      { id: 'headlines',       label: 'Headline Generator', icon: Newspaper },
+      { id: 'rewriter',        label: 'Style Rewriter',     icon: PenLine },
+      { id: 'summarizer',      label: 'News Summarizer',    icon: FileText },
+      { id: 'image_generator', label: 'Image Generator',    icon: ImageIcon },
     ],
   },
   {
