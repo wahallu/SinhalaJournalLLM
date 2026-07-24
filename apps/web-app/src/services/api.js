@@ -53,13 +53,11 @@ export async function generateHeadlines(text, options = {}) {
   const {
     count = 5,
     numCandidates,
-    style = 'formal',
   } = typeof options === 'object' && !Array.isArray(options) ? options : { count: options };
 
   const raw = await request('/headlines/generate', {
     text,
     count: numCandidates ?? count,
-    style,
   });
 
   // Transform flat { headlines: string[] } → rich output shape for HeadlineOutputPanel

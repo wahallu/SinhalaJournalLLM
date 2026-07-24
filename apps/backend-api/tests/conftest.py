@@ -109,13 +109,4 @@ def fake_supabase(monkeypatch):
     # A test that exercises a persistence failure trips the circuit breaker;
     # reset it so later tests still reach the fake store.
     monkeypatch.setattr("app.repositories.base._circuit_open_until", 0.0)
-
-    # Force offline mock provider for all tests
-    monkeypatch.setenv("MODEL_PROVIDER", "mock")
-    # Avoid picking up real Groq keys during local tests
-    monkeypatch.setenv("GROQ_STYLE_API_KEY", "")
-    monkeypatch.setenv("GROQ_API_KEY", "")
-
-    from app.core.config import get_settings
-    get_settings.cache_clear()
     return fake

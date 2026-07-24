@@ -29,7 +29,7 @@ async def generate_headlines_endpoint(payload: HeadlineRequest):
     """
     Generate multiple headline variants from the input Sinhala text.
     """
-    return await generate_headlines(payload.text, payload.count, payload.style)
+    return await generate_headlines(payload.text, payload.count)
 
 
 @router.post("/visual-prompt", response_model=VisualPromptResponse)
