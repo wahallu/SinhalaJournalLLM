@@ -21,6 +21,10 @@ class HeadlineRequest(BaseModel):
         le=10,
         description="Number of headlines to generate",
     )
+    style: str = Field(
+        default="formal",
+        description="The style or tone requested for the headlines",
+    )
 
 
 class HeadlineResponse(BaseModel):

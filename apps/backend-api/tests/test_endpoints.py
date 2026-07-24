@@ -39,6 +39,21 @@ async def test_generate_headlines():
 
 
 @pytest.mark.asyncio
+async def test_generate_headlines_with_style():
+    """Headline generation accepts and processes a requested style."""
+    async with _client() as client:
+        response = await client.post(
+            "/api/v1/headlines/generate",
+            json={"text": _LONG_ARTICLE, "count": 3, "style": "breaking_news"},
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert 1 <= len(data["headlines"]) <= 3
+    assert data["model_used"] == "mock"
+    assert data["id"]
+
+
+@pytest.mark.asyncio
 async def test_headline_history(fake_supabase):
     """Generations are persisted and served from history."""
     async with _client() as client:
@@ -181,3 +196,45 @@ async def test_gateway_falls_back_to_mock(monkeypatch):
         )
     assert response.status_code == 200
     assert response.json()["model_used"] == "mock"
+
+
+@pytest.mark.asyncio
+async def test_generate_headlines_groq_success(monkeypatch):
+    """When GROQ_STYLE_API_KEY is present, it uses the Groq style prompt and parses response."""
+    monkeypatch.setenv("GROQ_STYLE_API_KEY", "gsk_test_key_123")
+    monkeypatch.setenv("GROQ_STYLE_MODEL", "llama3-8b-8192")
+
+    from app.core.config import get_settings
+    get_settings.cache_clear()
+
+    mock_response = "1. First Groq Headline\n2. Second Groq Headline\n3. Third Groq Headline"
+
+    called_messages = []
+    called_temp = None
+    called_use_style = None
+
+    async def mock_groq_chat(messages, *, temperature=0.3, max_tokens=2048, use_style_creds=False):
+        nonlocal called_messages, called_temp, called_use_style
+        called_messages = messages
+        called_temp = temperature
+        called_use_style = use_style_creds
+        return mock_response
+
+    monkeypatch.setattr("app.services.headline.headline_service.groq_chat", mock_groq_chat)
+
+    async with _client() as client:
+        response = await client.post(
+            "/api/v1/headlines/generate",
+            json={"text": "some article text", "count": 3, "style": "youth"},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["headlines"] == ["First Groq Headline", "Second Groq Headline", "Third Groq Headline"]
+    assert data["model_used"] == "llama3-8b-8192"
+
+    assert len(called_messages) == 2
+    assert "You are a text rewriting assistant" in called_messages[0]["content"]
+    assert "Youth Casual" in called_messages[1]["content"]
+    assert called_temp == 0.7
+    assert called_use_style is True

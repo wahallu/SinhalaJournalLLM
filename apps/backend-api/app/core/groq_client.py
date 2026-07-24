@@ -31,6 +31,7 @@ async def groq_chat(
     *,
     temperature: float = 0.3,
     max_tokens: int = 2048,
+    use_style_creds: bool = False,
 ) -> str:
     """
     Send a chat completion request to Groq and return the text response.
@@ -40,15 +41,19 @@ async def groq_chat(
         GroqUnavailable: on missing key, exhausted retries, or bad response shape.
     """
     settings = get_settings()
-    if not settings.GROQ_API_KEY:
-        raise GroqUnavailable("GROQ_API_KEY is not configured")
+    api_key = settings.GROQ_STYLE_API_KEY if use_style_creds else settings.GROQ_API_KEY
+    model = settings.GROQ_STYLE_MODEL if use_style_creds else settings.GROQ_MODEL
+
+    if not api_key:
+        key_name = "GROQ_STYLE_API_KEY" if use_style_creds else "GROQ_API_KEY"
+        raise GroqUnavailable(f"{key_name} is not configured")
 
     headers = {
-        "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     payload = {
-        "model": settings.GROQ_MODEL,
+        "model": model,
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,

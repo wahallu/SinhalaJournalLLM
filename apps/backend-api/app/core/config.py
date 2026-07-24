@@ -61,6 +61,10 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
 
+    # Groq — used for style rewriting.
+    GROQ_STYLE_API_KEY: str = ""
+    GROQ_STYLE_MODEL: str = "llama3-8b-8192"
+
     # OpenRouter Image Generation
     OPENROUTER_IMAGE_API_KEY: str = ""
 
