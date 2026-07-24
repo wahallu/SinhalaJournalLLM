@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import { TOOL_META } from './lib/toolMeta';
@@ -63,7 +64,35 @@ const TOOL_CONFIG = {
   },
 };
 
-const TOOL_IDS = ['grammar', 'headlines', 'rewriter', 'summarizer', 'plans', 'sinllama', 'comparison', 'summarizer_playground'];
+const PATH_TO_TOOL = {
+  '/grammar': 'grammar',
+  '/headlines': 'headlines',
+  '/rewriter': 'rewriter',
+  '/summarizer': 'summarizer',
+  '/sinllama': 'sinllama',
+  '/summarizer-playground': 'summarizer_playground',
+  '/comparison': 'comparison',
+  '/history': 'history',
+  '/settings': 'settings',
+  '/profile': 'profile',
+  '/plans': 'plans',
+  '/dashboard': 'dashboard',
+};
+
+const TOOL_TO_PATH = {
+  grammar: '/grammar',
+  headlines: '/headlines',
+  rewriter: '/rewriter',
+  summarizer: '/summarizer',
+  sinllama: '/sinllama',
+  summarizer_playground: '/summarizer-playground',
+  comparison: '/comparison',
+  history: '/history',
+  settings: '/settings',
+  profile: '/profile',
+  plans: '/plans',
+  dashboard: '/dashboard',
+};
 
 const MAX_WIDTHS = {
   dashboard: 'max-w-7xl',
@@ -97,37 +126,17 @@ function loadDefaultSettings() {
   };
 }
 
-function App() {
-  const [activeTool, setActiveTool] = useState('dashboard');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [settings, setSettings] = useState(loadDefaultSettings);
-
+function ToolRunner({ activeTool, settings, setSettings }) {
+  const location = useLocation();
+  const config = TOOL_CONFIG[activeTool];
   const { input, setInput, output, loading, error, process, clear } = useToolProcessor();
 
-  const handleSelectTool = useCallback((toolId) => {
-    setActiveTool(toolId);
-    if (TOOL_IDS.includes(toolId)) {
-      clear();
+  useEffect(() => {
+    if (location.state?.text) {
+      setInput(location.state.text);
+      window.history.replaceState({}, document.title);
     }
-  }, [clear]);
-
-  // Open a tool with text prefilled (dashboard quick actions, history rerun)
-  const handleQuickStart = useCallback((toolId, text = '') => {
-    clear();
-    setActiveTool(toolId);
-    if (text) setInput(text);
-  }, [clear, setInput]);
-
-  // Settings page saved new defaults — reflect them in the live tool settings
-  const handleDefaultsChange = useCallback((d) => {
-    setSettings((prev) => ({
-      ...prev,
-      tone: d.defaultTone ?? prev.tone,
-      length: d.defaultLength ?? prev.length,
-      count: d.headlineCount ?? prev.count,
-    }));
-  }, []);
+  }, [location.state, setInput]);
 
   const handleRun = useCallback(() => {
     if (!input.trim()) return;
@@ -161,100 +170,102 @@ function App() {
     }
   }, [activeTool, input, settings, process]);
 
-  const config = TOOL_CONFIG[activeTool];
-  const isChat = activeTool === 'sinllama';
+  if (!config) return null;
 
-  const renderContent = () => {
-    switch (activeTool) {
-      case 'dashboard':
-        return <Dashboard onSelectTool={handleSelectTool} onQuickStart={handleQuickStart} />;
-      case 'history':
-        return (
-          <HistoryPage
-            onSelectTool={handleSelectTool}
-            onRerun={handleQuickStart}
-            onBack={() => handleSelectTool('dashboard')}
+  return (
+    <>
+      <PageHeader
+        icon={config.icon}
+        title={config.title}
+        description={config.description}
+        badge={<StatusBadge status="brand" label="SinLLaMA adapter" />}
+      />
+
+      <div className="tool-grid">
+        <div className="tg-input">
+          <InputBox
+            value={input}
+            onChange={setInput}
+            placeholder={config.placeholder}
+            onSubmit={handleRun}
+            disabled={loading}
+            activeTool={activeTool}
+            helper={config.helper}
+            sample={config.sample}
+            actionLabel={config.actionLabel}
+            loading={loading}
+            onRun={handleRun}
+            onClear={clear}
           />
-        );
-      case 'settings':
-        return <SettingsPage onBack={() => handleSelectTool('dashboard')} onDefaultsChange={handleDefaultsChange} />;
-      case 'profile':
-        return <ProfilePage onBack={() => handleSelectTool('dashboard')} />;
-      case 'plans':
-        return <Plans />;
-      case 'sinllama':
-        return <SinLLamaPage />;
-      case 'comparison':
-        return <ModelComparison />;
-      case 'summarizer_playground':
-        return <SummarizerPlayground />;
-      default:
-        if (!config) return null;
-        return (
-          <>
-            <PageHeader
-              icon={config.icon}
-              title={config.title}
-              description={config.description}
-              badge={<StatusBadge status="brand" label="SinLLaMA adapter" />}
+        </div>
+
+        <div className="tg-panel">
+          <div className="xl:sticky xl:top-6 space-y-4">
+            <RightPanel
+              activeTool={activeTool}
+              settings={settings}
+              onSettingsChange={setSettings}
+              output={output}
+              loading={loading}
+              input={input}
             />
+          </div>
+        </div>
 
-            <div className="tool-grid">
-              <div className="tg-input">
-                <InputBox
-                  value={input}
-                  onChange={setInput}
-                  placeholder={config.placeholder}
-                  onSubmit={handleRun}
-                  disabled={loading}
-                  activeTool={activeTool}
-                  helper={config.helper}
-                  sample={config.sample}
-                  actionLabel={config.actionLabel}
-                  loading={loading}
-                  onRun={handleRun}
-                  onClear={clear}
-                />
-              </div>
+        <div className="tg-output">
+          {activeTool === 'headlines' ? (
+            <HeadlineOutputPanel
+              output={output}
+              loading={loading}
+              error={error}
+              articleText={input}
+            />
+          ) : (
+            <OutputPanel
+              output={output}
+              loading={loading}
+              error={error}
+              type={config.outputType}
+              activeTool={activeTool}
+              input={input}
+              summaryView={settings.summaryView}
+            />
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
 
-              <div className="tg-panel">
-                <div className="xl:sticky xl:top-6 space-y-4">
-                  <RightPanel
-                    activeTool={activeTool}
-                    settings={settings}
-                    onSettingsChange={setSettings}
-                    output={output}
-                    loading={loading}
-                    input={input}
-                  />
-                </div>
-              </div>
+function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [settings, setSettings] = useState(loadDefaultSettings);
 
-              <div className="tg-output">
-                {activeTool === 'headlines' ? (
-                  <HeadlineOutputPanel
-                    output={output}
-                    loading={loading}
-                    error={error}
-                    articleText={input}
-                  />
-                ) : (
-                  <OutputPanel
-                    output={output}
-                    loading={loading}
-                    error={error}
-                    type={config.outputType}
-                    activeTool={activeTool}
-                    input={input}
-                    summaryView={settings.summaryView}
-                  />
-                )}
-              </div>
-            </div>
-          </>
-        );
-    }
-  };
+  const activeTool = PATH_TO_TOOL[location.pathname] || 'dashboard';
+
+  const handleSelectTool = useCallback((toolId) => {
+    const path = TOOL_TO_PATH[toolId] || `/${toolId}`;
+    navigate(path);
+  }, [navigate]);
+
+  const handleQuickStart = useCallback((toolId, text = '') => {
+    const path = TOOL_TO_PATH[toolId] || `/${toolId}`;
+    navigate(path, { state: { text } });
+  }, [navigate]);
+
+  const handleDefaultsChange = useCallback((d) => {
+    setSettings((prev) => ({
+      ...prev,
+      tone: d.defaultTone ?? prev.tone,
+      length: d.defaultLength ?? prev.length,
+      count: d.headlineCount ?? prev.count,
+    }));
+  }, []);
+
+  const isChat = location.pathname === '/sinllama';
 
   return (
     <div className="relative h-full flex bg-canvas overflow-hidden">
@@ -295,12 +306,27 @@ function App() {
 
         <main className={`flex-1 min-h-0 ${isChat ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
           <div
-            key={activeTool}
+            key={location.pathname}
             className={`mx-auto w-full ${MAX_WIDTHS[activeTool] ?? 'max-w-5xl'} px-4 sm:px-6 lg:px-8 py-6 lg:py-8
               animate-in fade-in slide-in-from-bottom-2 duration-300
               ${isChat ? 'flex-1 min-h-0 flex flex-col' : ''}`}
           >
-            {renderContent()}
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard onSelectTool={handleSelectTool} onQuickStart={handleQuickStart} />} />
+              <Route path="/grammar" element={<ToolRunner activeTool="grammar" settings={settings} setSettings={setSettings} />} />
+              <Route path="/headlines" element={<ToolRunner activeTool="headlines" settings={settings} setSettings={setSettings} />} />
+              <Route path="/rewriter" element={<ToolRunner activeTool="rewriter" settings={settings} setSettings={setSettings} />} />
+              <Route path="/summarizer" element={<ToolRunner activeTool="summarizer" settings={settings} setSettings={setSettings} />} />
+              <Route path="/sinllama" element={<SinLLamaPage />} />
+              <Route path="/summarizer-playground" element={<SummarizerPlayground />} />
+              <Route path="/comparison" element={<ModelComparison />} />
+              <Route path="/history" element={<HistoryPage onSelectTool={handleSelectTool} onRerun={handleQuickStart} onBack={() => navigate('/dashboard')} />} />
+              <Route path="/settings" element={<SettingsPage onBack={() => navigate('/dashboard')} onDefaultsChange={handleDefaultsChange} />} />
+              <Route path="/profile" element={<ProfilePage onBack={() => navigate('/dashboard')} />} />
+              <Route path="/plans" element={<Plans />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
           </div>
         </main>
       </div>
