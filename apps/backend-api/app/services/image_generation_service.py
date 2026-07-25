@@ -35,7 +35,10 @@ async def generate_image(prompt: str) -> str:
     settings = get_settings()
     api_key = settings.IMAGE_API_KEY or settings.OPENROUTER_IMAGE_API_KEY
     gateway_url = settings.IMAGE_GATEWAY_URL or "http://62.171.163.6:20128/v1"
-    model = settings.IMAGE_MODEL or "GeminiALL"
+    model = settings.IMAGE_MODEL or "ag/gemini-3.1-flash-image"
+    # Group aliases like GeminiALL include text-only providers (e.g. kilocode) that fail on image endpoints.
+    if model == "GeminiALL":
+        model = "ag/gemini-3.1-flash-image"
 
     if not api_key:
         raise RuntimeError(
@@ -65,8 +68,12 @@ async def generate_image(prompt: str) -> str:
         if attempt > 0:
             current_prompt = f"{sanitized_prompt} {' ' * attempt}."
 
+        current_model = model
+        if attempt > 0 and last_error and "does not support image generation" in str(last_error):
+            current_model = "ag/gemini-3.1-flash-image"
+
         payload = {
-            "model": model,
+            "model": current_model,
             "prompt": current_prompt,
             "response_format": "b64_json",
         }
