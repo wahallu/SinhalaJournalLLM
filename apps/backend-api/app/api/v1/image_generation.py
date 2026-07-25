@@ -36,5 +36,5 @@ async def generate_image_endpoint(payload: ImageGenerationRequest):
     return ImageGenerationResponse(
         image_data=image_data,
         prompt=payload.prompt,
-        model=settings.IMAGE_MODEL or "ag/gemini-3.1-flash-image",
+        model=settings.IMAGE_MODEL or "GeminiALL",
     )

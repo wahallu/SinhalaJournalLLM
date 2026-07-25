@@ -35,7 +35,7 @@ async def generate_image(prompt: str) -> str:
     settings = get_settings()
     api_key = settings.IMAGE_API_KEY or settings.OPENROUTER_IMAGE_API_KEY
     gateway_url = settings.IMAGE_GATEWAY_URL or "http://62.171.163.6:20128/v1"
-    model = settings.IMAGE_MODEL or "ag/gemini-3.1-flash-image"
+    model = settings.IMAGE_MODEL or "GeminiALL"
 
     if not api_key:
         raise RuntimeError(

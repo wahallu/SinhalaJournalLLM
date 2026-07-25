@@ -4,7 +4,7 @@ Pydantic schemas for the AI Image Generation API (OpenRouter).
 
 from pydantic import BaseModel, Field
 
-DEFAULT_IMAGE_MODEL = "ag/gemini-3.1-flash-image"
+DEFAULT_IMAGE_MODEL = "GeminiALL"
 
 
 class ImageGenerationRequest(BaseModel):

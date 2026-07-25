@@ -70,7 +70,7 @@ class Settings(BaseSettings):
 
     # Image Generation Configs
     IMAGE_API_KEY: str = ""
-    IMAGE_MODEL: str = "ag/gemini-3.1-flash-image"
+    IMAGE_MODEL: str = "GeminiALL"
     IMAGE_GATEWAY_URL: str = "http://62.171.163.6:20128/v1"
 
     # ── CORS ──
