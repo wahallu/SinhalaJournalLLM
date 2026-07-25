@@ -1,147 +1,88 @@
 """
-Image generation service.
+OpenRouter image generation service.
 
-Calls the configured gateway endpoint using the specified model and API key.
+Calls the OpenRouter dedicated Image API using the `krea/krea-2-large` model.
 
 Endpoint:
-    POST {IMAGE_GATEWAY_URL}/images/generations
+    POST https://openrouter.ai/api/v1/images
 
 Auth:
-    Authorization: Bearer {IMAGE_API_KEY}
+    Authorization: Bearer {OPENROUTER_IMAGE_API_KEY}
 """
 
-import asyncio
 import httpx
 
 from app.core.config import get_settings
 
-import re
-
+OPENROUTER_IMAGE_ENDPOINT = "https://openrouter.ai/api/v1/images"
+OPENROUTER_MODEL = "krea/krea-2-large"
 REQUEST_TIMEOUT = 120.0
-
-
-def _generalize_political_names(prompt: str) -> str:
-    """
-    Replace specific real political figure names (e.g. 'Prime Minister Sanae Takaichi')
-    with generic terms ('a government leader') to comply with AI image model safety policies.
-    """
-    return re.sub(
-        r'(?:[A-Z][a-z]+\s+)?(?:Prime Minister|President|Minister|Governor|Chancellor)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*',
-        'a government leader',
-        prompt
-    )
 
 
 async def generate_image(prompt: str) -> str:
     """
-    Generate an image from *prompt* using the configured image generation endpoint.
-    Includes sanitization and a 3-attempt retry loop to handle transient/caching issues.
+    Generate an image from *prompt* using OpenRouter (Krea 2 Large).
 
     Args:
-        prompt: English image prompt.
+        prompt: English image prompt (should be the visual prompt from the headline tool).
 
     Returns:
         An image URL or base64 data URL string.
 
     Raises:
-        RuntimeError: If configurations are missing or the API fails on all attempts.
+        RuntimeError: If API key is missing or the API returns an error.
     """
     settings = get_settings()
-    api_key = settings.IMAGE_API_KEY or settings.OPENROUTER_IMAGE_API_KEY
-    gateway_url = settings.IMAGE_GATEWAY_URL or "http://62.171.163.6:20128/v1"
-    model = settings.IMAGE_MODEL or "ag/gemini-3.1-flash-image"
-    # Group aliases like GeminiALL include text-only providers (e.g. kilocode) that fail on image endpoints.
-    if model == "GeminiALL":
-        model = "ag/gemini-3.1-flash-image"
+    api_key = settings.OPENROUTER_IMAGE_API_KEY
 
     if not api_key:
         raise RuntimeError(
-            "IMAGE_API_KEY is not configured in apps/backend-api/.env."
+            "OPENROUTER_IMAGE_API_KEY is not configured in apps/backend-api/.env."
         )
-
-    # Standard OpenAI compatible generations endpoint: POST {gateway_url}/images/generations
-    endpoint = f"{gateway_url.rstrip('/')}/images/generations"
-
-    # 1. Sanitize the prompt: convert newlines to spaces and strip leading/trailing spaces/quotes
-    sanitized_prompt = " ".join(prompt.splitlines()).strip()
-    if (sanitized_prompt.startswith('"') and sanitized_prompt.endswith('"')) or \
-       (sanitized_prompt.startswith("'") and sanitized_prompt.endswith("'")):
-        sanitized_prompt = sanitized_prompt[1:-1].strip()
 
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
+    payload = {
+        "model": OPENROUTER_MODEL,
+        "prompt": prompt,
+    }
 
-    last_error = None
-    max_retries = 3
+    async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+        response = await client.post(OPENROUTER_IMAGE_ENDPOINT, headers=headers, json=payload)
 
-    for attempt in range(max_retries):
-        # On subsequent retry attempts, add a subtle variation / generalize political figure names to bypass safety/cache glitches
-        current_prompt = sanitized_prompt
-        if attempt > 0:
-            current_prompt = _generalize_political_names(sanitized_prompt)
-            if current_prompt == sanitized_prompt:
-                current_prompt = f"{sanitized_prompt} {' ' * attempt}."
-
-        current_model = model
-        if attempt > 0 and last_error and "does not support image generation" in str(last_error):
-            current_model = "ag/gemini-3.1-flash-image"
-
-        payload = {
-            "model": current_model,
-            "prompt": current_prompt,
-            "response_format": "b64_json",
-        }
-
+    if response.status_code != 200:
         try:
-            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
-                response = await client.post(endpoint, headers=headers, json=payload)
+            error_body = response.json()
+            error_msg = error_body.get("error", {}).get("message") or error_body.get("message") or str(error_body)
+        except Exception:
+            error_msg = response.text[:400] or f"HTTP {response.status_code}"
+        raise RuntimeError(f"OpenRouter AI error ({response.status_code}): {error_msg}")
 
-            if response.status_code != 200:
-                try:
-                    error_body = response.json()
-                    error_msg = error_body.get("error", {}).get("message") or error_body.get("message") or str(error_body)
-                except Exception:
-                    error_msg = response.text[:400] or f"HTTP {response.status_code}"
-                raise RuntimeError(f"HTTP {response.status_code}: {error_msg}")
+    try:
+        data = response.json()
+    except Exception as exc:
+        raise RuntimeError(
+            f"OpenRouter AI returned non-parseable JSON: {response.text[:300]}"
+        ) from exc
 
-            try:
-                data = response.json()
-            except Exception as exc:
-                raise RuntimeError(
-                    f"Non-parseable JSON response: {response.text[:300]}"
-                ) from exc
+    results = data.get("data", [])
+    if not results:
+        raise RuntimeError(
+            f"OpenRouter AI response is missing data array. Full response: {str(data)[:300]}"
+        )
 
-            results = data.get("data", [])
-            if not results:
-                raise RuntimeError(
-                    f"Missing data list in response. Full response: {str(data)[:300]}"
-                )
+    first_result = results[0]
+    image_url = first_result.get("url") or first_result.get("b64_json")
 
-            first_result = results[0]
-            image_url = first_result.get("url") or first_result.get("b64_json")
+    if not image_url:
+        raise RuntimeError(
+            f"OpenRouter AI response contains no image URL or base64 data. Full response: {str(data)[:300]}"
+        )
 
-            if not image_url or image_url == "":
-                raise RuntimeError(
-                    f"Image URL or base64 data is empty/null. Full response: {str(data)[:300]}"
-                )
+    # If it's pure base64 without prefix, check and prefix it (though usually OpenRouter/providers return full URLs or full data URLs)
+    if not image_url.startswith("http") and not image_url.startswith("data:"):
+        image_url = f"data:image/png;base64,{image_url}"
 
-            # Success! If it's pure base64 without prefix, prefix it
-            if not image_url.startswith("http") and not image_url.startswith("data:"):
-                image_url = f"data:image/png;base64,{image_url}"
-
-            return image_url
-
-        except Exception as exc:
-            last_error = exc
-            # Print/log the retry attempt
-            print(f"Image generation attempt {attempt + 1} failed: {exc}")
-            if attempt < max_retries - 1:
-                # Wait briefly before the next retry attempt
-                await asyncio.sleep(1.0)
-
-    # If we reached here, all attempts failed
-    raise RuntimeError(
-        f"Image generation failed after {max_retries} attempts. Last error: {last_error}"
-    )
+    return image_url

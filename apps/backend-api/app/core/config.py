@@ -68,11 +68,6 @@ class Settings(BaseSettings):
     # OpenRouter Image Generation
     OPENROUTER_IMAGE_API_KEY: str = ""
 
-    # Image Generation Configs
-    IMAGE_API_KEY: str = ""
-    IMAGE_MODEL: str = "GeminiALL"
-    IMAGE_GATEWAY_URL: str = "http://62.171.163.6:20128/v1"
-
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173"
 

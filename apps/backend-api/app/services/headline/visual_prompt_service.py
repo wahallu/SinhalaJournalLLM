@@ -24,11 +24,7 @@ _SYSTEM_PROMPT = (
     "  camera angle, and any key visual details specific to the article.\n"
     "- Length: 3-5 sentences or 60-120 words.\n"
     "- Style: photorealistic news photography unless the article is about art/culture.\n"
-    "- Do NOT include any text overlays, logos, or watermarks in the description.\n"
-    "- CRITICAL SAFETY RULE: Do NOT include proper names of real living politicians, "
-    "  world leaders, or public figures (e.g. use generic descriptions like 'a prime minister' "
-    "  or 'a senior government official' instead of specific names like 'Sanae Takaichi') "
-    "  so image models can generate the photo without safety filter blocks."
+    "- Do NOT include any text overlays, logos, or watermarks in the description."
 )
 
 

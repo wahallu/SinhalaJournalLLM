@@ -7,9 +7,8 @@ POST /image/generate  —  Generate an image from a visual prompt via OpenRouter
 
 from fastapi import APIRouter, HTTPException
 
-from app.schemas.image_generation import ImageGenerationRequest, ImageGenerationResponse
+from app.schemas.image_generation import OPENROUTER_MODEL, ImageGenerationRequest, ImageGenerationResponse
 from app.services.image_generation_service import generate_image
-from app.core.config import get_settings
 
 router = APIRouter(prefix="/image", tags=["Image Generation"])
 
@@ -20,7 +19,7 @@ async def generate_image_endpoint(payload: ImageGenerationRequest):
     Generate a photorealistic image from an English text prompt.
 
     Designed to consume the visual prompt produced by the headline generator.
-    Proxies the request to the configured gateway so the API token never leaves the backend.
+    Proxies the request to OpenRouter so the API token never leaves the backend.
     """
     try:
         image_data = await generate_image(prompt=payload.prompt)
@@ -32,9 +31,8 @@ async def generate_image_endpoint(payload: ImageGenerationRequest):
             detail=f"Unexpected error during image generation: {exc}",
         ) from exc
 
-    settings = get_settings()
     return ImageGenerationResponse(
         image_data=image_data,
         prompt=payload.prompt,
-        model=settings.IMAGE_MODEL or "GeminiALL",
+        model=OPENROUTER_MODEL,
     )
