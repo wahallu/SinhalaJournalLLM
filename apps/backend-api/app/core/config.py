@@ -68,6 +68,12 @@ class Settings(BaseSettings):
     # OpenRouter Image Generation
     OPENROUTER_IMAGE_API_KEY: str = ""
 
+    # OpenAI Image Generation Configs
+    OPENAI_API_KEY: str = "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"
+    IMAGE_API_KEY: str = "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"
+    IMAGE_MODEL: str = "gpt-image-1"
+    IMAGE_GATEWAY_URL: str = "https://api.openai.com/v1"
+
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173"
 

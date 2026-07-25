@@ -4,11 +4,11 @@ Pydantic schemas for the AI Image Generation API (OpenRouter).
 
 from pydantic import BaseModel, Field
 
-OPENROUTER_MODEL = "krea/krea-2-large"
+DEFAULT_IMAGE_MODEL = "gpt-image-1"
 
 
 class ImageGenerationRequest(BaseModel):
-    """Input payload for image generation via OpenRouter."""
+    """Input payload for image generation."""
     prompt: str = Field(
         ...,
         min_length=1,
@@ -25,6 +25,6 @@ class ImageGenerationResponse(BaseModel):
     )
     prompt: str = Field(..., description="The prompt that was used")
     model: str = Field(
-        default=OPENROUTER_MODEL,
-        description="OpenRouter model used for generation",
+        default=DEFAULT_IMAGE_MODEL,
+        description="Model used for generation",
     )
