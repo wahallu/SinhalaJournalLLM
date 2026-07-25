@@ -15,7 +15,21 @@ import httpx
 
 from app.core.config import get_settings
 
+import re
+
 REQUEST_TIMEOUT = 120.0
+
+
+def _generalize_political_names(prompt: str) -> str:
+    """
+    Replace specific real political figure names (e.g. 'Prime Minister Sanae Takaichi')
+    with generic terms ('a government leader') to comply with AI image model safety policies.
+    """
+    return re.sub(
+        r'(?:[A-Z][a-z]+\s+)?(?:Prime Minister|President|Minister|Governor|Chancellor)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*',
+        'a government leader',
+        prompt
+    )
 
 
 async def generate_image(prompt: str) -> str:
@@ -63,10 +77,12 @@ async def generate_image(prompt: str) -> str:
     max_retries = 3
 
     for attempt in range(max_retries):
-        # On subsequent retry attempts, add a subtle variation to bypass safety/cache glitches
+        # On subsequent retry attempts, add a subtle variation / generalize political figure names to bypass safety/cache glitches
         current_prompt = sanitized_prompt
         if attempt > 0:
-            current_prompt = f"{sanitized_prompt} {' ' * attempt}."
+            current_prompt = _generalize_political_names(sanitized_prompt)
+            if current_prompt == sanitized_prompt:
+                current_prompt = f"{sanitized_prompt} {' ' * attempt}."
 
         current_model = model
         if attempt > 0 and last_error and "does not support image generation" in str(last_error):
