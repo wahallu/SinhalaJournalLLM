@@ -70,6 +70,7 @@ async def model_generate(
     *,
     style: str | None = None,
     length: str | None = None,
+    category: str | None = None,
     variation_hint: str | None = None,
 ) -> GatewayResult:
     """
@@ -80,6 +81,7 @@ async def model_generate(
         text:           raw Sinhala input text
         style:          style task only — resolved via prompts.resolve_style
         length:         summarizer only — short | medium | long
+        category:       headline task only — news category (default "General")
         variation_hint: headline only — extra instruction line for candidate
                         diversity (greedy decoding returns identical output
                         for identical prompts)
@@ -89,6 +91,7 @@ async def model_generate(
 
     resolved_style = resolve_style(style) if task == "style" else None
     resolved_length = resolve_length(length) if task == "summarizer" else None
+    resolved_category = category or "General"
 
     errors: list[str] = []
     for provider in _provider_chain():
@@ -96,15 +99,15 @@ async def model_generate(
         try:
             if provider == "sinllama":
                 result_text, meta = await _via_sinllama(
-                    task, text, resolved_style, resolved_length, variation_hint
+                    task, text, resolved_style, resolved_length, resolved_category, variation_hint
                 )
             elif provider == "openrouter":
                 result_text, meta = await _via_openrouter(
-                    task, text, resolved_style, resolved_length, variation_hint
+                    task, text, resolved_style, resolved_length, resolved_category, variation_hint
                 )
             else:
                 result_text, meta = _via_mock(
-                    task, text, resolved_style, resolved_length, variation_hint
+                    task, text, resolved_style, resolved_length, resolved_category, variation_hint
                 )
         except (SinLlamaUnavailable, OpenRouterUnavailable) as exc:
             errors.append(f"{provider}: {exc}")
@@ -116,6 +119,8 @@ async def model_generate(
             meta["style"] = resolved_style
         if task == "summarizer":
             meta["length"] = resolved_length
+        if task == "headline":
+            meta["category"] = resolved_category
         return GatewayResult(
             text=result_text.strip(),
             provider=provider,
@@ -133,6 +138,7 @@ async def _via_sinllama(
     text: str,
     style: str | None,
     length: str | None,
+    category: str | None,
     variation_hint: str | None,
 ) -> tuple[str, dict]:
     """
@@ -143,8 +149,8 @@ async def _via_sinllama(
     if task == "summarizer":
         # Length control: server hardcodes a ~10% target, so send our prompt.
         prompt = prompt_summarizer(text, length or DEFAULT_LENGTH)
-    elif task == "headline" and variation_hint:
-        prompt = prompt_headline(text, variation_hint)
+    elif task == "headline":
+        prompt = prompt_headline(text, category=category or "General", variation_hint=variation_hint)
     else:
         prompt = text
 
@@ -154,6 +160,7 @@ async def _via_sinllama(
         "output_tokens": data.get("output_tokens"),
     }
     return data["response"], meta
+
 
 
 # ── OpenRouter ──
@@ -170,6 +177,7 @@ def _openrouter_user_message(
     text: str,
     style: str | None,
     length: str | None,
+    category: str | None,
     variation_hint: str | None,
 ) -> str:
     if task == "grammar":
@@ -180,9 +188,10 @@ def _openrouter_user_message(
         )
     if task == "headline":
         hint = f"\n{variation_hint}" if variation_hint else ""
+        cat = category or "General"
         return (
-            "පහත සිංහල පුවත් ලිපිය සඳහා සංක්ෂිප්ත හා ආකර්ශනීය ශීර්ෂ පාඨයක් "
-            f"(වචන 10කට අඩු) ලියන්න.{hint}\n\n{text}"
+            f"Generate a concise Sinhala news headline for the article below.\nCategory: {cat}\n"
+            f"Rules: Use formal Sinhala journalism style, 4 to 7 words, output ONLY the headline.{hint}\n\n{text}"
         )
     if task == "summarizer":
         cfg = SUMMARY_LENGTHS[length or DEFAULT_LENGTH]
@@ -201,11 +210,12 @@ async def _via_openrouter(
     text: str,
     style: str | None,
     length: str | None,
+    category: str | None,
     variation_hint: str | None,
 ) -> tuple[str, dict]:
     messages = [
         {"role": "system", "content": _OPENROUTER_SYSTEM},
-        {"role": "user", "content": _openrouter_user_message(task, text, style, length, variation_hint)},
+        {"role": "user", "content": _openrouter_user_message(task, text, style, length, category, variation_hint)},
     ]
     temperature = 0.7 if task == "headline" else 0.2
     content = await openrouter_chat(messages, temperature=temperature, max_tokens=2048)
@@ -220,8 +230,10 @@ def _via_mock(
     text: str,
     style: str | None,
     length: str | None,
+    category: str | None,
     variation_hint: str | None,
 ) -> tuple[str, dict]:
+
     if task == "grammar":
         return mock_provider.mock_grammar(text), {}
     if task == "headline":

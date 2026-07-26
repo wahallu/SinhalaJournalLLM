@@ -28,7 +28,7 @@ async def test_generate_headlines():
     async with _client() as client:
         response = await client.post(
             "/api/v1/headlines/generate",
-            json={"text": _LONG_ARTICLE, "count": 3},
+            json={"text": _LONG_ARTICLE, "count": 3, "category": "Sports"},
         )
     assert response.status_code == 200
     data = response.json()
@@ -36,6 +36,7 @@ async def test_generate_headlines():
     assert len(set(data["headlines"])) == len(data["headlines"])  # deduped
     assert data["model_used"] == "mock"
     assert data["id"]
+
 
 
 @pytest.mark.asyncio

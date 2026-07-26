@@ -46,6 +46,17 @@ const MAX_LENGTHS = [
   { id: 120, label: 'Long' },
 ];
 
+const HEADLINE_CATEGORIES = [
+  { id: 'General',       label: 'General' },
+  { id: 'Politics',      label: 'Politics' },
+  { id: 'Business',      label: 'Business' },
+  { id: 'Sports',        label: 'Sports' },
+  { id: 'Entertainment', label: 'Entertainment' },
+  { id: 'Tech',          label: 'Tech' },
+  { id: 'World',         label: 'World' },
+];
+
+
 // ─── Grammar analysis ────────────────────────────────────────────────────────
 
 const RULE_META = {
@@ -379,6 +390,13 @@ export default function RightPanel({ activeTool, settings, onSettingsChange, out
     <>
       {!output && !loading ? (
         <RightPanelCard icon={Newspaper} title="Headline controls">
+          <OptionChips
+            label="Category"
+            columns={2}
+            options={HEADLINE_CATEGORIES}
+            value={settings.category || 'General'}
+            onChange={(v) => onSettingsChange({ ...settings, category: v })}
+          />
           <OptionCards
             label="Style"
             options={HEADLINE_STYLES}

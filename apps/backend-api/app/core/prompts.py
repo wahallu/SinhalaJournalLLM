@@ -104,21 +104,26 @@ def prompt_grammar(text: str) -> str:
     )
 
 
-def prompt_headline(text: str, variation_hint: str | None = None) -> str:
+def prompt_headline(text: str, category: str = "General", variation_hint: str | None = None, **_) -> str:
     """
     Headline prompt. `variation_hint` appends an extra constraint so repeated
     greedy-decoded calls yield distinct candidates.
     """
-    hint = f"{variation_hint}\n" if variation_hint else ""
+    hint = f"\n- {variation_hint}" if variation_hint else ""
     return (
         "### Instruction:\n"
-        "ඔබ සිංහල පුවත් සංස්කාරකයෙකි.\n"
-        "පහත සිංහල පුවත් ලිපිය කියවා, ලිපිය සඳහා සංක්ෂිප්ත හා ආකර්ශනීය ශීර්ෂ පාඨයක් (headline) ලියන්න.\n"
-        "ශීර්ෂ පාඨය වචන 10කට නොඉක්මවිය යුතුය.\n"
-        f"{hint}\n"
-        f"Article:\n{text}\n\n"
+        "Generate a concise Sinhala news headline for the article below.\n\n"
+        "Rules:\n"
+        "- Use formal Sinhala journalism style matching the article category\n"
+        "- Between 4 and 7 words -- never fewer than 4\n"
+        "- Capture the key person, event, number, or outcome\n"
+        f"- Output ONLY the headline, nothing else{hint}\n\n"
+        "### Input:\n"
+        f"Category: {category}\n"
+        f"Article: {text}\n\n"
         "### Response:\n"
     )
+
 
 
 # Extra constraints appended to headline prompts for candidates 2..N.

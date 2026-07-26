@@ -158,6 +158,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
             style: settings.headlineStyle,
             maxLength: settings.headlineMaxLength,
             numCandidates: settings.count,
+            category: settings.category || 'General',
           })
         );
         break;

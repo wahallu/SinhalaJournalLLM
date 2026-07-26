@@ -21,6 +21,11 @@ class HeadlineRequest(BaseModel):
         le=10,
         description="Number of headlines to generate",
     )
+    category: str = Field(
+        default="General",
+        description="News category for the headline generation (e.g. General, Politics, Business, Sports)",
+    )
+
 
 
 class HeadlineResponse(BaseModel):
