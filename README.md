@@ -16,7 +16,9 @@ An AI writing assistant for Sinhala journalism, built on **SinLlama** (Llama-3-8
 ```
 apps/
 ├── backend-api/        FastAPI service — the single API every client talks to
-├── web-app/            React 19 + Vite + Tailwind web application
+├── web-app/            React 19 + Vite + Tailwind web app, plus the admin
+│                       dashboard at /admin (users, categories, settings,
+│                       activity, and the research tools)
 ├── chrome-extension/   Manifest V3 extension (popup, inline assistant, context menus)
 └── docs-addon/         Google Docs add-on (Apps Script sidebar)
 ai/                     Model/adapters storage + training entry points
@@ -27,18 +29,29 @@ docs/                   Project documentation
 
 Training code, datasets, and the inference server live in the separate **SinAI-Training** repo (`work/sinllama/`).
 
-Authentication, roles, and per-user history are documented in [docs/auth-setup.md](docs/auth-setup.md).
+Authentication, roles, and per-user history are documented in
+[docs/auth-setup.md](docs/auth-setup.md). Day-to-day administration — settings,
+telemetry, rollups, the audit log — is in [docs/operations.md](docs/operations.md).
 
 ## Architecture
 
 ```
-web-app ─────┐
-chrome ext ──┤                        ┌─→ SinLlama inference server (GPU)
-docs addon ──┴─→ backend-api ─→ model │     serve_sinai.py  POST /generate
-                     │        gateway ├─→ OpenRouter (hosted fallback)
-                     ↓                └─→ mock provider (offline, rule-based)
-                 Supabase
-              (history storage)
+                 Supabase Auth
+                  (GoTrue, JWT)
+                       ↑
+web-app ─────┐         │              ┌─→ SinLlama inference server (GPU)
+chrome ext ──┤         ↓              │     serve_sinai.py  POST /generate
+docs addon ──┴─→ backend-api ─→ model ├─→ OpenRouter (hosted fallback)
+                     │        gateway └─→ mock provider (offline, rule-based)
+                     ↓
+                 Supabase Postgres
+        (per-user history under RLS, telemetry,
+         audit log, runtime settings)
+
+The web app authenticates against Supabase directly and sends the resulting
+JWT to backend-api. The four writing tools also accept anonymous requests —
+results are not saved, and callers are rate-limited by hashed IP. The Chrome
+extension and Docs add-on use that anonymous path.
 ```
 
 - **Model gateway** (`apps/backend-api/app/core/model_gateway.py`): every inference goes through a provider chain — `sinllama → openrouter → mock`. If the GPU box is down the product degrades gracefully instead of failing; each response reports `model_used` so clients can badge the output.
@@ -59,7 +72,10 @@ docs addon ──┴─→ backend-api ─→ model │     serve_sinai.py  POST
 | `/summarize` | POST | `{text, length}` → short/medium/long summary |
 | `/summarize/history` | GET | Summary history |
 | `/history` | GET | Unified newest-first activity across all tools |
-| `/meta` | GET | Tasks, styles, lengths, provider status |
+| `/meta` | GET | Tasks, styles, lengths, provider status, feature flags, global defaults |
+| `/categories` | GET | Active user categories (requires a session) |
+| `/health`, `/health/model` | GET | Liveness / model gateway status (root-level, no version prefix) |
+| `/admin/*` | various | Admin dashboard API — users, categories, settings, analytics, activity |
 
 ### Authentication
 
@@ -72,7 +88,8 @@ Requests carry a Supabase JWT as `Authorization: Bearer <token>`. Setup is in [d
 | `/meta`, `/health` | none |
 
 Anonymous callers are capped at `ANON_REQUESTS_PER_HOUR` per hashed IP and receive 429 past that. The Chrome extension and Docs add-on use the anonymous path.
-| `/health`, `/health/model` | GET | Liveness / model gateway status (root-level, no version prefix) |
+
+`/admin/*` requires `profiles.role = 'admin'`. Image generation requires a session (it bills a hosted provider), and the comparison and playground endpoints are admin-only.
 
 ## Running locally
 
@@ -104,11 +121,23 @@ Then in `apps/backend-api/.env`: `MODEL_PROVIDER=sinllama`, `SINLLAMA_API_URL=ht
 
 ```bash
 cd apps/web-app
+cp .env.example .env     # VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY are required
 npm install
-npm run dev          # http://localhost:5173, expects API at localhost:8000
+npm run dev              # http://localhost:5173
 ```
 
-Set `VITE_API_BASE_URL` in `.env` to point elsewhere.
+Both Supabase values must be set — the app throws at startup without them,
+rather than failing later with an opaque network error. Point the app at a
+different backend from its in-app Settings page.
+
+Building the container needs the same two values as **build args**, since Vite
+inlines them at build time:
+
+```bash
+docker build \
+  --build-arg VITE_SUPABASE_URL=https://xxx.supabase.co \
+  --build-arg VITE_SUPABASE_ANON_KEY=eyJ... apps/web-app
+```
 
 ### 4. Chrome extension
 
