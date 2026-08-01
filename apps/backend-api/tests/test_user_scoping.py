@@ -130,3 +130,30 @@ async def test_legacy_rows_invisible_to_users(fake_supabase):
     async with _client() as c:
         r = await c.get("/api/v1/summarize/history", headers=_auth(USER_A))
     assert r.json()["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_unified_history_is_isolated_between_users(fake_supabase):
+    """
+    The unified feed must not leak across users.
+
+    This covers a different code path from the per-tool history tests above:
+    /api/v1/history goes through list_recent -> fetch_recent, while
+    /summarize/history goes through fetch_page. A filter dropped from
+    fetch_recent alone would leak every user's activity here with no other
+    test failing.
+    """
+    async with _client() as c:
+        await c.post("/api/v1/summarize",
+                     json={"text": _ARTICLE, "length": "short"}, headers=_auth(USER_A))
+        await c.post("/api/v1/grammar/check",
+                     json={"text": _ARTICLE}, headers=_auth(USER_B))
+
+        a = await c.get("/api/v1/history", headers=_auth(USER_A))
+        b = await c.get("/api/v1/history", headers=_auth(USER_B))
+
+    a_tools = [item["tool"] for item in a.json()["items"]]
+    b_tools = [item["tool"] for item in b.json()["items"]]
+
+    assert a_tools == ["summarizer"], f"user A saw {a_tools}"
+    assert b_tools == ["grammar"], f"user B saw {b_tools}"
