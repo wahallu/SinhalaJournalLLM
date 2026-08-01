@@ -74,18 +74,22 @@ async def insert_record(table: str, record: dict[str, Any]) -> dict[str, Any]:
         return _synthetic_record(record)
 
 
-async def fetch_by_id(table: str, record_id: str) -> dict[str, Any] | None:
-    """Fetch a single row by UUID, or None when absent."""
+async def fetch_by_id(
+    table: str,
+    record_id: str,
+    *,
+    user_id: str | None = None,
+) -> dict[str, Any] | None:
+    """Fetch a single row by UUID, scoped to `user_id` when given."""
     if _circuit_is_open():
         raise DatabaseUnavailable(f"History storage unavailable (cooldown): {table}")
     try:
         client = await get_supabase()
+        query = client.table(table).select("*").eq("id", record_id)
+        if user_id is not None:
+            query = query.eq("user_id", user_id)
         response = await asyncio.wait_for(
-            client.table(table)
-            .select("*")
-            .eq("id", record_id)
-            .maybe_single()
-            .execute(),
+            query.maybe_single().execute(),
             timeout=READ_TIMEOUT_SECONDS,
         )
     except Exception as exc:
@@ -99,19 +103,21 @@ async def fetch_page(
     *,
     page: int = 1,
     page_size: int = 20,
+    user_id: str | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
-    """Newest-first page of rows plus the exact total count."""
+    """Newest-first page plus exact total, scoped to `user_id` when given."""
     if _circuit_is_open():
         raise DatabaseUnavailable(f"History storage unavailable (cooldown): {table}")
     try:
         client = await get_supabase()
         offset = (page - 1) * page_size
+        query = client.table(table).select("*", count="exact")
+        if user_id is not None:
+            query = query.eq("user_id", user_id)
         response = await asyncio.wait_for(
-            client.table(table)
-            .select("*", count="exact")
-            .order("created_at", desc=True)
-            .range(offset, offset + page_size - 1)
-            .execute(),
+            query.order("created_at", desc=True)
+                 .range(offset, offset + page_size - 1)
+                 .execute(),
             timeout=READ_TIMEOUT_SECONDS,
         )
     except Exception as exc:
@@ -120,18 +126,22 @@ async def fetch_page(
     return response.data, response.count or 0
 
 
-async def fetch_recent(table: str, limit: int) -> list[dict[str, Any]]:
-    """Newest `limit` rows without a count query."""
+async def fetch_recent(
+    table: str,
+    limit: int,
+    *,
+    user_id: str | None = None,
+) -> list[dict[str, Any]]:
+    """Newest `limit` rows without a count query, scoped when given."""
     if _circuit_is_open():
         raise DatabaseUnavailable(f"History storage unavailable (cooldown): {table}")
     try:
         client = await get_supabase()
+        query = client.table(table).select("*")
+        if user_id is not None:
+            query = query.eq("user_id", user_id)
         response = await asyncio.wait_for(
-            client.table(table)
-            .select("*")
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute(),
+            query.order("created_at", desc=True).limit(limit).execute(),
             timeout=READ_TIMEOUT_SECONDS,
         )
     except Exception as exc:

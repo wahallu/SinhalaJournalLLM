@@ -139,3 +139,57 @@ async def test_valid_token_without_profile_is_401(app_with_deps, fake_supabase):
     async with _client(app_with_deps) as c:
         r = await c.get("/private", headers={"Authorization": f"Bearer {_token()}"})
     assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_fetch_page_filters_by_user(fake_supabase):
+    """A user_id filter must exclude other users' rows."""
+    from app.repositories.base import fetch_page
+
+    fake_supabase.store["summaries"] = [
+        {"id": "a", "user_id": USER_ID,  "summary_text": "mine",
+         "created_at": "2026-01-02T00:00:00Z"},
+        {"id": "b", "user_id": ADMIN_ID, "summary_text": "theirs",
+         "created_at": "2026-01-01T00:00:00Z"},
+    ]
+
+    rows, total = await fetch_page("summaries", page=1, page_size=20, user_id=USER_ID)
+
+    assert total == 1
+    assert [r["summary_text"] for r in rows] == ["mine"]
+
+
+@pytest.mark.asyncio
+async def test_require_user_401_when_profile_lookup_fails(app_with_deps, seed_profiles, monkeypatch):
+    """DatabaseUnavailable from the profile lookup must fail closed (401).
+
+    Carried over from Task 4 (see task-4-report.md), where this was verified
+    with a throwaway, uncommitted script instead of a regression test.
+    `seed_profiles` deliberately seeds a real, active row for USER_ID: if the
+    monkeypatch below failed to apply, the real get_profile would find that
+    row and authenticate normally (200), so this test can only pass via the
+    fail-closed path, not by coincidence of an empty profiles table.
+    """
+    from app.repositories.base import DatabaseUnavailable
+
+    async def _raise_unavailable(user_id: str):
+        raise DatabaseUnavailable("simulated outage")
+
+    monkeypatch.setattr("app.core.deps.get_profile", _raise_unavailable)
+
+    async with _client(app_with_deps) as c:
+        r = await c.get("/private", headers={"Authorization": f"Bearer {_token()}"})
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_require_admin_401_without_token(app_with_deps, seed_profiles):
+    """No token at all is 401 on the admin route, distinct from the 403 a
+    valid non-admin token gets (test_require_admin_403_for_normal_user).
+
+    Carried over from Task 4 (see task-4-report.md), where this was verified
+    with a throwaway, uncommitted script instead of a regression test.
+    """
+    async with _client(app_with_deps) as c:
+        r = await c.get("/admin")
+    assert r.status_code == 401
