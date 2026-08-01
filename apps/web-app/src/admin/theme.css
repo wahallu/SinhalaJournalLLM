@@ -1,0 +1,149 @@
+/**
+ * Admin dashboard theme.
+ *
+ * Scoped to `.admin-theme` rather than `:root` so the user-facing SinAi
+ * product keeps its own ink/brand token system untouched — the two never
+ * render on the same page.
+ *
+ * Caveat: the `@theme inline` block below registers utility names
+ * (bg-card, text-muted-foreground, border-sidebar-border, …) app-wide in
+ * Tailwind v4, even though their values only resolve inside `.admin-theme`.
+ * Using one of those utilities on a user-facing page renders incorrectly.
+ * That is a discipline boundary, not an enforced one.
+ */
+
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+
+.admin-theme {
+  --card: hsl(0, 0%, 100%);
+  --ring: hsl(356, 84%, 48%);
+  --input: hsl(210, 10%, 90%);
+  --muted: hsl(210, 10%, 97%);
+  --accent: hsl(356, 84%, 96%);
+  --border: hsl(210, 10%, 90%);
+  --radius: 0.5rem;
+  --chart-1: hsl(356, 84%, 48%);
+  --chart-2: hsl(210, 10%, 20%);
+  --chart-3: hsl(142, 70%, 45%);
+  --chart-4: hsl(47, 95%, 55%);
+  --chart-5: hsl(25, 95%, 55%);
+  --popover: hsl(0, 0%, 100%);
+  --primary: hsl(356, 84%, 48%);
+  --sidebar: hsl(210, 10%, 98%);
+  --spacing: 0.25rem;
+  --font-mono: 'JetBrains Mono Variable', Menlo, monospace;
+  --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+  --secondary: hsl(210, 10%, 96%);
+  --background: hsl(0, 0%, 100%);
+  --font-serif: Georgia, serif;
+  --foreground: hsl(210, 10%, 15%);
+  --destructive: hsl(0, 84%, 60%);
+  --shadow-blur: 4px;
+  --shadow-color: 0 0 0;
+  --sidebar-ring: hsl(356, 84%, 48%);
+  --shadow-spread: 0px;
+  --letter-spacing: -0.01em;
+  --shadow-opacity: 0.05;
+  --sidebar-accent: hsl(356, 84%, 94%);
+  --sidebar-border: hsl(210, 10%, 92%);
+  --card-foreground: hsl(210, 10%, 15%);
+  --shadow-offset-x: 0px;
+  --shadow-offset-y: 1px;
+  --sidebar-primary: hsl(356, 84%, 48%);
+  --muted-foreground: hsl(210, 10%, 40%);
+  --accent-foreground: hsl(356, 84%, 30%);
+  --popover-foreground: hsl(210, 10%, 15%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-foreground: hsl(210, 10%, 20%);
+  --secondary-foreground: hsl(210, 10%, 20%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent-foreground: hsl(356, 84%, 30%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+
+  font-family: var(--font-sans);
+  letter-spacing: var(--letter-spacing);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Both selectors so the toggle wins whether `dark` lands on <html> or here. */
+.dark .admin-theme,
+.admin-theme.dark {
+  --card: hsl(210, 10%, 7%);
+  --ring: hsl(356, 84%, 48%);
+  --input: hsl(210, 10%, 16%);
+  --muted: hsl(210, 10%, 12%);
+  --accent: hsl(356, 84%, 15%);
+  --border: hsl(210, 10%, 16%);
+  --radius: 0.5rem;
+  --chart-1: hsl(356, 84%, 48%);
+  --chart-2: hsl(210, 10%, 80%);
+  --chart-3: hsl(142, 70%, 45%);
+  --chart-4: hsl(47, 95%, 55%);
+  --chart-5: hsl(25, 95%, 55%);
+  --popover: hsl(210, 10%, 7%);
+  --primary: hsl(356, 84%, 48%);
+  --sidebar: hsl(210, 10%, 8%);
+  --spacing: 0.25rem;
+  --secondary: hsl(210, 10%, 15%);
+  --background: hsl(210, 10%, 4%);
+  --foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62%, 30%);
+  --shadow-blur: 8px;
+  --shadow-color: 0 0 0;
+  --sidebar-ring: hsl(356, 84%, 48%);
+  --shadow-spread: 0px;
+  --letter-spacing: -0.01em;
+  --shadow-opacity: 0.4;
+  --sidebar-accent: hsl(356, 84%, 15%);
+  --sidebar-border: hsl(210, 10%, 14%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --shadow-offset-x: 0px;
+  --shadow-offset-y: 2px;
+  --sidebar-primary: hsl(356, 84%, 48%);
+  --muted-foreground: hsl(210, 10%, 65%);
+  --accent-foreground: hsl(356, 84%, 80%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-foreground: hsl(210, 10%, 90%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --sidebar-accent-foreground: hsl(356, 84%, 85%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+}
+
+@theme inline {
+  --color-card: var(--card);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-popover: var(--popover);
+  --color-primary: var(--primary);
+  --color-sidebar: var(--sidebar);
+  --color-secondary: var(--secondary);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-card-foreground: var(--card-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+}

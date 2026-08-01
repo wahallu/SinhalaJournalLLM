@@ -25,6 +25,12 @@ import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import VerifyEmail from './pages/auth/VerifyEmail';
+import AdminRoute from './admin/AdminRoute';
+import AdminLayout from './admin/AdminLayout';
+import Overview from './admin/pages/Overview';
+import AdminUsers from './admin/pages/Users';
+import UserDetail from './admin/pages/UserDetail';
+import Categories from './admin/pages/Categories';
 
 /* Auth screens render outside the sidebar shell. */
 const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email'];
@@ -284,6 +290,28 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+      </Routes>
+    );
+  }
+
+  /* The admin dashboard has its own shell and token scope — it must not
+     render inside the SinAi sidebar layout. */
+  if (location.pathname.startsWith('/admin')) {
+    return (
+      <Routes>
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }
+        >
+          <Route index element={<Overview />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="users/:userId" element={<UserDetail />} />
+          <Route path="categories" element={<Categories />} />
+        </Route>
       </Routes>
     );
   }
