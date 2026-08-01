@@ -88,13 +88,18 @@ async def update_user(
             detail="You cannot suspend your own account.",
         )
 
+    # Snapshot the prior values before mutating. Building this dict after the
+    # update would depend on `before` not aliasing the row the update touches
+    # — true over HTTP, but correctness should not rest on the transport.
+    previous = {key: before.get(key) for key in changes}
+
     after = await profile_repository.update_profile(user_id, changes)
     await audit_repository.record(
         admin,
         "user.update",
         target_type="user",
         target_id=user_id,
-        before={key: before.get(key) for key in changes},
+        before=previous,
         after=changes,
         ip_hash=hash_ip(client_ip(request)),
     )

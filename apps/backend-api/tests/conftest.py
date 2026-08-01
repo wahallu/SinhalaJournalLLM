@@ -133,16 +133,20 @@ class _FakeQuery:
             for row in rows:
                 if all(str(row.get(c)) == str(v) for c, v in self._filters):
                     row.update(self._payload)
-                    updated.append(row)
+                    updated.append(dict(row))
             return SimpleNamespace(data=updated, count=None)
 
         if self._operation == "delete":
             removed = [r for r in rows if all(str(r.get(c)) == str(v) for c, v in self._filters)]
             remaining = [r for r in rows if r not in removed]
             self._store[self._table] = remaining
-            return SimpleNamespace(data=removed, count=None)
+            return SimpleNamespace(data=[dict(r) for r in removed], count=None)
 
-        result = list(rows)
+        # Copy rows out, the way a real PostgREST response would arrive as
+        # freshly parsed JSON. Returning the stored dicts by reference would
+        # let a caller mutate the store by accident, and would hide aliasing
+        # bugs that only appear against the real HTTP client.
+        result = [dict(r) for r in rows]
         for column, value in self._filters:
             result = [r for r in result if str(r.get(column)) == str(value)]
         for column, value in self._gte_filters:
