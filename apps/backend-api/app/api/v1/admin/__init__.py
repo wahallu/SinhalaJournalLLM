@@ -10,6 +10,8 @@ that.
 
 from fastapi import APIRouter
 
+from app.api.v1.admin.activity import router as activity_router
+from app.api.v1.admin.analytics import router as analytics_router
 from app.api.v1.admin.categories import router as categories_router
 from app.api.v1.admin.overview import router as overview_router
 from app.api.v1.admin.settings import router as settings_router
@@ -21,3 +23,5 @@ router.include_router(overview_router)
 router.include_router(users_router)
 router.include_router(categories_router)
 router.include_router(settings_router)
+router.include_router(analytics_router)
+router.include_router(activity_router)
