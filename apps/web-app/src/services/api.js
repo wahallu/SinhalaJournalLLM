@@ -54,12 +54,17 @@ export async function generateHeadlines(text, options = {}) {
     count = 5,
     numCandidates,
     category = 'General',
+    maxLength = 'medium',
+    length,
   } = typeof options === 'object' && !Array.isArray(options) ? options : { count: options };
+
+  const headlineLength = length || maxLength || 'medium';
 
   const raw = await request('/headlines/generate', {
     text,
     count: numCandidates ?? count,
     category,
+    length: headlineLength,
   });
 
 

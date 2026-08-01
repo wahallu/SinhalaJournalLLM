@@ -30,7 +30,12 @@ def _dedupe(headlines: list[str]) -> list[str]:
     return unique
 
 
-async def generate_headlines(text: str, count: int = 5, category: str = "General") -> HeadlineResponse:
+async def generate_headlines(
+    text: str,
+    count: int = 5,
+    category: str = "General",
+    length: str | int | None = "medium",
+) -> HeadlineResponse:
     """
     Generate up to `count` distinct headline candidates and persist them.
     """
@@ -38,7 +43,13 @@ async def generate_headlines(text: str, count: int = 5, category: str = "General
 
     results = await asyncio.gather(
         *[
-            model_generate("headline", text, category=category, variation_hint=hint or None)
+            model_generate(
+                "headline",
+                text,
+                category=category,
+                length=length,
+                variation_hint=hint or None,
+            )
             for hint in hints
         ],
         return_exceptions=True,

@@ -104,18 +104,81 @@ def prompt_grammar(text: str) -> str:
     )
 
 
-def prompt_headline(text: str, category: str = "General", variation_hint: str | None = None, **_) -> str:
+# ── Headline lengths ──
+HEADLINE_LENGTHS: dict[str, dict] = {
+    "short": {
+        "min_words": 3,
+        "max_words": 5,
+        "max_tokens": 35,
+        "label_en": "Short",
+        "label_si": "කෙටි",
+        "desc": "3 to 5 words (~35 tokens)",
+    },
+    "medium": {
+        "min_words": 5,
+        "max_words": 8,
+        "max_tokens": 60,
+        "label_en": "Medium",
+        "label_si": "මධ්‍යම",
+        "desc": "5 to 8 words (~60 tokens)",
+    },
+    "long": {
+        "min_words": 8,
+        "max_words": 12,
+        "max_tokens": 100,
+        "label_en": "Long",
+        "label_si": "දීර්ඝ",
+        "desc": "8 to 12 words (~100 tokens)",
+    },
+}
+
+DEFAULT_HEADLINE_LENGTH = "medium"
+
+HEADLINE_LENGTH_ALIASES: dict[str | int, str] = {
+    "short": "short",
+    "medium": "medium",
+    "long": "long",
+    60: "short",
+    80: "medium",
+    120: "long",
+    "60": "short",
+    "80": "medium",
+    "120": "long",
+}
+
+
+def resolve_headline_length(length: str | int | None) -> str:
+    if not length:
+        return DEFAULT_HEADLINE_LENGTH
+    if isinstance(length, str):
+        cleaned = length.strip().lower()
+        if cleaned in HEADLINE_LENGTHS:
+            return cleaned
+        if cleaned in HEADLINE_LENGTH_ALIASES:
+            return HEADLINE_LENGTH_ALIASES[cleaned]
+    elif isinstance(length, (int, float)):
+        int_val = int(length)
+        if int_val in HEADLINE_LENGTH_ALIASES:
+            return HEADLINE_LENGTH_ALIASES[int_val]
+    return DEFAULT_HEADLINE_LENGTH
+
+
+def prompt_headline(text: str, category: str = "General", length: str = DEFAULT_HEADLINE_LENGTH, variation_hint: str | None = None, **_) -> str:
     """
     Headline prompt. `variation_hint` appends an extra constraint so repeated
     greedy-decoded calls yield distinct candidates.
     """
+    resolved_len = resolve_headline_length(length)
+    cfg = HEADLINE_LENGTHS[resolved_len]
+    min_w = cfg["min_words"]
+    max_w = cfg["max_words"]
     hint = f"\n- {variation_hint}" if variation_hint else ""
     return (
         "### Instruction:\n"
         "Generate a concise Sinhala news headline for the article below.\n\n"
         "Rules:\n"
         "- Use formal Sinhala journalism style matching the article category\n"
-        "- Between 4 and 7 words -- never fewer than 4\n"
+        f"- Between {min_w} and {max_w} words -- never fewer than {min_w}\n"
         "- Capture the key person, event, number, or outcome\n"
         f"- Output ONLY the headline, nothing else{hint}\n\n"
         "### Input:\n"

@@ -25,6 +25,14 @@ class HeadlineRequest(BaseModel):
         default="General",
         description="News category for the headline generation (e.g. General, Politics, Business, Sports)",
     )
+    length: str | int | None = Field(
+        default="medium",
+        description="Headline length setting (short, medium, long)",
+    )
+    max_length: str | int | None = Field(
+        default=None,
+        description="Alias for headline length setting",
+    )
 
 
 

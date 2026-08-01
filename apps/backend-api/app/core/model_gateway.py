@@ -22,12 +22,15 @@ from app.core import mock_provider
 from app.core.config import get_settings
 from app.core.openrouter_client import OpenRouterUnavailable, openrouter_chat
 from app.core.prompts import (
+    DEFAULT_HEADLINE_LENGTH,
     DEFAULT_LENGTH,
     DEFAULT_STYLE,
+    HEADLINE_LENGTHS,
     STYLE_INSTRUCTIONS,
     SUMMARY_LENGTHS,
     prompt_headline,
     prompt_summarizer,
+    resolve_headline_length,
     resolve_length,
     resolve_style,
 )
@@ -80,7 +83,7 @@ async def model_generate(
         task:           grammar | headline | summarizer | style
         text:           raw Sinhala input text
         style:          style task only — resolved via prompts.resolve_style
-        length:         summarizer only — short | medium | long
+        length:         summarizer or headline — short | medium | long
         category:       headline task only — news category (default "General")
         variation_hint: headline only — extra instruction line for candidate
                         diversity (greedy decoding returns identical output
@@ -90,7 +93,11 @@ async def model_generate(
         raise ValueError(f"Unknown task {task!r}; expected one of {TASKS}")
 
     resolved_style = resolve_style(style) if task == "style" else None
-    resolved_length = resolve_length(length) if task == "summarizer" else None
+    resolved_length = (
+        resolve_length(length)
+        if task == "summarizer"
+        else (resolve_headline_length(length) if task == "headline" else None)
+    )
     resolved_category = category or "General"
 
     errors: list[str] = []
@@ -117,7 +124,7 @@ async def model_generate(
         latency_ms = int((time.perf_counter() - started) * 1000)
         if task == "style":
             meta["style"] = resolved_style
-        if task == "summarizer":
+        if task in ("summarizer", "headline"):
             meta["length"] = resolved_length
         if task == "headline":
             meta["category"] = resolved_category
@@ -150,7 +157,7 @@ async def _via_sinllama(
         # Length control: server hardcodes a ~10% target, so send our prompt.
         prompt = prompt_summarizer(text, length or DEFAULT_LENGTH)
     elif task == "headline":
-        prompt = prompt_headline(text, category=category or "General", variation_hint=variation_hint)
+        prompt = prompt_headline(text, category=category or "General", length=length or DEFAULT_HEADLINE_LENGTH, variation_hint=variation_hint)
     else:
         prompt = text
 
@@ -189,9 +196,11 @@ def _openrouter_user_message(
     if task == "headline":
         hint = f"\n{variation_hint}" if variation_hint else ""
         cat = category or "General"
+        hl_len = resolve_headline_length(length)
+        cfg = HEADLINE_LENGTHS[hl_len]
         return (
             f"Generate a concise Sinhala news headline for the article below.\nCategory: {cat}\n"
-            f"Rules: Use formal Sinhala journalism style, 4 to 7 words, output ONLY the headline.{hint}\n\n{text}"
+            f"Rules: Use formal Sinhala journalism style, {cfg['min_words']} to {cfg['max_words']} words, output ONLY the headline.{hint}\n\n{text}"
         )
     if task == "summarizer":
         cfg = SUMMARY_LENGTHS[length or DEFAULT_LENGTH]
@@ -218,7 +227,11 @@ async def _via_openrouter(
         {"role": "user", "content": _openrouter_user_message(task, text, style, length, category, variation_hint)},
     ]
     temperature = 0.7 if task == "headline" else 0.2
-    content = await openrouter_chat(messages, temperature=temperature, max_tokens=2048)
+    max_tokens = 2048
+    if task == "headline":
+        hl_len = resolve_headline_length(length)
+        max_tokens = HEADLINE_LENGTHS[hl_len]["max_tokens"]
+    content = await openrouter_chat(messages, temperature=temperature, max_tokens=max_tokens)
     settings = get_settings()
     return content, {"openrouter_model": settings.OPENROUTER_MODEL}
 
@@ -244,7 +257,12 @@ def _via_mock(
             if variation_hint in HEADLINE_VARIATION_HINTS
             else 0
         )
-        return mock_provider.mock_headline(text, index), {}
+        return mock_provider.mock_headline(text, index, length=length or DEFAULT_HEADLINE_LENGTH), {}
+    if task == "summarizer":
+        cfg = SUMMARY_LENGTHS[length or DEFAULT_LENGTH]
+        target = max(cfg["min_words"], int(len(text.split()) * cfg["ratio"]))
+        return mock_provider.mock_summarize(text, target), {}
+    return mock_provider.mock_style(text, style or DEFAULT_STYLE), {}
     if task == "summarizer":
         cfg = SUMMARY_LENGTHS[length or DEFAULT_LENGTH]
         target = max(cfg["min_words"], int(len(text.split()) * cfg["ratio"]))

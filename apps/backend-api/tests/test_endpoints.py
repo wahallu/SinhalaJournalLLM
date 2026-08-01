@@ -38,6 +38,20 @@ async def test_generate_headlines():
     assert data["id"]
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("length_val", ["short", "medium", "long", 60, 80, 120])
+async def test_generate_headlines_lengths(length_val):
+    """Headline generation respects short, medium, long length options."""
+    async with _client() as client:
+        response = await client.post(
+            "/api/v1/headlines/generate",
+            json={"text": _LONG_ARTICLE, "count": 2, "category": "Sports", "length": length_val},
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["headlines"]) >= 1
+
+
 
 @pytest.mark.asyncio
 async def test_headline_history(fake_supabase):

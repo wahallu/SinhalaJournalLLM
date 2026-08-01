@@ -121,7 +121,7 @@ function loadDefaultSettings() {
     length: stored.defaultLength || 'short',
     count: stored.headlineCount || 3,
     headlineStyle: 'formal',
-    headlineMaxLength: 80,
+    headlineMaxLength: 'medium',
     summaryView: 'paragraph',
   };
 }

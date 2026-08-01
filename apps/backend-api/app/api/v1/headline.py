@@ -29,7 +29,13 @@ async def generate_headlines_endpoint(payload: HeadlineRequest):
     """
     Generate multiple headline variants from the input Sinhala text.
     """
-    return await generate_headlines(payload.text, payload.count, category=payload.category)
+    req_len = payload.length or payload.max_length or "medium"
+    return await generate_headlines(
+        payload.text,
+        payload.count,
+        category=payload.category,
+        length=req_len,
+    )
 
 
 

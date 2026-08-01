@@ -28,9 +28,9 @@ const SUMMARY_VIEWS = [
 ];
 
 const MAX_LENGTHS = [
-  { id: 60,  label: 'Short' },
-  { id: 80,  label: 'Medium' },
-  { id: 120, label: 'Long' },
+  { id: 'short',  label: 'Short' },
+  { id: 'medium', label: 'Medium' },
+  { id: 'long',   label: 'Long' },
 ];
 
 
