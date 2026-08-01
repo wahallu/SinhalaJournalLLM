@@ -83,3 +83,12 @@ export function updateCategory(categoryId, category) {
 export function deleteCategory(categoryId) {
   return request(`/admin/categories/${categoryId}`, { method: 'DELETE' });
 }
+
+// ── Settings ──
+export function getSettings() {
+  return request('/admin/settings');
+}
+
+export function updateSetting(key, value) {
+  return request(`/admin/settings/${key}`, { method: 'PATCH', body: { value } });
+}

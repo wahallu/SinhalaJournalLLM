@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Tags, ArrowLeft, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, Users, Tags, SlidersHorizontal, ArrowLeft, Moon, Sun } from 'lucide-react';
 
 const NAV = [
   { to: '/admin', end: true, label: 'Overview', icon: LayoutDashboard },
   { to: '/admin/users', end: false, label: 'Users', icon: Users },
   { to: '/admin/categories', end: false, label: 'Categories', icon: Tags },
+  { to: '/admin/settings', end: false, label: 'Settings', icon: SlidersHorizontal },
 ];
 
 export default function AdminSidebar({ dark, onToggleDark }) {
