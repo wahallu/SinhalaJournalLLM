@@ -49,8 +49,12 @@ async def get_all() -> dict[str, Any]:
     try:
         stored = await settings_repository.load_all()
     except Exception:
-        logger.exception("Could not read app_settings — using defaults")
-        stored = {}
+        # Serve defaults for THIS call but do not cache them. Caching a
+        # failure would pin registry defaults for the full TTL — silently
+        # re-enabling disabled tools and switching the provider back — long
+        # after the database recovered.
+        logger.exception("Could not read app_settings — using defaults for this request")
+        return values
 
     # Only known keys are applied. A row for a key that has since been removed
     # from the registry is ignored rather than resurrecting dead config.
@@ -58,9 +62,11 @@ async def get_all() -> dict[str, Any]:
         if key in values:
             values[key] = value
 
+    # dict(values) so callers cannot mutate the cache through the returned
+    # reference.
     _cache = values
     _cached_at = time.monotonic()
-    return values
+    return dict(values)
 
 
 async def get(key: str) -> Any:

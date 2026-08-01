@@ -23,19 +23,21 @@ async def load_all() -> dict[str, Any]:
 
 async def upsert(key: str, value: Any, actor_id: str | None = None) -> None:
     """
-    Store one override.
+    Store one override, atomically.
 
-    Written as delete-then-insert rather than a true upsert because the
-    PostgREST fake used in tests models only the basic verbs, and the
-    behaviour is identical for a single-row primary key.
+    A delete-then-insert pair would lose the override permanently if the
+    process died between the two round-trips — and since `features.*` default
+    to True, a deliberately disabled tool would silently turn back on. Two
+    concurrent writes to one key could also collide on the primary key.
+    `key` is the PK, so PostgREST can do this in a single statement.
     """
     client = await base.get_supabase()
-    await client.table(TABLE).delete().eq("key", key).execute()
-    await client.table(TABLE).insert(
+    await client.table(TABLE).upsert(
         {
             "key": key,
             "value": value,
             "updated_by": actor_id,
             "updated_at": datetime.now(timezone.utc).isoformat(),
-        }
+        },
+        on_conflict="key",
     ).execute()

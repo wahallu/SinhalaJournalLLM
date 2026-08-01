@@ -47,6 +47,27 @@ def _matches_or(row: dict, expression: str) -> bool:
     return False
 
 
+def _matches_all(row: dict, eq_filters, gte_filters, or_expr) -> bool:
+    """
+    Whether a row satisfies every filter on the query.
+
+    Shared by select, update and delete on purpose. update/delete previously
+    applied only `eq`, silently ignoring `gte` and `or_` — and with no `eq`
+    at all, `all([])` is True, so a `.delete().gte("created_at", cutoff)`
+    matched EVERY row. A retention-prune test would have passed while
+    production emptied the table.
+    """
+    for column, value in eq_filters:
+        if str(row.get(column)) != str(value):
+            return False
+    for column, value in gte_filters:
+        if not str(row.get(column) or "") >= str(value):
+            return False
+    if or_expr and not _matches_or(row, or_expr):
+        return False
+    return True
+
+
 class _FakeQuery:
     def __init__(self, store: dict[str, list[dict]], table: str):
         self._store = store
@@ -61,11 +82,18 @@ class _FakeQuery:
         self._single = False
         self._count = None
         self._or: str | None = None
+        self._on_conflict: str = "id"
 
     # ── builders ──
     def insert(self, record: dict):
         self._operation = "insert"
         self._payload = record
+        return self
+
+    def upsert(self, record: dict, on_conflict: str | None = None):
+        self._operation = "upsert"
+        self._payload = record
+        self._on_conflict = on_conflict or "id"
         return self
 
     def update(self, record: dict):
@@ -127,33 +155,48 @@ class _FakeQuery:
                 "created_at": datetime.now(timezone.utc).isoformat(),
             }
             rows.append(record)
-            return SimpleNamespace(data=[record], count=None)
+            # A copy, like a real PostgREST response — returning the stored
+            # dict lets a caller mutate the store by accident and hides
+            # aliasing bugs that only appear against the real client.
+            return SimpleNamespace(data=[dict(record)], count=None)
+
+        if self._operation == "upsert":
+            conflict_key = self._on_conflict
+            target = self._payload.get(conflict_key)
+            for row in rows:
+                if row.get(conflict_key) == target:
+                    row.update(self._payload)
+                    return SimpleNamespace(data=[dict(row)], count=None)
+            record = {**self._payload}
+            record.setdefault("id", str(uuid.uuid4()))
+            record.setdefault("created_at", datetime.now(timezone.utc).isoformat())
+            rows.append(record)
+            return SimpleNamespace(data=[dict(record)], count=None)
 
         if self._operation == "update":
             updated = []
             for row in rows:
-                if all(str(row.get(c)) == str(v) for c, v in self._filters):
+                if _matches_all(row, self._filters, self._gte_filters, self._or):
                     row.update(self._payload)
                     updated.append(dict(row))
             return SimpleNamespace(data=updated, count=None)
 
         if self._operation == "delete":
-            removed = [r for r in rows if all(str(r.get(c)) == str(v) for c, v in self._filters)]
-            remaining = [r for r in rows if r not in removed]
-            self._store[self._table] = remaining
+            removed = [
+                r for r in rows
+                if _matches_all(r, self._filters, self._gte_filters, self._or)
+            ]
+            self._store[self._table] = [r for r in rows if r not in removed]
             return SimpleNamespace(data=[dict(r) for r in removed], count=None)
 
         # Copy rows out, the way a real PostgREST response would arrive as
         # freshly parsed JSON. Returning the stored dicts by reference would
         # let a caller mutate the store by accident, and would hide aliasing
         # bugs that only appear against the real HTTP client.
-        result = [dict(r) for r in rows]
-        for column, value in self._filters:
-            result = [r for r in result if str(r.get(column)) == str(value)]
-        for column, value in self._gte_filters:
-            result = [r for r in result if str(r.get(column) or "") >= str(value)]
-        if self._or:
-            result = [r for r in result if _matches_or(r, self._or)]
+        result = [
+            dict(r) for r in rows
+            if _matches_all(r, self._filters, self._gte_filters, self._or)
+        ]
         result.sort(key=lambda r: r.get("created_at") or "", reverse=self._order_desc)
         total = len(result)
         if self._range is not None:
