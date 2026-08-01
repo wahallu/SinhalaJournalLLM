@@ -54,7 +54,7 @@ const BOTTOM_NAV = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-export default function Sidebar({ activeTool, onSelectTool, isOpen, onToggle, collapsed, onCollapse }) {
+export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpen, onToggle, collapsed, onCollapse }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -185,7 +185,15 @@ export default function Sidebar({ activeTool, onSelectTool, isOpen, onToggle, co
 
         {/* Navigation */}
         <nav className={`relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-2 space-y-5 ${collapsed ? 'px-3' : 'px-3.5'}`}>
-          {NAV_SECTIONS.map((section) => (
+          {NAV_SECTIONS.map((section) => {
+            /* An admin can switch a tool off; hide it rather than leaving a
+               link that lands on a 503. Unknown ids are always shown, so a
+               failed /meta fetch cannot blank the navigation. */
+            const items = section.items.filter(
+              ({ id }) => !(id in features) || features[id] !== false
+            );
+            if (items.length === 0) return null;
+            return (
             <div key={section.label}>
               {!collapsed && (
                 <p className="px-3 mb-1.5 text-[9.5px] font-bold text-white/30 uppercase tracking-[0.16em]">
@@ -193,10 +201,11 @@ export default function Sidebar({ activeTool, onSelectTool, isOpen, onToggle, co
                 </p>
               )}
               <div className="space-y-0.5">
-                {section.items.map(renderNavItem)}
+                {items.map(renderNavItem)}
               </div>
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* Bottom navigation */}

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import Sidebar from './components/Sidebar';
@@ -18,6 +18,7 @@ import SinLLamaPage from './components/SinLLamaPage';
 import ModelComparison from './components/ModelComparison';
 import SummarizerPlayground from './components/SummarizerPlayground';
 import { useToolProcessor } from './hooks/useToolProcessor';
+import { usePlatformMeta } from './hooks/usePlatformMeta';
 import { checkGrammar, generateHeadlines, rewriteStyle, summarizeNews } from './services/api';
 import ProtectedRoute from './auth/ProtectedRoute';
 import Login from './pages/auth/Login';
@@ -132,9 +133,10 @@ function loadDefaultSettings() {
     stored = {};
   }
   return {
-    tone: stored.defaultTone || 'formal',
-    length: stored.defaultLength || 'short',
-    count: stored.headlineCount || 3,
+    // Left undefined when unset so the admin's global default can fill in.
+    tone: stored.defaultTone,
+    length: stored.defaultLength,
+    count: stored.headlineCount,
     headlineStyle: 'formal',
     headlineMaxLength: 80,
     summaryView: 'paragraph',
@@ -259,6 +261,17 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [settings, setSettings] = useState(loadDefaultSettings);
+  const { features, defaults: globalDefaults } = usePlatformMeta();
+
+  // Precedence: the user's own choice, then the admin's global default, then
+  // a hardcoded fallback. Derived rather than synced into state, so a change
+  // on either side is reflected without an effect writing back.
+  const effectiveSettings = useMemo(() => ({
+    ...settings,
+    tone: settings.tone ?? globalDefaults?.tone ?? 'formal',
+    length: settings.length ?? globalDefaults?.length ?? 'short',
+    count: settings.count ?? globalDefaults?.headline_count ?? 3,
+  }), [settings, globalDefaults]);
 
   const activeTool = PATH_TO_TOOL[location.pathname] || 'dashboard';
 
@@ -282,6 +295,12 @@ function App() {
   }, []);
 
   const isChat = location.pathname === '/sinllama';
+
+  /* Hiding a disabled tool in the sidebar still leaves its URL reachable, so
+     the route itself has to bounce. The server enforces this too — this is
+     purely so a user does not land on a 503. */
+  const toolForPath = PATH_TO_TOOL[location.pathname];
+  const toolDisabled = toolForPath in features && features[toolForPath] === false;
 
   if (AUTH_PATHS.includes(location.pathname)) {
     return (
@@ -318,9 +337,14 @@ function App() {
     );
   }
 
+  if (toolDisabled) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return (
     <div className="relative h-full flex bg-canvas overflow-hidden">
       <Sidebar
+        features={features}
         activeTool={activeTool}
         onSelectTool={handleSelectTool}
         isOpen={sidebarOpen}
@@ -365,10 +389,10 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard onSelectTool={handleSelectTool} onQuickStart={handleQuickStart} />} />
-              <Route path="/grammar" element={<ToolRunner activeTool="grammar" settings={settings} setSettings={setSettings} />} />
-              <Route path="/headlines" element={<ToolRunner activeTool="headlines" settings={settings} setSettings={setSettings} />} />
-              <Route path="/rewriter" element={<ToolRunner activeTool="rewriter" settings={settings} setSettings={setSettings} />} />
-              <Route path="/summarizer" element={<ToolRunner activeTool="summarizer" settings={settings} setSettings={setSettings} />} />
+              <Route path="/grammar" element={<ToolRunner activeTool="grammar" settings={effectiveSettings} setSettings={setSettings} />} />
+              <Route path="/headlines" element={<ToolRunner activeTool="headlines" settings={effectiveSettings} setSettings={setSettings} />} />
+              <Route path="/rewriter" element={<ToolRunner activeTool="rewriter" settings={effectiveSettings} setSettings={setSettings} />} />
+              <Route path="/summarizer" element={<ToolRunner activeTool="summarizer" settings={effectiveSettings} setSettings={setSettings} />} />
               <Route path="/sinllama" element={<SinLLamaPage />} />
               <Route path="/summarizer-playground" element={<SummarizerPlayground />} />
               <Route path="/comparison" element={<ModelComparison />} />

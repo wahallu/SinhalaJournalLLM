@@ -181,3 +181,9 @@ export function getUnifiedHistory(limit = 50) {
 export function generateImage(prompt) {
   return request('/image/generate', { prompt });
 }
+
+// ── Capabilities ──
+// Tasks, styles, lengths, provider status, feature flags and global defaults.
+export function getMeta() {
+  return request('/meta', null, 'GET');
+}
