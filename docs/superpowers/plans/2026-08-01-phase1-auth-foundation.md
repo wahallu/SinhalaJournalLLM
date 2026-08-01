@@ -1306,35 +1306,45 @@ On the POST handler, add the parameter `user: AuthUser | None = Depends(optional
 
 On the history handler, change the dependency to `user: AuthUser = Depends(require_user)` and pass `user_id=user.id` into the repository call.
 
-- [ ] **Step 5: Export the synthetic-record helper**
+- [ ] **Step 5: Add the shared persistence guard**
 
-Anonymous responses must keep the exact shape authenticated ones have — the Chrome extension reads `id` off every response. `base.py` already builds that shape privately; make it public rather than duplicating it.
+All four services need the same decision — persist when the caller is known, return a response-shaped record when not. Write it once. Anonymous responses must keep the exact shape authenticated ones have, because the Chrome extension reads `id` off every response.
 
 In `apps/backend-api/app/repositories/base.py`, add below `_synthetic_record`:
 
 ```python
-def unsaved_record(record: dict[str, Any]) -> dict[str, Any]:
+async def persist_if_owned(
+    save: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]],
+    record: dict[str, Any],
+    user_id: str | None,
+) -> dict[str, Any]:
     """
-    Response-shaped record for results we deliberately do not persist
-    (anonymous callers). Same fields an insert would have returned, so
-    clients cannot tell the difference.
+    Persist `record` against `user_id`, or return an unsaved response-shaped
+    record when the caller is anonymous.
+
+    "Login to save": anonymous runs leave no row, so `user_id IS NULL` in the
+    history tables keeps meaning "pre-auth legacy data" and nothing else.
+    The returned shape is identical either way — clients cannot tell.
     """
-    return _synthetic_record(record)
+    if user_id is None:
+        return _synthetic_record(record)
+    return await save({**record, "user_id": user_id})
 ```
 
-- [ ] **Step 6: Make the service skip persistence for anonymous callers**
-
-In `app/services/summarizer/summarizer_service.py`, add `user_id: str | None = None` to the entry-point signature and guard the save. `record` here is the dict already being passed to `save_summary` — keep whatever fields it currently has and only add `user_id`:
+Add to the imports at the top of `base.py`:
 
 ```python
-from app.repositories.base import unsaved_record
+from collections.abc import Awaitable, Callable
+```
 
-    # "Login to save": anonymous runs return a result but leave no row, so
-    # user_id IS NULL keeps meaning "pre-auth legacy data" and nothing else.
-    if user_id is not None:
-        saved = await save_summary({**record, "user_id": user_id})
-    else:
-        saved = unsaved_record(record)
+- [ ] **Step 6: Use the guard in the summarizer service**
+
+In `app/services/summarizer/summarizer_service.py`, add `user_id: str | None = None` to the entry-point signature. `record` here is the dict already being passed to `save_summary` — keep its fields as they are:
+
+```python
+from app.repositories.base import persist_if_owned
+
+    saved = await persist_if_owned(save_summary, record, user_id)
 ```
 
 Then use `saved` wherever the old `save_summary(...)` return value was used.
@@ -1357,15 +1367,12 @@ user: AuthUser | None = Depends(optional_user),
 
 and pass `user_id=user.id if user else None` into the service call. On the history handler, change to `user: AuthUser = Depends(require_user)` and pass `user_id=user.id` into `get_corrections(...)`.
 
-`app/services/grammar/grammar_service.py` — add `user_id: str | None = None` to the entry point and guard the save:
+`app/services/grammar/grammar_service.py` — add `user_id: str | None = None` to the entry point and use the shared guard from Step 5:
 
 ```python
-from app.repositories.base import unsaved_record
+from app.repositories.base import persist_if_owned
 
-    if user_id is not None:
-        saved = await save_correction({**record, "user_id": user_id})
-    else:
-        saved = unsaved_record(record)
+    saved = await persist_if_owned(save_correction, record, user_id)
 ```
 
 `app/repositories/grammar_repository.py` — thread the filter through:
@@ -1389,7 +1396,7 @@ The edit is identical in shape to Step 8 — three changes per tool:
 
 1. Router POST handler gains `user: AuthUser | None = Depends(optional_user)`, passes `user_id=user.id if user else None`.
 2. Router history handler gains `user: AuthUser = Depends(require_user)`, passes `user_id=user.id`.
-3. Service gains `user_id: str | None = None` and the `if user_id is not None: … else: unsaved_record(record)` guard; repository read function gains `user_id: str | None = None` forwarded to `fetch_page`.
+3. Service gains `user_id: str | None = None` and calls `persist_if_owned(<save_fn>, record, user_id)` from Step 5; repository read function gains `user_id: str | None = None` forwarded to `fetch_page`.
 
 The save functions are `save_generation` (headline) and `save_rewrite` (style); the read functions are `get_generations` and `get_rewrites`. Confirm the exact names first:
 
@@ -1957,15 +1964,41 @@ git commit -m "feat: add Supabase auth client and session provider"
 ### Task 9: Auth pages
 
 **Files:**
-- Create: `apps/web-app/src/pages/auth/AuthLayout.jsx`, `Login.jsx`, `Signup.jsx`, `ForgotPassword.jsx`, `ResetPassword.jsx`, `VerifyEmail.jsx`
+- Create: `apps/web-app/src/pages/auth/formStyles.js`, `AuthLayout.jsx`, `Login.jsx`, `Signup.jsx`, `ForgotPassword.jsx`, `ResetPassword.jsx`, `VerifyEmail.jsx`
 
 **Interfaces:**
-- Consumes: `useAuth()` from Task 8; `ActionButton` from `components/ui/ActionButton`; `Card` from `components/ui/Card`.
-- Produces: five route components, default-exported.
+- Consumes: `useAuth()` from Task 8; `ActionButton` from `components/ui/ActionButton`.
+- Produces: `INPUT` and `LABEL` class constants from `formStyles.js`; five route components, default-exported.
 
 These pages use the **existing** SinAi ink/brand styling, not the admin theme — the admin theme arrives in Phase 2 and is scoped to `/admin`.
 
-- [ ] **Step 1: Create the shared shell**
+- [ ] **Step 1: Create the shared form styles**
+
+Four of these pages need identical field styling. Define it once.
+
+`apps/web-app/src/pages/auth/formStyles.js`:
+
+```javascript
+/** Field styling shared by the auth screens. */
+
+export const INPUT = `w-full px-3.5 py-2.5 text-[14px] text-ink-800 border border-ink-200 rounded-xl bg-white
+  placeholder:text-ink-400 transition-all duration-150
+  focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]`;
+
+export const LABEL = 'block text-[12.5px] font-semibold text-ink-700 mb-1.5';
+
+export const ERROR = 'text-[12.5px] text-brand-700 bg-brand-50 rounded-lg px-3 py-2';
+```
+
+Every page below imports these instead of redeclaring them:
+
+```javascript
+import { INPUT, LABEL, ERROR } from './formStyles';
+```
+
+and renders errors as `<p role="alert" className={ERROR}>{error}</p>`.
+
+- [ ] **Step 2: Create the shared shell**
 
 `apps/web-app/src/pages/auth/AuthLayout.jsx`:
 
@@ -1999,7 +2032,7 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
 }
 ```
 
-- [ ] **Step 2: Create the login page**
+- [ ] **Step 3: Create the login page**
 
 `apps/web-app/src/pages/auth/Login.jsx`:
 
@@ -2009,11 +2042,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import AuthLayout from './AuthLayout';
 import ActionButton from '../../components/ui/ActionButton';
+import { INPUT, LABEL, ERROR } from './formStyles';
 
-const INPUT = `w-full px-3.5 py-2.5 text-[14px] text-ink-800 border border-ink-200 rounded-xl bg-white
-  placeholder:text-ink-400 transition-all duration-150
-  focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]`;
-const LABEL = 'block text-[12.5px] font-semibold text-ink-700 mb-1.5';
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -2056,7 +2086,7 @@ export default function Login() {
         </div>
 
         {error && (
-          <p role="alert" className="text-[12.5px] text-brand-700 bg-brand-50 rounded-lg px-3 py-2">
+          <p role="alert" className={ERROR}>
             {error}
           </p>
         )}
@@ -2074,7 +2104,7 @@ export default function Login() {
 }
 ```
 
-- [ ] **Step 3: Verify `ActionButton` supports `type` and `loading`**
+- [ ] **Step 4: Verify `ActionButton` supports `type` and `loading`**
 
 ```bash
 cd apps/web-app && grep -n "type\|loading\|disabled" src/components/ui/ActionButton.jsx | head -20
@@ -2082,7 +2112,7 @@ cd apps/web-app && grep -n "type\|loading\|disabled" src/components/ui/ActionBut
 
 If `ActionButton` does not forward a `type` prop, a submit button inside a form will not submit. Add `type = 'button'` to its props and pass it through to the underlying `<button>`. Do this now — Steps 4–6 depend on it.
 
-- [ ] **Step 4: Create the signup page**
+- [ ] **Step 5: Create the signup page**
 
 `apps/web-app/src/pages/auth/Signup.jsx` — same structure as Login, with an added `full_name` field, a password field with `autoComplete="new-password"` and `minLength={8}`, and on success `navigate('/verify-email')`:
 
@@ -2092,11 +2122,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import AuthLayout from './AuthLayout';
 import ActionButton from '../../components/ui/ActionButton';
+import { INPUT, LABEL, ERROR } from './formStyles';
 
-const INPUT = `w-full px-3.5 py-2.5 text-[14px] text-ink-800 border border-ink-200 rounded-xl bg-white
-  placeholder:text-ink-400 transition-all duration-150
-  focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]`;
-const LABEL = 'block text-[12.5px] font-semibold text-ink-700 mb-1.5';
 
 export default function Signup() {
   const { signUp } = useAuth();
@@ -2145,7 +2172,7 @@ export default function Signup() {
         </div>
 
         {error && (
-          <p role="alert" className="text-[12.5px] text-brand-700 bg-brand-50 rounded-lg px-3 py-2">
+          <p role="alert" className={ERROR}>
             {error}
           </p>
         )}
@@ -2159,7 +2186,7 @@ export default function Signup() {
 }
 ```
 
-- [ ] **Step 5: Create `ForgotPassword.jsx`**
+- [ ] **Step 6: Create `ForgotPassword.jsx`**
 
 Single email field; on submit calls `resetPassword(email)` and then renders a confirmation panel instead of the form. Show the same confirmation whether or not the email exists — revealing which addresses are registered is an account-enumeration leak.
 
@@ -2169,11 +2196,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import AuthLayout from './AuthLayout';
 import ActionButton from '../../components/ui/ActionButton';
+import { INPUT, LABEL, ERROR } from './formStyles';
 
-const INPUT = `w-full px-3.5 py-2.5 text-[14px] text-ink-800 border border-ink-200 rounded-xl bg-white
-  placeholder:text-ink-400 transition-all duration-150
-  focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]`;
-const LABEL = 'block text-[12.5px] font-semibold text-ink-700 mb-1.5';
 
 export default function ForgotPassword() {
   const { resetPassword } = useAuth();
@@ -2219,7 +2243,7 @@ export default function ForgotPassword() {
 }
 ```
 
-- [ ] **Step 6: Create `ResetPassword.jsx`**
+- [ ] **Step 7: Create `ResetPassword.jsx`**
 
 Two password fields (new + confirm), calls `updatePassword(password)`, then navigates to `/dashboard`. Supabase puts the recovery session in the URL fragment and `detectSessionInUrl: true` consumes it, so the user is already authenticated when this page loads. Guard against mismatched confirmations before calling.
 
@@ -2229,11 +2253,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
 import AuthLayout from './AuthLayout';
 import ActionButton from '../../components/ui/ActionButton';
+import { INPUT, LABEL, ERROR } from './formStyles';
 
-const INPUT = `w-full px-3.5 py-2.5 text-[14px] text-ink-800 border border-ink-200 rounded-xl bg-white
-  placeholder:text-ink-400 transition-all duration-150
-  focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]`;
-const LABEL = 'block text-[12.5px] font-semibold text-ink-700 mb-1.5';
 
 export default function ResetPassword() {
   const { updatePassword } = useAuth();
@@ -2275,7 +2296,7 @@ export default function ResetPassword() {
         </div>
 
         {error && (
-          <p role="alert" className="text-[12.5px] text-brand-700 bg-brand-50 rounded-lg px-3 py-2">
+          <p role="alert" className={ERROR}>
             {error}
           </p>
         )}
@@ -2289,7 +2310,7 @@ export default function ResetPassword() {
 }
 ```
 
-- [ ] **Step 7: Create `VerifyEmail.jsx`**
+- [ ] **Step 8: Create `VerifyEmail.jsx`**
 
 ```jsx
 import { Link } from 'react-router-dom';
@@ -2309,7 +2330,7 @@ export default function VerifyEmail() {
 }
 ```
 
-- [ ] **Step 8: Verify the pages render**
+- [ ] **Step 9: Verify the pages render**
 
 Routes are wired in Task 10, so check them by temporarily importing `Login` into `App.jsx`'s route table, or run `npm run lint`:
 
@@ -2319,7 +2340,7 @@ cd apps/web-app && npm run lint
 
 Expected: no errors in `src/pages/auth/`.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
 git add apps/web-app/src/pages/auth apps/web-app/src/components/ui/ActionButton.jsx
