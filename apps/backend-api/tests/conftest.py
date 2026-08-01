@@ -110,3 +110,22 @@ def fake_supabase(monkeypatch):
     # reset it so later tests still reach the fake store.
     monkeypatch.setattr("app.repositories.base._circuit_open_until", 0.0)
     return fake
+
+
+@pytest.fixture(autouse=True)
+def offline_model_provider(monkeypatch):
+    """
+    Force the deterministic mock provider for every test.
+
+    config.Settings loads apps/backend-api/.env, where MODEL_PROVIDER points
+    at the research GPU server. Without this override the suite makes real
+    network calls: slow, non-deterministic, and dependent on whether the GPU
+    box happens to be up.
+    """
+    from app.core.config import get_settings
+
+    monkeypatch.setenv("MODEL_PROVIDER", "mock")
+    monkeypatch.setenv("MODEL_FALLBACK", "false")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
