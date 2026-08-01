@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     # unauthenticated GPU inference, so this is a cost control, not a nicety.
     ANON_REQUESTS_PER_HOUR: int = 20
 
+    # How many proxies sit in front of this app and append to
+    # X-Forwarded-For. Only the last N entries are trustworthy; the client
+    # is the one just before them. Render's load balancer is one hop.
+    TRUSTED_PROXY_COUNT: int = 1
+
     @field_validator("PUBLIC_SUPABASE_URL")
     @classmethod
     def _strip_trailing_slash(cls, v: str) -> str:

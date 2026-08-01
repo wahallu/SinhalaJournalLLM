@@ -65,11 +65,21 @@ async def generate_headlines_endpoint(
 
 
 @router.post("/visual-prompt", response_model=VisualPromptResponse)
-async def visual_prompt_endpoint(payload: VisualPromptRequest):
+async def visual_prompt_endpoint(
+    request: Request,
+    payload: VisualPromptRequest,
+    user: AuthUser | None = Depends(optional_user),
+):
     """
     Generate a detailed English image-generation prompt from a Sinhala article.
     Uses OpenRouter to understand the article and craft a photorealistic prompt.
+
+    Rate-limited for anonymous callers like the four tools: this bills a
+    hosted provider per call, so leaving it ungated made the cap on the other
+    endpoints pointless.
     """
+    await enforce_anonymous_limit(request, user)
+
     try:
         prompt = await generate_visual_prompt(payload.article_text, payload.headline)
     except OpenRouterUnavailable as exc:

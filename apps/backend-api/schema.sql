@@ -335,3 +335,34 @@ begin
     return removed;
 end;
 $$;
+
+-- ── Grants ──
+-- RLS decides which ROWS a role may touch; grants decide whether it may
+-- touch the table at all. Tables created by raw SQL do not inherit the
+-- privileges Supabase attaches to tables made through its UI, so without
+-- these every service-role read fails with "permission denied" — which
+-- surfaced as a 500 on every anonymous request, since rate limiting reads
+-- request_telemetry before any inference happens.
+--
+-- service_role bypasses RLS by design and needs full access.
+-- authenticated gets only what a policy could then narrow; tables with no
+-- policy are intentionally left ungranted, so they stay service-role only.
+
+grant all on table public.profiles           to service_role;
+grant all on table public.user_categories    to service_role;
+grant all on table public.request_telemetry  to service_role;
+grant all on table public.audit_log          to service_role;
+grant all on table public.app_settings       to service_role;
+grant all on table public.usage_daily        to service_role;
+grant all on table public.grammar_corrections  to service_role;
+grant all on table public.headline_generations to service_role;
+grant all on table public.style_rewrites       to service_role;
+grant all on table public.summaries            to service_role;
+
+-- Row-level policies constrain these further; the grant only opens the door.
+grant select, update on table public.profiles        to authenticated;
+grant select          on table public.user_categories to authenticated;
+grant select, insert, delete on table public.grammar_corrections  to authenticated;
+grant select, insert, delete on table public.headline_generations to authenticated;
+grant select, insert, delete on table public.style_rewrites       to authenticated;
+grant select, insert, delete on table public.summaries            to authenticated;

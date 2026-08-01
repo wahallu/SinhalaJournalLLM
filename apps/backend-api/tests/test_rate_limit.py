@@ -82,3 +82,60 @@ async def test_authenticated_callers_are_not_limited(fake_supabase):
             r = await c.post("/api/v1/summarize",
                              json={"text": _TEXT, "length": "short"}, headers=headers)
             assert r.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_rotating_x_forwarded_for_cannot_evade_the_limit(fake_supabase):
+    """
+    Regression: client_ip originally trusted the LEFTMOST X-Forwarded-For
+    entry, which is entirely caller-controlled — proxies append. Rotating the
+    header per request gave unlimited free GPU inference.
+
+    With one trusted proxy the client is the rightmost entry, so a caller
+    varying the left-hand entries lands in the same bucket.
+    """
+    async with _client() as c:
+        codes = []
+        for i in range(4):
+            r = await c.post(
+                "/api/v1/summarize",
+                json={"text": _TEXT, "length": "short"},
+                # Attacker varies what they send; the proxy appends the real
+                # peer as the final hop.
+                headers={"X-Forwarded-For": f"8.8.8.{i}, 203.0.113.7"},
+            )
+            codes.append(r.status_code)
+
+    assert codes[:2] == [200, 200]
+    assert 429 in codes[2:], f"rotation evaded the limit: {codes}"
+
+
+@pytest.mark.asyncio
+async def test_distinct_real_clients_still_get_separate_buckets(fake_supabase):
+    """The fix must not collapse every caller behind the proxy into one bucket."""
+    async with _client() as c:
+        for _ in range(2):
+            await c.post("/api/v1/summarize", json={"text": _TEXT, "length": "short"},
+                         headers={"X-Forwarded-For": "10.0.0.1, 203.0.113.7"})
+        other = await c.post("/api/v1/summarize", json={"text": _TEXT, "length": "short"},
+                             headers={"X-Forwarded-For": "10.0.0.1, 198.51.100.4"})
+
+    assert other.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_request_is_served_when_the_counter_is_unreadable(fake_supabase, monkeypatch):
+    """
+    A telemetry-read failure must not 500 the user's request. This was live:
+    request_telemetry lacked a service_role grant, so every anonymous call
+    raised before inference was attempted.
+    """
+    async def _boom(*_args, **_kwargs):
+        raise RuntimeError("permission denied for table request_telemetry")
+
+    monkeypatch.setattr("app.core.rate_limit.count_recent_by_ip", _boom)
+
+    async with _client() as c:
+        r = await c.post("/api/v1/summarize", json={"text": _TEXT, "length": "short"})
+
+    assert r.status_code == 200
