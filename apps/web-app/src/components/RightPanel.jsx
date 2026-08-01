@@ -27,34 +27,12 @@ const SUMMARY_VIEWS = [
   { id: 'bullets',   label: 'Bullets' },
 ];
 
-const HEADLINE_STYLES = [
-  { id: 'formal',        label: 'Formal',        desc: 'Authoritative broadsheet tone' },
-  { id: 'breaking_news', label: 'Breaking News', desc: 'Urgent, attention-grabbing' },
-  { id: 'youth',         label: 'Youth',         desc: 'Casual, social-media friendly' },
-  { id: 'editorial',     label: 'Editorial',     desc: 'Analytical, thought-provoking' },
-];
-
-const HEADLINE_COUNTS = [
-  { id: 3, label: '3' },
-  { id: 5, label: '5' },
-  { id: 7, label: '7' },
-];
-
 const MAX_LENGTHS = [
   { id: 60,  label: 'Short' },
   { id: 80,  label: 'Medium' },
   { id: 120, label: 'Long' },
 ];
 
-const HEADLINE_CATEGORIES = [
-  { id: 'General',       label: 'General' },
-  { id: 'Politics',      label: 'Politics' },
-  { id: 'Business',      label: 'Business' },
-  { id: 'Sports',        label: 'Sports' },
-  { id: 'Entertainment', label: 'Entertainment' },
-  { id: 'Tech',          label: 'Tech' },
-  { id: 'World',         label: 'World' },
-];
 
 
 // ─── Grammar analysis ────────────────────────────────────────────────────────
@@ -391,36 +369,17 @@ export default function RightPanel({ activeTool, settings, onSettingsChange, out
       {!output && !loading ? (
         <RightPanelCard icon={Newspaper} title="Headline controls">
           <OptionChips
-            label="Category"
-            columns={2}
-            options={HEADLINE_CATEGORIES}
-            value={settings.category || 'General'}
-            onChange={(v) => onSettingsChange({ ...settings, category: v })}
-          />
-          <OptionCards
-            label="Style"
-            options={HEADLINE_STYLES}
-            value={settings.headlineStyle}
-            onChange={(v) => onSettingsChange({ ...settings, headlineStyle: v })}
-          />
-          <OptionChips
             label="Max length"
             options={MAX_LENGTHS}
             value={settings.headlineMaxLength}
             onChange={(v) => onSettingsChange({ ...settings, headlineMaxLength: v })}
-          />
-          <OptionChips
-            label="Candidates"
-            options={HEADLINE_COUNTS}
-            value={settings.count}
-            onChange={(v) => onSettingsChange({ ...settings, count: v })}
           />
         </RightPanelCard>
       ) : (
         <HeadlineInsightsPanel output={output} loading={loading} />
       )}
       <TipNote>
-        Generate several candidates, then copy the one that best matches your section's voice.
+        Adjust maximum character length to control headline conciseness.
       </TipNote>
     </>
   );
