@@ -58,6 +58,14 @@ Today every backend query uses the service-role key, which bypasses RLS entirely
 
 A missing `WHERE` clause in a user-facing path cannot leak another journalist's articles: Postgres refuses the rows. Admin power is concentrated in one auditable dependency rather than spread across every query.
 
+**Phasing note — what Phase 1 actually ships.** The per-request user-scoped client above is the target state, not the Phase 1 deliverable.
+
+Threading a JWT from request → router → service → repository → `base.py` touches every call site in the backend, and doing that simultaneously with introducing auth makes both changes hard to review. **Phase 1 therefore ships the weaker form:** the existing service-role client with `user_id` filtering enforced in `base.py`, which every user-facing read already funnels through. Isolation is pinned by a test that fails loudly if a filter is dropped.
+
+RLS is still doing real work in Phase 1, not decoration — the frontend's `AuthProvider` reads `profiles` directly from the browser with the anon key, and that path is guarded only by policy. So is the `role`/`status` escalation guard.
+
+**Moving backend reads onto a per-request PostgREST client is the first hardening item of Phase 2.** Until then, isolation on the backend lives in application code rather than in Postgres. That is a real and recorded weakening, not an oversight.
+
 ### 3.2 Auth dependencies
 
 - `require_user` → 401 when absent or invalid.
@@ -258,7 +266,9 @@ Four phases, each independently shippable. **Phase 1 is a hard dependency for th
 **Phase 1 — Auth & data foundation.** Supabase Auth wiring, `profiles` + trigger, `user_id` + RLS on the four tables, two-client backend split, the three auth dependencies, auth pages, route guards, anonymous rate limiting, history cutover. Seed script for the first admin.
 *Visible outcome: you can log in, and history follows you across devices.*
 
-**Phase 2 — Admin shell & user management.** `/admin` layout, theme, sidebar; Overview with basic counts; Users table; User detail; Categories CRUD; category picker on the user profile; `audit_log` plus writes on every privileged action.
+> **Telemetry split.** Anonymous rate limiting (§6.3) derives its counter from `request_telemetry`, so that table and its write path land in **Phase 1**, not Phase 4. Phase 4 adds the rollup job, retention pruning, `usage_daily`, and the admin charts/explorer on top. This avoids building a throwaway counter table in Phase 1 and replacing it later.
+
+**Phase 2 — Admin shell & user management.** *First item: the per-request user-scoped PostgREST client deferred from Phase 1 (§3.1).* Then `/admin` layout, theme, sidebar; Overview with basic counts; Users table; User detail; Categories CRUD; category picker on the user profile; `audit_log` plus writes on every privileged action.
 
 **Phase 3 — Control plane.** `app_settings` and the runtime-settings layer; model gateway config; feature flags surfaced through `/meta` and gating the user sidebar; global defaults; all confirm dialogs.
 
