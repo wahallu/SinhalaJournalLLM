@@ -254,3 +254,84 @@ create table if not exists app_settings (
 alter table app_settings enable row level security;
 -- No policy: authenticated and anon are denied everything. Only the service
 -- role reads and writes, via require_admin-gated endpoints.
+
+-- ── Daily usage rollup ──
+-- request_telemetry is high-write and pruned; this stays small and is kept
+-- indefinitely, so admin charts stay fast over any range.
+create table if not exists usage_daily (
+    id                  uuid primary key default gen_random_uuid(),
+    day                 date not null,
+    user_id             uuid references auth.users(id) on delete set null,
+    tool                text,
+    provider            text,
+    request_count       integer not null default 0,
+    error_count         integer not null default 0,
+    total_latency_ms    bigint  not null default 0,
+    total_input_tokens  bigint  not null default 0,
+    total_output_tokens bigint  not null default 0
+);
+
+-- NULLS NOT DISTINCT (Postgres 15+, which Supabase runs) lets anonymous
+-- traffic aggregate into one real row instead of needing a sentinel UUID.
+create unique index if not exists idx_usage_daily_unique
+    on usage_daily (day, user_id, tool, provider) nulls not distinct;
+create index if not exists idx_usage_daily_day on usage_daily (day desc);
+
+alter table usage_daily enable row level security;
+-- No policy: service-role only, like the other operational tables.
+
+-- Aggregate one day of raw telemetry into usage_daily. Idempotent per day:
+-- re-running replaces that day's rows rather than double-counting, so a
+-- retried or manually re-run job is safe.
+create or replace function public.roll_up_usage(target_day date)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    inserted integer;
+begin
+    delete from usage_daily where day = target_day;
+
+    insert into usage_daily (
+        day, user_id, tool, provider, request_count, error_count,
+        total_latency_ms, total_input_tokens, total_output_tokens
+    )
+    select
+        target_day,
+        user_id,
+        tool,
+        provider,
+        count(*),
+        count(*) filter (where status_code >= 400),
+        coalesce(sum(latency_ms), 0),
+        coalesce(sum(input_tokens), 0),
+        coalesce(sum(output_tokens), 0)
+    from request_telemetry
+    where created_at >= target_day
+      and created_at <  target_day + 1
+    group by user_id, tool, provider;
+
+    get diagnostics inserted = row_count;
+    return inserted;
+end;
+$$;
+
+-- Delete raw telemetry older than the retention window. Rolled-up totals in
+-- usage_daily survive, so history is not lost — only per-request detail.
+create or replace function public.prune_telemetry(retain_days integer default 30)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    removed integer;
+begin
+    delete from request_telemetry
+    where created_at < now() - make_interval(days => retain_days);
+    get diagnostics removed = row_count;
+    return removed;
+end;
+$$;
