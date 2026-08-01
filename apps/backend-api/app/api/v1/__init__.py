@@ -4,6 +4,7 @@ API v1 router — aggregates all feature routers under /api/v1 prefix.
 
 from fastapi import APIRouter
 
+from app.api.v1.admin import router as admin_router
 from app.api.v1.grammar import router as grammar_router
 from app.api.v1.headline import router as headline_router
 from app.api.v1.image_generation import router as image_generation_router
@@ -23,3 +24,4 @@ router.include_router(summarizer_router)
 router.include_router(sinllama_router)
 router.include_router(meta_router)
 router.include_router(comparison_router)
+router.include_router(admin_router)
