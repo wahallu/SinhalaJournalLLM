@@ -64,7 +64,7 @@ async def summary_history_endpoint(
     """
     Retrieve the caller's paginated summary history, newest first.
     """
-    records, total = await get_summaries(page=page, page_size=page_size, user_id=user.id)
+    records, total = await get_summaries(page=page, page_size=page_size, user_id=user.id, user_token=user.token)
     items = [
         SummaryHistoryItem(
             id=str(r["id"]),

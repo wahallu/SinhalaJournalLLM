@@ -55,5 +55,5 @@ async def unified_history_endpoint(
     user: AuthUser = Depends(require_user),
 ):
     """Newest activity for the caller across grammar, headlines, rewriter, and summarizer."""
-    items = await list_recent(limit, user_id=user.id)
+    items = await list_recent(limit, user_id=user.id, user_token=user.token)
     return UnifiedHistoryResponse(items=[HistoryItem(**item) for item in items])

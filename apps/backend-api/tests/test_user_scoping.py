@@ -157,3 +157,42 @@ async def test_unified_history_is_isolated_between_users(fake_supabase):
 
     assert a_tools == ["summarizer"], f"user A saw {a_tools}"
     assert b_tools == ["grammar"], f"user B saw {b_tools}"
+
+
+@pytest.mark.parametrize("endpoint", [
+    "/api/v1/history",
+    "/api/v1/summarize/history",
+    "/api/v1/grammar/history",
+    "/api/v1/headlines/history",
+    "/api/v1/rewrite/history",
+])
+@pytest.mark.asyncio
+async def test_each_history_read_uses_the_caller_scoped_client(
+    fake_supabase, monkeypatch, endpoint
+):
+    """
+    Every user-facing history read must go through the RLS-enforcing client,
+    not the service-role one.
+
+    Parametrized per endpoint on purpose: asserting across all of them at once
+    would still pass when a single route quietly reverted to the service-role
+    client, because the others would keep the assertion satisfied.
+
+    The service-role client bypasses Row Level Security entirely, so such a
+    revert loses the database-level guarantee while every filtering test keeps
+    passing — the explicit filters would simply be doing all the work.
+    """
+    seen_tokens = []
+
+    async def _spy(jwt: str):
+        seen_tokens.append(jwt)
+        return fake_supabase
+
+    monkeypatch.setattr("app.core.user_client.user_postgrest", _spy)
+
+    async with _client() as c:
+        response = await c.get(endpoint, headers=_auth(USER_A))
+
+    assert response.status_code == 200
+    assert seen_tokens, f"{endpoint} did not build a caller-scoped client"
+    assert all(t == _token(USER_A) for t in seen_tokens)

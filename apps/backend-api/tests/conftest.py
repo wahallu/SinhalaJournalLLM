@@ -185,6 +185,16 @@ def fake_supabase(monkeypatch):
         return fake
 
     monkeypatch.setattr("app.repositories.base.get_supabase", _get_fake)
+
+    # User-scoped reads build a PostgREST client from the caller's JWT.
+    # Without this the suite would open real HTTP connections to Supabase.
+    # The fake ignores the token, so RLS itself is NOT exercised here — that
+    # is covered by the explicit user_id filters and, in a real database, by
+    # the policies in schema.sql.
+    async def _get_fake_user_client(_jwt: str):
+        return fake
+
+    monkeypatch.setattr("app.core.user_client.user_postgrest", _get_fake_user_client)
     # A test that exercises a persistence failure trips the circuit breaker;
     # reset it so later tests still reach the fake store.
     monkeypatch.setattr("app.repositories.base._circuit_open_until", 0.0)

@@ -82,7 +82,7 @@ async def grammar_history_endpoint(
     """
     Retrieve the caller's paginated grammar correction history, newest first.
     """
-    records, total = await get_corrections(page=page, page_size=page_size, user_id=user.id)
+    records, total = await get_corrections(page=page, page_size=page_size, user_id=user.id, user_token=user.token)
     return GrammarHistoryResponse(
         items=[_record_to_response(r) for r in records],
         total=total,

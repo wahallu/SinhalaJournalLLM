@@ -72,6 +72,7 @@ async def _resolve(request: Request) -> AuthUser | None:
         role=profile.get("role", "user"),
         status=profile.get("status", "active"),
         category_id=profile.get("category_id"),
+        token=token,
     )
     if user.status == "suspended":
         raise _SUSPENDED
