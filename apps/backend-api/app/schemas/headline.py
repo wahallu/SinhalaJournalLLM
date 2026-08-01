@@ -25,7 +25,21 @@ class HeadlineRequest(BaseModel):
         default="General",
         description="News category for the headline generation (e.g. General, Politics, Business, Sports)",
     )
+    length: str | None = Field(
+        default=None,
+        description=(
+            "Target headline length band: short (3-5 words), medium (6-7), "
+            "long (8-10). Unknown or omitted values resolve to medium."
+        ),
+    )
 
+
+class HeadlineLengthInfo(BaseModel):
+    """The word band a generation was held to. Returned so clients can flag
+    an out-of-band headline without keeping their own copy of the bounds."""
+    id: str = Field(description="short | medium | long")
+    min_words: int
+    max_words: int
 
 
 class HeadlineResponse(BaseModel):
@@ -35,6 +49,10 @@ class HeadlineResponse(BaseModel):
         description="Generated headlines in Sinhala, best candidate first",
     )
     id: str | None = Field(default=None, description="Generation record ID")
+    length: HeadlineLengthInfo | None = Field(
+        default=None,
+        description="The resolved length band these headlines were held to",
+    )
     model_used: str | None = Field(
         default=None,
         description="Inference provider that produced this result",

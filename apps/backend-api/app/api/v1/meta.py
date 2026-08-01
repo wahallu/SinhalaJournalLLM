@@ -10,13 +10,16 @@ from fastapi import APIRouter, Query
 
 from app.core.model_gateway import TASKS, gateway_status
 from app.core.prompts import (
+    DEFAULT_HEADLINE_LENGTH,
     DEFAULT_LENGTH,
     DEFAULT_STYLE,
+    HEADLINE_LENGTHS,
     STYLE_LABELS,
     SUMMARY_LENGTHS,
 )
 from app.repositories.history_repository import list_recent
 from app.schemas.meta import (
+    HeadlineLengthOption,
     HistoryItem,
     LengthOption,
     MetaResponse,
@@ -43,6 +46,17 @@ async def meta_endpoint():
         ],
         default_length=DEFAULT_LENGTH,
         headline_counts=[3, 5, 7],
+        headline_lengths=[
+            HeadlineLengthOption(
+                id=length,
+                label_en=cfg["label_en"],
+                label_si=cfg["label_si"],
+                min_words=cfg["min_words"],
+                max_words=cfg["max_words"],
+            )
+            for length, cfg in HEADLINE_LENGTHS.items()
+        ],
+        default_headline_length=DEFAULT_HEADLINE_LENGTH,
         model=await gateway_status(),
     )
 

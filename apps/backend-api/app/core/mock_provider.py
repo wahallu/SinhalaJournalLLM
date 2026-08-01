@@ -82,17 +82,29 @@ def mock_summarize(text: str, target_words: int) -> str:
     return " ".join(summary_parts)
 
 
-def mock_headline(text: str, variation_index: int = 0) -> str:
-    """First-sentence-derived headline, ≤10 words, varied per candidate."""
+def mock_headline(
+    text: str,
+    variation_index: int = 0,
+    min_words: int = 4,
+    max_words: int = 10,
+) -> str:
+    """
+    First-sentence-derived headline inside the requested word band, varied per
+    candidate.
+
+    Both the start offset and the length walk with variation_index so N
+    candidates survive the caller's dedupe even when the band is only two
+    words wide. A source sentence shorter than min_words yields whatever it
+    has — the offline provider can't invent words, and the enforcement layer
+    treats a too-short mock the same as a too-short model output.
+    """
     sentences = _sentences(text)
     base = sentences[0] if sentences else text.strip()
     words = base.split()
 
-    # Vary the window per candidate so N candidates differ.
-    starts = [0, 1, 0, 2, 1]
-    lengths = [10, 9, 8, 8, 7]
-    start = min(starts[variation_index % len(starts)], max(0, len(words) - 3))
-    length = lengths[variation_index % len(lengths)]
+    span = max(1, max_words - min_words + 1)
+    length = min_words + (variation_index % span)
+    start = min(variation_index, max(0, len(words) - min_words))
     headline = " ".join(words[start:start + length])
     return headline.rstrip(".,;:،")
 

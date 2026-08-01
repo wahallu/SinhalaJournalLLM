@@ -7,7 +7,7 @@ An AI writing assistant for Sinhala journalism, built on **SinLlama** (Llama-3-8
 | Tool | What it does | Model adapter |
 |---|---|---|
 | Grammar Checker | Fixes grammar, spelling, and punctuation while preserving meaning | `grammar_sinllama_v13` |
-| Headline Generator | Writes concise (≤10 word), engaging Sinhala headlines | `headline_sinllama_v13` |
+| Headline Generator | Writes engaging Sinhala headlines at short / medium / long word bands | `headline_sinllama_v17` |
 | Style Rewriter | Rewrites articles in 5 newspaper styles: formal, sports, youth, editorial, feature | `style_sinllama_v02` |
 | News Summarizer | Abstractive summaries at short / medium / long lengths | `summarization_sinllama_v02` |
 
@@ -40,7 +40,8 @@ docs addon ──┴─→ backend-api ─→ model │     serve_sinai.py  POST
 ```
 
 - **Model gateway** (`apps/backend-api/app/core/model_gateway.py`): every inference goes through a provider chain — `sinllama → openrouter → mock`. If the GPU box is down the product degrades gracefully instead of failing; each response reports `model_used` so clients can badge the output.
-- **Prompts** (`app/core/prompts.py`) replicate the exact Alpaca-style templates the adapters were trained on. Summary length control works by sending the model server a fully-formed prompt with a scaled word target (the server passes through any prompt containing `### Instruction:`). Headline candidate diversity comes from prompt variation hints, since the server decodes greedily.
+- **Prompts** (`app/core/prompts.py`) replicate the exact Alpaca-style templates the adapters were trained on. Summary length control works by sending the model server a fully-formed prompt with a scaled word target (the server passes through any prompt containing `### Instruction:`). Headline candidate diversity comes from prompt variation hints.
+- **Headline length bands** (`short` 3-5, `medium` 6-7, `long` 8-10 words) are non-overlapping, so a word count maps to exactly one band. The band goes into the prompt's rules line, but `headline_sinllama_v17` was trained with a single fixed "4 to 7 words" line and has no length conditioning to draw on — measured against v17, short and medium land in-band while long does not. `app/services/headline/headline_service.py` is what closes the gap: out-of-band candidates are regenerated with a corrective hint, and anything over the ceiling is trimmed to it. A length-conditioned `headline_sinllama_v18` (see `SinAI-Training/work/sinllama/scripts/train_headline_v18.py`) is what makes the long band work at the model level.
 - **Persistence**: all four tools store results in Supabase (`schema.sql`). A unified activity feed is exposed at `/api/v1/history`.
 - **Capabilities discovery**: `/api/v1/meta` reports supported tasks, styles, lengths, and provider status, so client option lists never drift from what the model supports.
 
@@ -50,7 +51,7 @@ docs addon ──┴─→ backend-api ─→ model │     serve_sinai.py  POST
 |---|---|---|
 | `/grammar/check` | POST | `{text}` → corrected text + word-level corrections |
 | `/grammar/history`, `/grammar/{id}` | GET | Correction history |
-| `/headlines/generate` | POST | `{text, count}` → up to 10 distinct headlines |
+| `/headlines/generate` | POST | `{text, count, category, length}` → up to 10 distinct headlines in the requested word band |
 | `/headlines/history` | GET | Generation history |
 | `/rewrite` | POST | `{text, tone}` → rewrite in a trained style (legacy tones auto-mapped) |
 | `/rewrite/history` | GET | Rewrite history |

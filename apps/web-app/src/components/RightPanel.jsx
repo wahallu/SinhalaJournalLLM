@@ -40,10 +40,12 @@ const HEADLINE_COUNTS = [
   { id: 7, label: '7' },
 ];
 
-const MAX_LENGTHS = [
-  { id: 60, label: 'Short' },
-  { id: 80, label: 'Medium' },
-  { id: 120, label: 'Long' },
+// Word bands, mirroring HEADLINE_LENGTHS in the backend's app/core/prompts.py.
+// Non-overlapping, so a headline's word count maps to exactly one band.
+const HEADLINE_LENGTHS_OPTIONS = [
+  { id: 'short', label: 'Short', words: '3–5 words' },
+  { id: 'medium', label: 'Medium', words: '6–7 words' },
+  { id: 'long', label: 'Long', words: '8–10 words' },
 ];
 
 const HEADLINE_CATEGORIES = [
@@ -392,10 +394,13 @@ export default function RightPanel({ activeTool, settings, onSettingsChange, out
         <RightPanelCard icon={Newspaper} title="Headline controls">
           <OptionChips
             label="Max length"
-            options={MAX_LENGTHS}
-            value={settings.headlineMaxLength}
-            onChange={(v) => onSettingsChange({ ...settings, headlineMaxLength: v })}
+            options={HEADLINE_LENGTHS_OPTIONS}
+            value={settings.headlineLength}
+            onChange={(v) => onSettingsChange({ ...settings, headlineLength: v })}
           />
+          <p className="-mt-3.5 text-[11px] text-ink-500">
+            {HEADLINE_LENGTHS_OPTIONS.find((o) => o.id === settings.headlineLength)?.words}
+          </p>
         </RightPanelCard>
       ) : (
         <HeadlineInsightsPanel output={output} loading={loading} />

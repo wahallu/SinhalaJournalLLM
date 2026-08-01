@@ -23,6 +23,16 @@ class LengthOption(BaseModel):
     label_si: str
 
 
+class HeadlineLengthOption(BaseModel):
+    """One selectable headline length band. Carries the word bounds so a
+    client can label and validate the option without hardcoding them."""
+    id: str
+    label_en: str
+    label_si: str
+    min_words: int
+    max_words: int
+
+
 class MetaResponse(BaseModel):
     """
     Capabilities of this API instance. Clients (web app, extension, docs
@@ -35,6 +45,8 @@ class MetaResponse(BaseModel):
     lengths: list[LengthOption]
     default_length: str
     headline_counts: list[int]
+    headline_lengths: list[HeadlineLengthOption]
+    default_headline_length: str
     model: dict[str, Any] = Field(description="Model gateway provider status")
 
 

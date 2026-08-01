@@ -46,40 +46,57 @@ export function getGrammarHistory(page = 1, pageSize = 20) {
 }
 
 // ── Headlines ──
-// Backend only accepts { text, count } — style/maxLength aren't supported
-// server-side yet, so they're accepted here but not sent.
+// Backend accepts { text, count, category, length }; `style` is still
+// unsupported server-side, so it's accepted here but not sent.
 // The response is transformed into the richer shape HeadlineOutputPanel expects.
+
+// Word bands per length option. Only a fallback for labelling before a
+// response arrives — the band a result was actually held to comes back on
+// the response as `length`, and that's what the badges are scored against.
+export const HEADLINE_LENGTH_BANDS = {
+  short: { min_words: 3, max_words: 5 },
+  medium: { min_words: 6, max_words: 7 },
+  long: { min_words: 8, max_words: 10 },
+};
+
 export async function generateHeadlines(text, options = {}) {
   const {
     count = 5,
     numCandidates,
     category = 'General',
+    length = 'medium',
   } = typeof options === 'object' && !Array.isArray(options) ? options : { count: options };
 
   const raw = await request('/headlines/generate', {
     text,
     count: numCandidates ?? count,
     category,
+    length,
   });
 
+  const band = raw.length || HEADLINE_LENGTH_BANDS[length] || HEADLINE_LENGTH_BANDS.medium;
 
   // Transform flat { headlines: string[] } → rich output shape for HeadlineOutputPanel
   const headlines = raw.headlines || [];
-  const candidates = headlines.map((headline, i) => ({
-    headline,
-    rank: i + 1,
-    passed_validation: true,
-    metrics: {
-      rouge_1: 0,
-      rouge_2: 0,
-      rouge_l: 0,
-      bleu: 0,
-      semantic_similarity: 0,
-      entity_coverage: 0,
-      grammar_pass: true,
-      length_ok: headline.split(/\s+/).length <= 10,
-    },
-  }));
+  const candidates = headlines.map((headline, i) => {
+    const words = headline.trim().split(/\s+/).length;
+    return {
+      headline,
+      rank: i + 1,
+      passed_validation: true,
+      metrics: {
+        rouge_1: 0,
+        rouge_2: 0,
+        rouge_l: 0,
+        bleu: 0,
+        semantic_similarity: 0,
+        entity_coverage: 0,
+        grammar_pass: true,
+        word_count: words,
+        length_ok: words >= band.min_words && words <= band.max_words,
+      },
+    };
+  });
 
   return {
     ...raw,

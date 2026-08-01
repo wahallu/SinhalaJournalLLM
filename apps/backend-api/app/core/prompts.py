@@ -104,18 +104,66 @@ def prompt_grammar(text: str) -> str:
     )
 
 
-def prompt_headline(text: str, category: str = "General", variation_hint: str | None = None, **_) -> str:
+# ── Headline lengths ──
+# Non-overlapping word bands, so every word count maps to exactly one band and
+# "did this land in the requested band" needs no tiebreak rule. Mirrored in
+# SinAI-Training/work/tasks/headline.py (which owns the per-band token budgets
+# on the inference server) — keep the two in sync.
+#
+# Caveat worth knowing before trusting these: headline_sinllama_v17 was trained
+# on 48K examples that ALL carried the same fixed "Between 4 and 7 words" rule
+# line, so it has no length conditioning to draw on. The band line below is a
+# nudge, not a contract; the guarantee comes from the word-count enforcement in
+# services/headline/headline_service.py. A length-conditioned v18 (see
+# SinAI-Training/work/sinllama/scripts/train_headline_v18.py) is what makes the
+# nudge actually stick.
+HEADLINE_LENGTHS: dict[str, dict] = {
+    "short": {"min_words": 3, "max_words": 5, "label_en": "Short", "label_si": "කෙටි"},
+    "medium": {"min_words": 6, "max_words": 7, "label_en": "Medium", "label_si": "මධ්‍යම"},
+    "long": {"min_words": 8, "max_words": 10, "label_en": "Long", "label_si": "දීර්ඝ"},
+}
+
+DEFAULT_HEADLINE_LENGTH = "medium"
+
+
+def resolve_headline_length(length: str | None) -> str:
+    """Map a client-supplied headline length onto a known band, defaulting to
+    medium. Unlike the summarizer's resolve_length, an unknown value silently
+    falls back rather than erroring — the band only steers output, it can't
+    produce a wrong task."""
+    if not length:
+        return DEFAULT_HEADLINE_LENGTH
+    length = length.strip().lower()
+    return length if length in HEADLINE_LENGTHS else DEFAULT_HEADLINE_LENGTH
+
+
+def prompt_headline(
+    text: str,
+    category: str = "General",
+    variation_hint: str | None = None,
+    length: str | None = None,
+    **_,
+) -> str:
     """
     Headline prompt. `variation_hint` appends an extra constraint so repeated
-    greedy-decoded calls yield distinct candidates.
+    calls yield distinct candidates. `length` sets the word band on the rules
+    line.
+
+    Everything except the word numbers on that one line is byte-identical to
+    build_prompt() in train_headline.py — the numbers themselves necessarily
+    diverge from the trained "4 and 7" for the short and long bands, which is
+    the whole point of the knob and also why the model only partly obeys it
+    today.
     """
+    band = HEADLINE_LENGTHS[resolve_headline_length(length)]
     hint = f"\n- {variation_hint}" if variation_hint else ""
     return (
         "### Instruction:\n"
         "Generate a concise Sinhala news headline for the article below.\n\n"
         "Rules:\n"
         "- Use formal Sinhala journalism style matching the article category\n"
-        "- Between 4 and 7 words -- never fewer than 4\n"
+        f"- Between {band['min_words']} and {band['max_words']} words"
+        f" -- never fewer than {band['min_words']}\n"
         "- Capture the key person, event, number, or outcome\n"
         f"- Output ONLY the headline, nothing else{hint}\n\n"
         "### Input:\n"
@@ -126,10 +174,13 @@ def prompt_headline(text: str, category: str = "General", variation_hint: str | 
 
 
 
-# Extra constraints appended to headline prompts for candidates 2..N.
-# The model decodes greedily, so identical prompts return identical
-# headlines; these hints steer each candidate differently while staying
-# within the training format.
+# Extra constraints appended to headline prompts for candidates 2..N, steering
+# each candidate differently while staying within the training format.
+#
+# Every hint here must stay length-neutral: the requested band already owns the
+# word count, and a hint that names its own number fights it (the ultra-short
+# entry used to hardcode "6 words", which contradicted both the short and long
+# bands).
 HEADLINE_VARIATION_HINTS: list[str] = [
     "",  # canonical prompt — best candidate
     "ශීර්ෂ පාඨයේ ප්‍රධාන පුද්ගලයා හෝ ආයතනය ඉස්මතු කරන්න.",  # highlight the main actor
@@ -139,7 +190,7 @@ HEADLINE_VARIATION_HINTS: list[str] = [
     "ශීර්ෂ පාඨය ස්ථානය (location) ඉස්මතු කරමින් ලියන්න.",  # highlight location
     "ශීර්ෂ පාඨය හැඟීම් දනවන ලෙස, එහෙත් කරුණුමය ලෙස ලියන්න.",  # emotive but factual
     "ශීර්ෂ පාඨය හේතුව (cause) ඉස්මතු කරමින් ලියන්න.",  # highlight the cause
-    "ශීර්ෂ පාඨය කෙටිම ආකාරයෙන්, වචන 6කට සීමා කර ලියන්න.",  # ultra-short
+    "ශීර්ෂ පාඨය හැකි තරම් සරලව හා සෘජුව ලියන්න.",  # plainest phrasing
     "ශීර්ෂ පාඨය අනාගත බලපෑම ඉස්මතු කරමින් ලියන්න.",  # future impact
 ]
 

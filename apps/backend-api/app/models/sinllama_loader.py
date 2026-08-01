@@ -35,12 +35,19 @@ async def sinllama_generate(
     prompt: str,
     task: str,
     style: str | None = None,
+    length: str | None = None,
 ) -> dict[str, Any]:
     """
     Call the inference server's /generate endpoint.
 
+    `length` (short|medium|long) applies to the summarizer and headline tasks.
+    It's worth sending even alongside a fully-formed prompt: the server reads
+    it for the per-task token budget, which a formed prompt can't carry.
+    Servers on an older build ignore the field.
+
     Returns the raw response dict:
-        {"response", "task", "style", "input_tokens", "max_cap_used", "output_tokens"}
+        {"response", "task", "style", "length", "input_tokens", "max_cap_used",
+         "output_tokens"}
 
     Raises:
         SinLlamaUnavailable: on connection errors, timeouts, or 5xx responses.
@@ -50,6 +57,8 @@ async def sinllama_generate(
     payload: dict[str, Any] = {"prompt": prompt, "task": task}
     if style is not None:
         payload["style"] = style
+    if length is not None:
+        payload["length"] = length
 
     try:
         async with httpx.AsyncClient(timeout=settings.SINLLAMA_TIMEOUT_SECONDS) as client:

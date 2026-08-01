@@ -22,12 +22,15 @@ from app.core import mock_provider
 from app.core.config import get_settings
 from app.core.openrouter_client import OpenRouterUnavailable, openrouter_chat
 from app.core.prompts import (
+    DEFAULT_HEADLINE_LENGTH,
     DEFAULT_LENGTH,
     DEFAULT_STYLE,
+    HEADLINE_LENGTHS,
     STYLE_INSTRUCTIONS,
     SUMMARY_LENGTHS,
     prompt_headline,
     prompt_summarizer,
+    resolve_headline_length,
     resolve_length,
     resolve_style,
 )
@@ -80,17 +83,25 @@ async def model_generate(
         task:           grammar | headline | summarizer | style
         text:           raw Sinhala input text
         style:          style task only — resolved via prompts.resolve_style
-        length:         summarizer only — short | medium | long
+        length:         summarizer (compression band) and headline (word
+                        band) — short | medium | long. Resolved per task:
+                        the two vocabularies share names, not meanings.
         category:       headline task only — news category (default "General")
-        variation_hint: headline only — extra instruction line for candidate
-                        diversity (greedy decoding returns identical output
-                        for identical prompts)
+        variation_hint: headline only — extra instruction line that steers
+                        each candidate toward a different angle (actor,
+                        number, location, ...) rather than leaving diversity
+                        to sampling alone
     """
     if task not in TASKS:
         raise ValueError(f"Unknown task {task!r}; expected one of {TASKS}")
 
     resolved_style = resolve_style(style) if task == "style" else None
-    resolved_length = resolve_length(length) if task == "summarizer" else None
+    if task == "summarizer":
+        resolved_length = resolve_length(length)
+    elif task == "headline":
+        resolved_length = resolve_headline_length(length)
+    else:
+        resolved_length = None
     resolved_category = category or "General"
 
     errors: list[str] = []
@@ -117,7 +128,7 @@ async def model_generate(
         latency_ms = int((time.perf_counter() - started) * 1000)
         if task == "style":
             meta["style"] = resolved_style
-        if task == "summarizer":
+        if task in ("summarizer", "headline"):
             meta["length"] = resolved_length
         if task == "headline":
             meta["category"] = resolved_category
@@ -150,11 +161,21 @@ async def _via_sinllama(
         # Length control: server hardcodes a ~10% target, so send our prompt.
         prompt = prompt_summarizer(text, length or DEFAULT_LENGTH)
     elif task == "headline":
-        prompt = prompt_headline(text, category=category or "General", variation_hint=variation_hint)
+        prompt = prompt_headline(
+            text,
+            category=category or "General",
+            variation_hint=variation_hint,
+            length=length or DEFAULT_HEADLINE_LENGTH,
+        )
     else:
         prompt = text
 
-    data = await sinllama_generate(prompt, task, style)
+    # `length` still goes on the wire even though the prompt above is already
+    # fully formed: the server passes formed prompts through untouched, but it
+    # reads `length` separately to pick the per-band token budget
+    # (SinAI-Training/work/tasks/headline.py). Servers running an older build
+    # ignore the extra field.
+    data = await sinllama_generate(prompt, task, style, length=length)
     meta = {
         "input_tokens": data.get("input_tokens"),
         "output_tokens": data.get("output_tokens"),
@@ -189,9 +210,12 @@ def _openrouter_user_message(
     if task == "headline":
         hint = f"\n{variation_hint}" if variation_hint else ""
         cat = category or "General"
+        band = HEADLINE_LENGTHS[length or DEFAULT_HEADLINE_LENGTH]
         return (
             f"Generate a concise Sinhala news headline for the article below.\nCategory: {cat}\n"
-            f"Rules: Use formal Sinhala journalism style, 4 to 7 words, output ONLY the headline.{hint}\n\n{text}"
+            f"Rules: Use formal Sinhala journalism style, "
+            f"{band['min_words']} to {band['max_words']} words, "
+            f"output ONLY the headline.{hint}\n\n{text}"
         )
     if task == "summarizer":
         cfg = SUMMARY_LENGTHS[length or DEFAULT_LENGTH]
@@ -244,7 +268,13 @@ def _via_mock(
             if variation_hint in HEADLINE_VARIATION_HINTS
             else 0
         )
-        return mock_provider.mock_headline(text, index), {}
+        band = HEADLINE_LENGTHS[length or DEFAULT_HEADLINE_LENGTH]
+        return (
+            mock_provider.mock_headline(
+                text, index, min_words=band["min_words"], max_words=band["max_words"]
+            ),
+            {},
+        )
     if task == "summarizer":
         cfg = SUMMARY_LENGTHS[length or DEFAULT_LENGTH]
         target = max(cfg["min_words"], int(len(text.split()) * cfg["ratio"]))

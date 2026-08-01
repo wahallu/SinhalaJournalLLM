@@ -121,7 +121,7 @@ function loadDefaultSettings() {
     length: stored.defaultLength || 'short',
     count: stored.headlineCount || 3,
     headlineStyle: 'formal',
-    headlineMaxLength: 80,
+    headlineLength: 'medium',
     summaryView: 'paragraph',
   };
 }
@@ -156,7 +156,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
         wrappedProcess((text) =>
           generateHeadlines(text, {
             style: settings.headlineStyle,
-            maxLength: settings.headlineMaxLength,
+            length: settings.headlineLength,
             numCandidates: settings.count,
             category: settings.category || 'General',
           })

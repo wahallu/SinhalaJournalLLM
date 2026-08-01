@@ -16,6 +16,15 @@ _LONG_ARTICLE = (
 )
 
 
+# Spelled out rather than imported from app.core.prompts so the test pins the
+# published contract — a band edit has to be a deliberate change here too.
+HEADLINE_LENGTHS_EXPECTED = {
+    "short": (3, 5),
+    "medium": (6, 7),
+    "long": (8, 10),
+}
+
+
 def _client() -> AsyncClient:
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
 
@@ -37,6 +46,52 @@ async def test_generate_headlines():
     assert data["model_used"] == "mock"
     assert data["id"]
 
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("length", ["short", "medium", "long"])
+async def test_generate_headlines_respects_length_band(length):
+    """Every returned headline lands inside the requested word band, and the
+    band it was held to comes back on the response."""
+    async with _client() as client:
+        response = await client.post(
+            "/api/v1/headlines/generate",
+            json={"text": _LONG_ARTICLE, "count": 3, "length": length},
+        )
+    assert response.status_code == 200
+    data = response.json()
+
+    band = data["length"]
+    assert band["id"] == length
+    assert (band["min_words"], band["max_words"]) == HEADLINE_LENGTHS_EXPECTED[length]
+
+    for headline in data["headlines"]:
+        assert len(headline.split()) <= band["max_words"], headline
+
+
+@pytest.mark.asyncio
+async def test_generate_headlines_defaults_and_trims(monkeypatch):
+    """An unknown length falls back to medium, and output over the band
+    ceiling is trimmed to it even when every regeneration overshoots."""
+    from app.core.model_gateway import GatewayResult
+    from app.services.headline import headline_service
+
+    overlong = " ".join(f"වචන{i}" for i in range(15))
+
+    async def _always_overlong(*_args, **_kwargs):
+        return GatewayResult(text=overlong, provider="mock", latency_ms=1)
+
+    monkeypatch.setattr(headline_service, "model_generate", _always_overlong)
+
+    async with _client() as client:
+        response = await client.post(
+            "/api/v1/headlines/generate",
+            json={"text": _LONG_ARTICLE, "count": 3, "length": "nonsense"},
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["length"]["id"] == "medium"
+    assert all(len(h.split()) == 7 for h in data["headlines"])
 
 
 @pytest.mark.asyncio
