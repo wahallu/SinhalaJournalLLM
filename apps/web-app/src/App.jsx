@@ -286,6 +286,26 @@ function App() {
     navigate(path, { state: { text } });
   }, [navigate]);
 
+  /**
+   * Store only the values the user actually changed.
+   *
+   * RightPanel echoes the whole resolved settings object back on every
+   * edit. Merging that verbatim wrote the resolved defaults into state, so
+   * `settings.tone ?? globalDefaults.tone` stopped falling through and the
+   * admin's global default was permanently replaced by whatever had been
+   * resolved at that moment — often the hardcoded fallback, if /meta had not
+   * arrived yet. Comparing against the resolved value makes the echo a no-op.
+   */
+  const handleSettingsChange = useCallback((next) => {
+    setSettings((prev) => {
+      const merged = { ...prev };
+      for (const [key, value] of Object.entries(next)) {
+        if (value !== effectiveSettings[key]) merged[key] = value;
+      }
+      return merged;
+    });
+  }, [effectiveSettings]);
+
   const handleDefaultsChange = useCallback((d) => {
     setSettings((prev) => ({
       ...prev,
@@ -391,10 +411,10 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard onSelectTool={handleSelectTool} onQuickStart={handleQuickStart} />} />
-              <Route path="/grammar" element={<ToolRunner activeTool="grammar" settings={effectiveSettings} setSettings={setSettings} />} />
-              <Route path="/headlines" element={<ToolRunner activeTool="headlines" settings={effectiveSettings} setSettings={setSettings} />} />
-              <Route path="/rewriter" element={<ToolRunner activeTool="rewriter" settings={effectiveSettings} setSettings={setSettings} />} />
-              <Route path="/summarizer" element={<ToolRunner activeTool="summarizer" settings={effectiveSettings} setSettings={setSettings} />} />
+              <Route path="/grammar" element={<ToolRunner activeTool="grammar" settings={effectiveSettings} setSettings={handleSettingsChange} />} />
+              <Route path="/headlines" element={<ToolRunner activeTool="headlines" settings={effectiveSettings} setSettings={handleSettingsChange} />} />
+              <Route path="/rewriter" element={<ToolRunner activeTool="rewriter" settings={effectiveSettings} setSettings={handleSettingsChange} />} />
+              <Route path="/summarizer" element={<ToolRunner activeTool="summarizer" settings={effectiveSettings} setSettings={handleSettingsChange} />} />
               <Route path="/sinllama" element={<SinLLamaPage />} />
               <Route path="/summarizer-playground" element={<SummarizerPlayground />} />
               <Route path="/comparison" element={<ModelComparison />} />

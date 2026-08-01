@@ -53,21 +53,37 @@ export default function SettingsPage({ onBack, onDefaultsChange }) {
     ...getSettings(),
   }));
   const [saved, setSaved] = useState(false);
+  // Which fields the user actually edited this visit. Saving everything on
+  // screen would convert the displayed fallbacks into explicit choices,
+  // permanently overriding the admin's global defaults even for someone who
+  // only came here to change the API URL.
+  const [touched, setTouched] = useState(() => new Set());
 
   const update = (key, value) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
+    setTouched((prev) => new Set(prev).add(key));
     setSaved(false);
   };
 
   const handleSave = () => {
-    saveSettings(settings);
-    onDefaultsChange?.(settings);
+    const stored = getSettings();
+    const next = { ...stored };
+    for (const key of touched) next[key] = settings[key];
+
+    saveSettings(next);
+    onDefaultsChange?.(next);
+    setTouched(new Set());
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
 
   const handleReset = () => {
+    // Clear the stored overrides entirely rather than writing the fallbacks
+    // back — that is what lets the admin's global defaults apply again.
+    saveSettings({});
     setSettings({ ...DEFAULT_SETTINGS });
+    setTouched(new Set());
+    onDefaultsChange?.({});
     setSaved(false);
   };
 

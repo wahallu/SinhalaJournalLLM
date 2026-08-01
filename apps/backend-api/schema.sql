@@ -366,3 +366,45 @@ grant select, insert, delete on table public.grammar_corrections  to authenticat
 grant select, insert, delete on table public.headline_generations to authenticated;
 grant select, insert, delete on table public.style_rewrites       to authenticated;
 grant select, insert, delete on table public.summaries            to authenticated;
+
+-- ── Hardening applied after review ──
+
+-- guard_profile_privileges previously gated on request.jwt.claims, a GUC that
+-- PostgREST sets but nothing else does. Any UPDATE from a session that does
+-- not set it — the Studio table editor, a pg_cron job, direct psql — skipped
+-- the guard entirely. Gate on the actual database role instead, so the check
+-- is a boundary rather than a convention.
+--
+-- Also locks `email`: deps.py and audit_log.actor_email both trust it, so a
+-- user able to rewrite their own email could forge the audit trail and
+-- confuse admin search.
+create or replace function public.guard_profile_privileges()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    if current_user not in ('service_role', 'supabase_admin', 'postgres') then
+        if new.role is distinct from old.role then
+            raise exception 'role may only be changed by an administrator';
+        end if;
+        if new.status is distinct from old.status then
+            raise exception 'status may only be changed by an administrator';
+        end if;
+        if new.email is distinct from old.email then
+            raise exception 'email is managed by authentication and cannot be edited here';
+        end if;
+        if new.id is distinct from old.id then
+            raise exception 'profile id cannot be changed';
+        end if;
+    end if;
+    new.updated_at := now();
+    return new;
+end;
+$$;
+
+drop trigger if exists on_profile_update on profiles;
+create trigger on_profile_update
+    before update on profiles
+    for each row execute function public.guard_profile_privileges();
