@@ -33,6 +33,10 @@ def test_registry_covers_the_documented_keys():
         "defaults.tone",
         "defaults.length",
         "defaults.headline_count",
+        "adapters.grammar",
+        "adapters.headline",
+        "adapters.style",
+        "adapters.summarizer",
         "limits.anon_per_hour",
     }
     assert set(REGISTRY) == expected

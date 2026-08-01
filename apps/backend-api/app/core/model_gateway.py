@@ -14,6 +14,8 @@ in the chain, so the product keeps working while the GPU box is down.
 """
 
 import logging
+
+import httpx
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -162,10 +164,28 @@ async def _via_sinllama(
     else:
         prompt = text
 
-    data = await sinllama_generate(prompt, task, style)
+    adapter = str(await runtime_settings.get(f"adapters.{task}") or "").strip()
+
+    try:
+        data = await sinllama_generate(prompt, task, style, adapter=adapter or None)
+    except httpx.HTTPStatusError as exc:
+        # 422 here means the server rejected the adapter — it was renamed,
+        # deleted, or belongs to another task. Retry on the task default
+        # rather than failing the user's request over a stale setting.
+        if adapter and exc.response.status_code == 422:
+            logger.warning(
+                "Model server rejected adapter %r for task %s — falling back "
+                "to the task default. Update the setting in the dashboard.",
+                adapter, task,
+            )
+            data = await sinllama_generate(prompt, task, style)
+        else:
+            raise
+
     meta = {
         "input_tokens": data.get("input_tokens"),
         "output_tokens": data.get("output_tokens"),
+        "adapter": data.get("adapter"),
     }
     return data["response"], meta
 

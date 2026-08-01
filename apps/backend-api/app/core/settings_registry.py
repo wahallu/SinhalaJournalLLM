@@ -15,6 +15,7 @@ enums. No free-form strings: every current setting is a choice from a known
 set, and free text is where injection lives.
 """
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,17 +23,28 @@ from app.core.config import get_settings
 from app.core.prompts import STYLE_INSTRUCTIONS, SUMMARY_LENGTHS
 
 
+# Folder names only — no path separators, so a value cannot be coaxed
+# into traversing the adapters directory on the model server.
+_ADAPTER_NAME = re.compile(r"[A-Za-z0-9._-]{1,128}")
+
+
 @dataclass(frozen=True)
 class SettingSpec:
     """One settable key: its shape, its fallback, and what it does."""
 
-    kind: str  # "bool" | "int" | "enum"
+    kind: str  # "bool" | "int" | "enum" | "adapter"
     default: Any
     description: str
     choices: tuple[str, ...] | None = None
     minimum: int | None = None
     maximum: int | None = None
     group: str = "General"
+    # "adapter" keys only: which inference task the adapter must belong to.
+    # The choices are discovered from the GPU box at runtime rather than
+    # listed here, so the admin UI fetches them separately. The inference
+    # server is the authority on whether an adapter exists and matches its
+    # task; this side only enforces a safe shape.
+    task: str | None = None
 
 
 def _env_default(attribute: str, fallback: Any) -> Any:
@@ -102,6 +114,26 @@ def build_registry() -> dict[str, SettingSpec]:
             kind="int", default=5, minimum=1, maximum=10, group="Defaults",
             description="How many headline candidates to generate by default.",
         ),
+        "adapters.grammar": SettingSpec(
+            kind="adapter", task="grammar", default="", group="Adapters",
+            description="Specific LoRA adapter for the Grammar Checker. "
+                        "Leave empty to use the newest one the model server resolved.",
+        ),
+        "adapters.headline": SettingSpec(
+            kind="adapter", task="headline", default="", group="Adapters",
+            description="Specific LoRA adapter for the Headline Generator. "
+                        "Leave empty to use the newest one the model server resolved.",
+        ),
+        "adapters.style": SettingSpec(
+            kind="adapter", task="style", default="", group="Adapters",
+            description="Specific LoRA adapter for the Style Rewriter. "
+                        "Leave empty to use the newest one the model server resolved.",
+        ),
+        "adapters.summarizer": SettingSpec(
+            kind="adapter", task="summarizer", default="", group="Adapters",
+            description="Specific LoRA adapter for the News Summarizer. "
+                        "Leave empty to use the newest one the model server resolved.",
+        ),
         "limits.anon_per_hour": SettingSpec(
             kind="int",
             default=_env_default("ANON_REQUESTS_PER_HOUR", 20),
@@ -145,6 +177,21 @@ def validate(key: str, value: Any) -> Any:
             raise ValueError(f"{key} must be at least {spec.minimum}")
         if spec.maximum is not None and value > spec.maximum:
             raise ValueError(f"{key} must be at most {spec.maximum}")
+        return value
+
+    if spec.kind == "adapter":
+        # Empty means "use the task default". Otherwise only a shape check:
+        # the inference server owns the real list and refuses an adapter that
+        # does not exist or belongs to another task, and it can add or remove
+        # adapter folders without this service knowing.
+        if not isinstance(value, str):
+            raise ValueError(f"{key} must be an adapter folder name, or empty")
+        value = value.strip()
+        if value and not _ADAPTER_NAME.fullmatch(value):
+            raise ValueError(
+                f"{key} must be an adapter folder name "
+                "(letters, digits, dot, dash, underscore)"
+            )
         return value
 
     # enum

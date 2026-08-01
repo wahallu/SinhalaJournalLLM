@@ -107,3 +107,11 @@ export function getTelemetry({ page = 1, pageSize = 50, tool = '' } = {}) {
   if (tool) params.set('tool', tool);
   return request(`/admin/activity/telemetry?${params}`);
 }
+
+// ── Adapters ──
+// The model server owns this list; /comparison/adapters is already
+// admin-only, so the Settings page reuses it rather than adding an endpoint.
+// Returns { adapters: { grammar: [...], headline: [...], ... } }.
+export function getAdapters() {
+  return request('/comparison/adapters');
+}

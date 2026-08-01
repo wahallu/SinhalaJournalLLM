@@ -32,6 +32,8 @@ class SettingValue(BaseModel):
     choices: list[str] | None = None
     minimum: int | None = None
     maximum: int | None = None
+    # "adapter" keys only — which task's adapter list the UI should offer.
+    task: str | None = None
     is_overridden: bool
 
 
@@ -61,6 +63,7 @@ async def list_settings(_admin: AuthUser = Depends(require_admin)) -> list[Setti
             choices=list(spec.choices) if spec.choices else None,
             minimum=spec.minimum,
             maximum=spec.maximum,
+            task=spec.task,
             is_overridden=key in stored,
         )
         for key, spec in REGISTRY.items()
@@ -107,5 +110,6 @@ async def update_setting(
         choices=list(spec.choices) if spec.choices else None,
         minimum=spec.minimum,
         maximum=spec.maximum,
+        task=spec.task,
         is_overridden=True,
     )

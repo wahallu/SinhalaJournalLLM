@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
-import { getSettings, updateSetting } from '../adminApi';
+import { getAdapters, getSettings, updateSetting } from '../adminApi';
 import ConfirmDialog from '../ConfirmDialog';
 
 const CONTROL = `px-3 py-1.5 text-[13px] rounded-md border bg-background text-foreground
@@ -17,6 +17,7 @@ function isHighImpact(key) {
 
 function describeChange(setting, next) {
   if (setting.kind === 'bool') return next ? 'enabled' : 'disabled';
+  if (setting.kind === 'adapter') return next || 'newest available';
   return String(next);
 }
 
@@ -27,6 +28,26 @@ export default function Settings() {
   const [busy, setBusy] = useState(false);
   const [dialogError, setDialogError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Adapter options come from the model server, not the settings registry —
+  // folders can be added or removed there without this service knowing.
+  const [adapters, setAdapters] = useState(null);
+  const [adaptersError, setAdaptersError] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const data = await getAdapters();
+        if (active) setAdapters(data.adapters ?? {});
+      } catch (e) {
+        // The GPU box being down must not block the rest of the page.
+        if (active) setAdaptersError(e.message);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -156,6 +177,37 @@ export default function Settings() {
                           </option>
                         ))}
                       </select>
+                    )}
+
+                    {s.kind === 'adapter' && (
+                      adaptersError ? (
+                        <p className="text-[12px] text-muted-foreground max-w-56 text-right">
+                          Model server unreachable — cannot list adapters.
+                          {s.value ? ` Currently: ${s.value}` : ' Using newest available.'}
+                        </p>
+                      ) : (
+                        <select
+                          value={s.value || ''}
+                          onChange={(e) => propose(s, e.target.value)}
+                          aria-label={s.key}
+                          disabled={!adapters}
+                          className={CONTROL}
+                          style={{ borderColor: 'var(--input)' }}
+                        >
+                          <option value="">Newest available</option>
+                          {(adapters?.[s.task] ?? []).map((name) => (
+                            <option key={name} value={name}>
+                              {name}
+                            </option>
+                          ))}
+                          {/* A stored value the server no longer offers still
+                              needs to be selectable, or the control would
+                              silently show something else. */}
+                          {s.value && !(adapters?.[s.task] ?? []).includes(s.value) && (
+                            <option value={s.value}>{s.value} (not on server)</option>
+                          )}
+                        </select>
+                      )
                     )}
 
                     {s.kind === 'int' && (
