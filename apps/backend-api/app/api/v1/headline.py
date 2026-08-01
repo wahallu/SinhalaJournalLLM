@@ -6,10 +6,14 @@ POST /headlines/visual-prompt  — Generate a detailed image prompt from article
 GET  /headlines/history        — Paginated generation history
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+import time
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.core.deps import optional_user, require_user
+from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
 from app.repositories.headline_repository import get_generations
+from app.repositories.telemetry_repository import record_request
 from app.schemas.auth import AuthUser
 from app.schemas.headline import (
     HeadlineHistoryItem,
@@ -28,16 +32,33 @@ router = APIRouter(prefix="/headlines", tags=["Headline"])
 
 @router.post("/generate", response_model=HeadlineResponse)
 async def generate_headlines_endpoint(
+    request: Request,
     payload: HeadlineRequest,
     user: AuthUser | None = Depends(optional_user),
 ):
     """
     Generate multiple headline variants from the input Sinhala text.
     """
-    return await generate_headlines(
+    await enforce_anonymous_limit(request, user)
+
+    started = time.perf_counter()
+    result = await generate_headlines(
         payload.text, payload.count, category=payload.category,
         user_id=user.id if user else None,
     )
+    latency_ms = int((time.perf_counter() - started) * 1000)
+
+    await record_request(
+        user_id=user.id if user else None,
+        endpoint="/api/v1/headlines/generate",
+        method="POST",
+        tool="headline",
+        status_code=200,
+        latency_ms=latency_ms,
+        provider=result.model_used,
+        ip_hash=hash_ip(client_ip(request)),
+    )
+    return result
 
 
 

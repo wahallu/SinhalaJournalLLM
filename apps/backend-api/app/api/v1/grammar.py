@@ -6,15 +6,18 @@ GET  /history — Paginated correction history
 GET  /{id}    — Single correction detail
 """
 
+import time
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.core.deps import optional_user, require_user
+from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
 from app.repositories.grammar_repository import (
     get_correction_by_id,
     get_corrections,
 )
+from app.repositories.telemetry_repository import record_request
 from app.schemas.auth import AuthUser
 from app.schemas.grammar import (
     CorrectionDetail,
@@ -40,6 +43,7 @@ def _record_to_response(record: dict) -> GrammarCheckResponse:
 
 @router.post("/check", response_model=GrammarCheckResponse)
 async def grammar_check_endpoint(
+    request: Request,
     payload: GrammarCheckRequest,
     user: AuthUser | None = Depends(optional_user),
 ):
@@ -50,7 +54,23 @@ async def grammar_check_endpoint(
     signed-in caller. Usable anonymously; anonymous results are not saved.
     Returns the corrected text along with a list of individual corrections.
     """
-    return await check_grammar(payload.text, user_id=user.id if user else None)
+    await enforce_anonymous_limit(request, user)
+
+    started = time.perf_counter()
+    result = await check_grammar(payload.text, user_id=user.id if user else None)
+    latency_ms = int((time.perf_counter() - started) * 1000)
+
+    await record_request(
+        user_id=user.id if user else None,
+        endpoint="/api/v1/grammar/check",
+        method="POST",
+        tool="grammar",
+        status_code=200,
+        latency_ms=latency_ms,
+        provider=result.model_used,
+        ip_hash=hash_ip(client_ip(request)),
+    )
+    return result
 
 
 @router.get("/history", response_model=GrammarHistoryResponse)

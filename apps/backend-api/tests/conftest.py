@@ -33,6 +33,7 @@ class _FakeQuery:
         self._operation = "select"
         self._payload: dict | None = None
         self._filters: list[tuple[str, object]] = []
+        self._gte_filters: list[tuple[str, object]] = []
         self._order_desc = True
         self._range: tuple[int, int] | None = None
         self._limit: int | None = None
@@ -52,6 +53,10 @@ class _FakeQuery:
 
     def eq(self, column: str, value):
         self._filters.append((column, value))
+        return self
+
+    def gte(self, column: str, value):
+        self._gte_filters.append((column, value))
         return self
 
     def order(self, _column: str, desc: bool = False):
@@ -86,6 +91,8 @@ class _FakeQuery:
         result = list(rows)
         for column, value in self._filters:
             result = [r for r in result if str(r.get(column)) == str(value)]
+        for column, value in self._gte_filters:
+            result = [r for r in result if str(r.get(column) or "") >= str(value)]
         result.sort(key=lambda r: r.get("created_at") or "", reverse=self._order_desc)
         total = len(result)
         if self._range is not None:

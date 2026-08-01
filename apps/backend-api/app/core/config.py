@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     # Salt for hashing client IPs. Raw IPs are never stored.
     IP_HASH_SALT: str = ""
 
+    # Anonymous requests allowed per hour per client IP. Anonymous use means
+    # unauthenticated GPU inference, so this is a cost control, not a nicety.
+    ANON_REQUESTS_PER_HOUR: int = 20
+
     @field_validator("PUBLIC_SUPABASE_URL")
     @classmethod
     def _strip_trailing_slash(cls, v: str) -> str:
