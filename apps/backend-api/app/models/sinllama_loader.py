@@ -35,7 +35,7 @@ async def sinllama_generate(
     prompt: str,
     task: str,
     style: str | None = None,
-    length: str | None = None,
+    adapter: str | None = None,
 ) -> dict[str, Any]:
     """
     Call the inference server's /generate endpoint.
@@ -57,8 +57,12 @@ async def sinllama_generate(
     payload: dict[str, Any] = {"prompt": prompt, "task": task}
     if style is not None:
         payload["style"] = style
-    if length is not None:
-        payload["length"] = length
+    if adapter:
+        # Only sent when an admin has chosen one. A server that predates
+        # adapter support ignores the extra field, so this stays backward
+        # compatible; one that supports it but rejects the value returns 422,
+        # which the gateway retries without the override.
+        payload["adapter"] = adapter
 
     try:
         async with httpx.AsyncClient(timeout=settings.SINLLAMA_TIMEOUT_SECONDS) as client:

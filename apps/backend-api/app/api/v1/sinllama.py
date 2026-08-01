@@ -10,9 +10,11 @@ address (SINLLAMA_API_URL) is read from settings here and never returned
 to the caller — clients only ever see this backend's own base URL.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.core.deps import require_admin
 from app.core.model_gateway import ModelGatewayError
+from app.schemas.auth import AuthUser
 from app.models.sinllama_loader import SinLlamaUnavailable, sinllama_generate, sinllama_health
 from app.schemas.sinllama import PlaygroundRequest, PlaygroundResponse
 
@@ -20,7 +22,10 @@ router = APIRouter(prefix="/sinllama", tags=["SinLLaMA Playground"])
 
 
 @router.post("/chat", response_model=PlaygroundResponse)
-async def playground_chat(payload: PlaygroundRequest):
+async def playground_chat(
+    payload: PlaygroundRequest,
+    _admin: AuthUser = Depends(require_admin),
+):
     """Send a prompt straight to the base model — grammar/headline/style/summarizer adapters are not used."""
     try:
         data = await sinllama_generate(payload.prompt, "base")
@@ -35,6 +40,6 @@ async def playground_chat(payload: PlaygroundRequest):
 
 
 @router.get("/health")
-async def playground_health():
+async def playground_health(_admin: AuthUser = Depends(require_admin)):
     """Whether the inference server is reachable — never exposes its address."""
     return {"available": await sinllama_health()}

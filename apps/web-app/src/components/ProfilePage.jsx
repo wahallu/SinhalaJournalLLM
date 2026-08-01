@@ -1,8 +1,11 @@
-import { useState } from 'react';
-import { User, Camera, ArrowLeft, Shield, Building2, CheckCircle2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { User, Camera, ArrowLeft, Shield, Building2, CheckCircle2, Tags } from 'lucide-react';
 import PageHeader from './ui/PageHeader';
 import ActionButton from './ui/ActionButton';
 import { Card } from './ui/Card';
+import { getCategories } from '../services/api';
+import { useAuth } from '../auth/useAuth';
+import supabase from '../auth/supabaseClient';
 
 function getProfile() {
   try {
@@ -36,6 +39,49 @@ export default function ProfilePage({ onBack }) {
   }));
   const [saved, setSaved] = useState(false);
 
+  const { user, profile: accountProfile } = useAuth();
+  const [categories, setCategories] = useState([]);
+  const [categoryState, setCategoryState] = useState('idle'); // idle | saving | saved | error
+  const [categoryError, setCategoryError] = useState(null);
+
+  // Derived rather than synced into state: the account profile is the source
+  // of truth, and `pendingCategory` only holds the optimistic value between
+  // the user picking one and the save landing.
+  const [pendingCategory, setPendingCategory] = useState(null);
+  const categoryId = pendingCategory ?? accountProfile?.category_id ?? '';
+
+  useEffect(() => {
+    if (!user) return undefined;
+    let active = true;
+    getCategories()
+      .then((data) => active && setCategories(data))
+      .catch(() => active && setCategories([]));
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  const saveCategory = async (nextId) => {
+    setPendingCategory(nextId);
+    setCategoryState('saving');
+    setCategoryError(null);
+    // Written straight to Supabase: RLS lets a user update their own row,
+    // and the guard_profile_privileges trigger blocks role/status changes
+    // through this same path.
+    const { error } = await supabase
+      .from('profiles')
+      .update({ category_id: nextId || null })
+      .eq('id', user.id);
+
+    if (error) {
+      setCategoryState('error');
+      setCategoryError(error.message);
+      return;
+    }
+    setCategoryState('saved');
+    setTimeout(() => setCategoryState('idle'), 2000);
+  };
+
   const update = (key, value) => {
     setProfile((prev) => ({ ...prev, [key]: value }));
     setSaved(false);
@@ -68,6 +114,55 @@ export default function ProfilePage({ onBack }) {
       />
 
       <div className="space-y-4">
+        {/* Category — synced to the account, unlike the fields below */}
+        {user && (
+          <Card className="p-5 sm:p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-8.5 h-8.5 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
+                <Tags size={15} className="text-brand-600" strokeWidth={2.25} />
+              </div>
+              <div>
+                <h2 className="text-[13.5px] font-bold text-ink-900">Your category</h2>
+                <p className="text-[11.5px] text-ink-500 mt-0.5">
+                  How you use SinAi. Saved to your account and visible to administrators.
+                </p>
+              </div>
+            </div>
+
+            <label htmlFor="user-category" className={LABEL_CLASS}>
+              Category
+            </label>
+            <select
+              id="user-category"
+              value={categoryId}
+              onChange={(e) => saveCategory(e.target.value)}
+              disabled={categoryState === 'saving'}
+              className={SELECT_CLASS}
+            >
+              <option value="">Not specified</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+
+            {categoryState === 'saving' && (
+              <p className="text-[11.5px] text-ink-500 mt-2">Saving…</p>
+            )}
+            {categoryState === 'saved' && (
+              <p className="flex items-center gap-1.5 text-[11.5px] text-emerald-600 mt-2">
+                <CheckCircle2 size={12} /> Saved
+              </p>
+            )}
+            {categoryState === 'error' && (
+              <p role="alert" className="text-[11.5px] text-brand-700 mt-2">
+                Could not save: {categoryError}
+              </p>
+            )}
+          </Card>
+        )}
+
         {/* Identity card */}
         <Card className="flex items-center gap-5 p-5 sm:p-6">
           <div className="relative shrink-0">

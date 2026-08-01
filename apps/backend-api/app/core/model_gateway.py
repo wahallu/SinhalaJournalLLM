@@ -14,11 +14,14 @@ in the chain, so the product keeps working while the GPU box is down.
 """
 
 import logging
+
+import httpx
 import time
 from dataclasses import dataclass, field
 from typing import Any
 
 from app.core import mock_provider
+from app.core import runtime_settings
 from app.core.config import get_settings
 from app.core.openrouter_client import OpenRouterUnavailable, openrouter_chat
 from app.core.prompts import (
@@ -56,13 +59,20 @@ class ModelGatewayError(Exception):
     """All providers failed (only possible when MODEL_FALLBACK is off)."""
 
 
-def _provider_chain() -> list[str]:
-    settings = get_settings()
-    primary = settings.MODEL_PROVIDER.strip().lower()
+async def _provider_chain() -> list[str]:
+    """
+    Providers to try, in order.
+
+    Read from runtime settings rather than env so an admin can switch
+    provider from the dashboard without a redeploy. An unrecognized value
+    still degrades to mock with a warning instead of raising — a bad setting
+    should not take inference down.
+    """
+    primary = str(await runtime_settings.get("model.provider")).strip().lower()
     if primary not in _PROVIDER_ORDER:
-        logger.warning("Unknown MODEL_PROVIDER %r — defaulting to mock", primary)
+        logger.warning("Unknown model.provider %r — defaulting to mock", primary)
         primary = "mock"
-    if not settings.MODEL_FALLBACK:
+    if not await runtime_settings.get("model.fallback_enabled"):
         return [primary]
     return [primary] + [p for p in _PROVIDER_ORDER if p != primary]
 
@@ -105,7 +115,7 @@ async def model_generate(
     resolved_category = category or "General"
 
     errors: list[str] = []
-    for provider in _provider_chain():
+    for provider in await _provider_chain():
         started = time.perf_counter()
         try:
             if provider == "sinllama":
@@ -170,15 +180,28 @@ async def _via_sinllama(
     else:
         prompt = text
 
-    # `length` still goes on the wire even though the prompt above is already
-    # fully formed: the server passes formed prompts through untouched, but it
-    # reads `length` separately to pick the per-band token budget
-    # (SinAI-Training/work/tasks/headline.py). Servers running an older build
-    # ignore the extra field.
-    data = await sinllama_generate(prompt, task, style, length=length)
+    adapter = str(await runtime_settings.get(f"adapters.{task}") or "").strip()
+
+    try:
+        data = await sinllama_generate(prompt, task, style, adapter=adapter or None)
+    except httpx.HTTPStatusError as exc:
+        # 422 here means the server rejected the adapter — it was renamed,
+        # deleted, or belongs to another task. Retry on the task default
+        # rather than failing the user's request over a stale setting.
+        if adapter and exc.response.status_code == 422:
+            logger.warning(
+                "Model server rejected adapter %r for task %s — falling back "
+                "to the task default. Update the setting in the dashboard.",
+                adapter, task,
+            )
+            data = await sinllama_generate(prompt, task, style)
+        else:
+            raise
+
     meta = {
         "input_tokens": data.get("input_tokens"),
         "output_tokens": data.get("output_tokens"),
+        "adapter": data.get("adapter"),
     }
     return data["response"], meta
 
@@ -291,8 +314,8 @@ async def gateway_status() -> dict[str, Any]:
     settings = get_settings()
     sinllama_ok = await sinllama_health()
     return {
-        "primary": settings.MODEL_PROVIDER,
-        "fallback_enabled": settings.MODEL_FALLBACK,
+        "primary": await runtime_settings.get("model.provider"),
+        "fallback_enabled": await runtime_settings.get("model.fallback_enabled"),
         "providers": {
             # No "url" field — the inference server's address is a backend
             # implementation detail and must never reach a client.

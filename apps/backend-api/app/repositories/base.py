@@ -11,6 +11,7 @@ import asyncio
 import logging
 import time
 import uuid
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -41,12 +42,46 @@ class DatabaseUnavailable(Exception):
     """History storage can't be reached (read path). Mapped to 503 in main."""
 
 
+async def resolve_client(user_token: str | None = None):
+    """
+    The database client to use for one operation.
+
+    With a token, returns a PostgREST client authenticated as that caller, so
+    Row Level Security decides what they can see. Without one, returns the
+    service-role client, which bypasses RLS — correct for admin paths and
+    telemetry, wrong for anything user-facing.
+    """
+    if user_token is None:
+        return await get_supabase()
+    from app.core.user_client import user_postgrest
+
+    return await user_postgrest(user_token)
+
+
 def _synthetic_record(record: dict[str, Any]) -> dict[str, Any]:
     return {
         **record,
         "id": str(uuid.uuid4()),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+
+
+async def persist_if_owned(
+    save: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]],
+    record: dict[str, Any],
+    user_id: str | None,
+) -> dict[str, Any]:
+    """
+    Persist `record` against `user_id`, or return an unsaved response-shaped
+    record when the caller is anonymous.
+
+    "Login to save": anonymous runs leave no row, so `user_id IS NULL` in the
+    history tables keeps meaning "pre-auth legacy data" and nothing else.
+    The returned shape is identical either way — clients cannot tell.
+    """
+    if user_id is None:
+        return _synthetic_record(record)
+    return await save({**record, "user_id": user_id})
 
 
 async def insert_record(table: str, record: dict[str, Any]) -> dict[str, Any]:
@@ -74,18 +109,23 @@ async def insert_record(table: str, record: dict[str, Any]) -> dict[str, Any]:
         return _synthetic_record(record)
 
 
-async def fetch_by_id(table: str, record_id: str) -> dict[str, Any] | None:
-    """Fetch a single row by UUID, or None when absent."""
+async def fetch_by_id(
+    table: str,
+    record_id: str,
+    *,
+    user_id: str | None = None,
+    user_token: str | None = None,
+) -> dict[str, Any] | None:
+    """Fetch a single row by UUID, scoped to `user_id` when given."""
     if _circuit_is_open():
         raise DatabaseUnavailable(f"History storage unavailable (cooldown): {table}")
     try:
-        client = await get_supabase()
+        client = await resolve_client(user_token)
+        query = client.table(table).select("*").eq("id", record_id)
+        if user_id is not None:
+            query = query.eq("user_id", user_id)
         response = await asyncio.wait_for(
-            client.table(table)
-            .select("*")
-            .eq("id", record_id)
-            .maybe_single()
-            .execute(),
+            query.maybe_single().execute(),
             timeout=READ_TIMEOUT_SECONDS,
         )
     except Exception as exc:
@@ -99,19 +139,22 @@ async def fetch_page(
     *,
     page: int = 1,
     page_size: int = 20,
+    user_id: str | None = None,
+    user_token: str | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
-    """Newest-first page of rows plus the exact total count."""
+    """Newest-first page plus exact total, scoped to `user_id` when given."""
     if _circuit_is_open():
         raise DatabaseUnavailable(f"History storage unavailable (cooldown): {table}")
     try:
-        client = await get_supabase()
+        client = await resolve_client(user_token)
         offset = (page - 1) * page_size
+        query = client.table(table).select("*", count="exact")
+        if user_id is not None:
+            query = query.eq("user_id", user_id)
         response = await asyncio.wait_for(
-            client.table(table)
-            .select("*", count="exact")
-            .order("created_at", desc=True)
-            .range(offset, offset + page_size - 1)
-            .execute(),
+            query.order("created_at", desc=True)
+                 .range(offset, offset + page_size - 1)
+                 .execute(),
             timeout=READ_TIMEOUT_SECONDS,
         )
     except Exception as exc:
@@ -120,18 +163,23 @@ async def fetch_page(
     return response.data, response.count or 0
 
 
-async def fetch_recent(table: str, limit: int) -> list[dict[str, Any]]:
-    """Newest `limit` rows without a count query."""
+async def fetch_recent(
+    table: str,
+    limit: int,
+    *,
+    user_id: str | None = None,
+    user_token: str | None = None,
+) -> list[dict[str, Any]]:
+    """Newest `limit` rows without a count query, scoped when given."""
     if _circuit_is_open():
         raise DatabaseUnavailable(f"History storage unavailable (cooldown): {table}")
     try:
-        client = await get_supabase()
+        client = await resolve_client(user_token)
+        query = client.table(table).select("*")
+        if user_id is not None:
+            query = query.eq("user_id", user_id)
         response = await asyncio.wait_for(
-            client.table(table)
-            .select("*")
-            .order("created_at", desc=True)
-            .limit(limit)
-            .execute(),
+            query.order("created_at", desc=True).limit(limit).execute(),
             timeout=READ_TIMEOUT_SECONDS,
         )
     except Exception as exc:

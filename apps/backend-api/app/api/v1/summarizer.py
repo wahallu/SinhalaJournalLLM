@@ -5,9 +5,16 @@ POST /summarize         — Summarize an article at a target length
 GET  /summarize/history — Paginated summary history
 """
 
-from fastapi import APIRouter, Query
+import time
 
+from fastapi import APIRouter, Depends, Query, Request
+
+from app.core.features import require_tool_enabled
+from app.core.deps import optional_user, require_user
+from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
 from app.repositories.summarizer_repository import get_summaries
+from app.repositories.telemetry_repository import record_request
+from app.schemas.auth import AuthUser
 from app.schemas.summarizer import (
     SummarizerRequest,
     SummarizerResponse,
@@ -20,22 +27,46 @@ router = APIRouter(tags=["Summarizer"])
 
 
 @router.post("/summarize", response_model=SummarizerResponse)
-async def summarize_news_endpoint(payload: SummarizerRequest):
+async def summarize_news_endpoint(
+    request: Request,
+    payload: SummarizerRequest,
+    user: AuthUser | None = Depends(optional_user),
+    _enabled: None = require_tool_enabled("summarizer"),
+):
     """
     Summarize long-form Sinhala articles/texts.
+
+    Usable anonymously; results are only persisted for a signed-in caller.
     """
-    return await summarize_text(payload.text, payload.length)
+    await enforce_anonymous_limit(request, user)
+
+    started = time.perf_counter()
+    result = await summarize_text(payload.text, payload.length, user_id=user.id if user else None)
+    latency_ms = int((time.perf_counter() - started) * 1000)
+
+    await record_request(
+        user_id=user.id if user else None,
+        endpoint="/api/v1/summarize",
+        method="POST",
+        tool="summarizer",
+        status_code=200,
+        latency_ms=latency_ms,
+        provider=result.model_used,
+        ip_hash=hash_ip(client_ip(request)),
+    )
+    return result
 
 
 @router.get("/summarize/history", response_model=SummaryHistoryResponse)
 async def summary_history_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    user: AuthUser = Depends(require_user),
 ):
     """
-    Retrieve paginated summary history, newest first.
+    Retrieve the caller's paginated summary history, newest first.
     """
-    records, total = await get_summaries(page=page, page_size=page_size)
+    records, total = await get_summaries(page=page, page_size=page_size, user_id=user.id, user_token=user.token)
     items = [
         SummaryHistoryItem(
             id=str(r["id"]),

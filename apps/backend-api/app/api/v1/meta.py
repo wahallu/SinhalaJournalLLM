@@ -6,8 +6,11 @@ GET /meta    — tasks, styles, lengths, provider status (clients build their
 GET /history — newest activity across all four tools
 """
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.core import runtime_settings
+from app.core.deps import require_user
+from app.core.features import all_flags
 from app.core.model_gateway import TASKS, gateway_status
 from app.core.prompts import (
     DEFAULT_HEADLINE_LENGTH,
@@ -18,6 +21,7 @@ from app.core.prompts import (
     SUMMARY_LENGTHS,
 )
 from app.repositories.history_repository import list_recent
+from app.schemas.auth import AuthUser
 from app.schemas.meta import (
     HeadlineLengthOption,
     HistoryItem,
@@ -58,13 +62,20 @@ async def meta_endpoint():
         ],
         default_headline_length=DEFAULT_HEADLINE_LENGTH,
         model=await gateway_status(),
+        features=await all_flags(),
+        defaults={
+            "tone": await runtime_settings.get("defaults.tone"),
+            "length": await runtime_settings.get("defaults.length"),
+            "headline_count": await runtime_settings.get("defaults.headline_count"),
+        },
     )
 
 
 @router.get("/history", response_model=UnifiedHistoryResponse)
 async def unified_history_endpoint(
     limit: int = Query(50, ge=1, le=100),
+    user: AuthUser = Depends(require_user),
 ):
-    """Newest activity across grammar, headlines, rewriter, and summarizer."""
-    items = await list_recent(limit)
+    """Newest activity for the caller across grammar, headlines, rewriter, and summarizer."""
+    items = await list_recent(limit, user_id=user.id, user_token=user.token)
     return UnifiedHistoryResponse(items=[HistoryItem(**item) for item in items])

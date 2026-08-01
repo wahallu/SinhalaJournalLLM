@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { Clock, Trash2, ArrowLeft, Search, ArrowUpRight, History as HistoryIcon, CornerDownRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Clock, ArrowLeft, Search, ArrowUpRight, History as HistoryIcon, CornerDownRight } from 'lucide-react';
 import PageHeader from './ui/PageHeader';
 import ActionButton from './ui/ActionButton';
 import EmptyState from './ui/EmptyState';
 import CopyButton from './ui/CopyButton';
 import { Card } from './ui/Card';
 import { TOOL_META } from '../lib/toolMeta';
-import { getHistory, clearHistory } from '../lib/history';
+import { getUnifiedHistory } from '../services/api';
 
 function formatTime(iso) {
   const d = new Date(iso);
@@ -28,10 +28,38 @@ function dayGroup(iso) {
 }
 
 export default function HistoryPage({ onRerun, onBack }) {
-  const [history, setHistory] = useState(getHistory);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
-  const [confirmClear, setConfirmClear] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    getUnifiedHistory()
+      .then((data) => {
+        if (!active) return;
+        // Server shape → the fields this page renders.
+        setHistory(
+          (data.items ?? []).map((item) => ({
+            id: item.id,
+            tool: item.tool,
+            input: item.input_preview ?? '',
+            result: item.output_preview ?? '',
+            timestamp: item.created_at,
+          }))
+        );
+      })
+      .catch((err) => {
+        if (active) setError(err.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filtered = history
     .filter((h) => filter === 'all' || h.tool === filter)
@@ -50,17 +78,6 @@ export default function HistoryPage({ onRerun, onBack }) {
     else groups.push({ label: g, items: [item] });
   });
 
-  const handleClear = () => {
-    if (!confirmClear) {
-      setConfirmClear(true);
-      setTimeout(() => setConfirmClear(false), 3500);
-      return;
-    }
-    clearHistory();
-    setHistory([]);
-    setConfirmClear(false);
-  };
-
   const allFilters = [
     { id: 'all', label: 'All' },
     ...Object.values(TOOL_META).map(({ id, label }) => ({ id, label })),
@@ -71,24 +88,15 @@ export default function HistoryPage({ onRerun, onBack }) {
       <PageHeader
         icon={HistoryIcon}
         title="History"
-        description={`${history.length} saved ${history.length === 1 ? 'entry' : 'entries'} — stored locally in this browser.`}
+        description={
+          loading
+            ? 'Loading your activity…'
+            : `${history.length} saved ${history.length === 1 ? 'entry' : 'entries'} — synced to your account.`
+        }
         actions={
-          <>
-            <ActionButton id="history-back" size="sm" variant="ghost" icon={ArrowLeft} onClick={onBack}>
-              Dashboard
-            </ActionButton>
-            {history.length > 0 && (
-              <ActionButton
-                id="clear-history"
-                size="sm"
-                variant={confirmClear ? 'primary' : 'danger'}
-                icon={Trash2}
-                onClick={handleClear}
-              >
-                {confirmClear ? 'Confirm clear?' : 'Clear all'}
-              </ActionButton>
-            )}
-          </>
+          <ActionButton id="history-back" size="sm" variant="ghost" icon={ArrowLeft} onClick={onBack}>
+            Dashboard
+          </ActionButton>
         }
       />
 
@@ -127,7 +135,19 @@ export default function HistoryPage({ onRerun, onBack }) {
       </div>
 
       {/* Feed */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div
+            className="w-6 h-6 rounded-full border-2 border-ink-200 border-t-brand-600 animate-spin"
+            role="status"
+            aria-label="Loading history"
+          />
+        </div>
+      ) : error ? (
+        <p role="alert" className="text-[13px] text-brand-700 bg-brand-50 rounded-xl px-4 py-3">
+          Could not load your history: {error}
+        </p>
+      ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-ink-300/70">
           <EmptyState
             icon={Clock}
@@ -135,7 +155,7 @@ export default function HistoryPage({ onRerun, onBack }) {
             description={
               search
                 ? 'Try a different search term or clear the filters.'
-                : 'Run any writing tool and your work will be saved here automatically.'
+                : 'Run any writing tool while signed in and your work is saved here automatically.'
             }
           />
         </div>

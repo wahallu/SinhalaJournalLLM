@@ -6,14 +6,20 @@ GET  /history — Paginated correction history
 GET  /{id}    — Single correction detail
 """
 
+import time
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
+from app.core.features import require_tool_enabled
+from app.core.deps import optional_user, require_user
+from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
 from app.repositories.grammar_repository import (
     get_correction_by_id,
     get_corrections,
 )
+from app.repositories.telemetry_repository import record_request
+from app.schemas.auth import AuthUser
 from app.schemas.grammar import (
     CorrectionDetail,
     GrammarCheckRequest,
@@ -37,25 +43,48 @@ def _record_to_response(record: dict) -> GrammarCheckResponse:
 
 
 @router.post("/check", response_model=GrammarCheckResponse)
-async def grammar_check_endpoint(payload: GrammarCheckRequest):
+async def grammar_check_endpoint(
+    request: Request,
+    payload: GrammarCheckRequest,
+    user: AuthUser | None = Depends(optional_user),
+    _enabled: None = require_tool_enabled("grammar"),
+):
     """
     Check Sinhala text for grammatical errors.
 
-    Runs the text through the model gateway and persists the result.
+    Runs the text through the model gateway and persists the result for a
+    signed-in caller. Usable anonymously; anonymous results are not saved.
     Returns the corrected text along with a list of individual corrections.
     """
-    return await check_grammar(payload.text)
+    await enforce_anonymous_limit(request, user)
+
+    started = time.perf_counter()
+    result = await check_grammar(payload.text, user_id=user.id if user else None)
+    latency_ms = int((time.perf_counter() - started) * 1000)
+
+    await record_request(
+        user_id=user.id if user else None,
+        endpoint="/api/v1/grammar/check",
+        method="POST",
+        tool="grammar",
+        status_code=200,
+        latency_ms=latency_ms,
+        provider=result.model_used,
+        ip_hash=hash_ip(client_ip(request)),
+    )
+    return result
 
 
 @router.get("/history", response_model=GrammarHistoryResponse)
 async def grammar_history_endpoint(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
+    user: AuthUser = Depends(require_user),
 ):
     """
-    Retrieve paginated grammar correction history, newest first.
+    Retrieve the caller's paginated grammar correction history, newest first.
     """
-    records, total = await get_corrections(page=page, page_size=page_size)
+    records, total = await get_corrections(page=page, page_size=page_size, user_id=user.id, user_token=user.token)
     return GrammarHistoryResponse(
         items=[_record_to_response(r) for r in records],
         total=total,
@@ -65,11 +94,20 @@ async def grammar_history_endpoint(
 
 
 @router.get("/{correction_id}", response_model=GrammarCheckResponse)
-async def grammar_detail_endpoint(correction_id: UUID):
+async def grammar_detail_endpoint(
+    correction_id: UUID,
+    user: AuthUser = Depends(require_user),
+):
     """
-    Retrieve a single grammar correction by ID.
+    Retrieve one of the caller's own grammar corrections by ID.
+
+    Scoped to the caller: another user's record is reported as not found
+    rather than forbidden, so the response does not confirm that the id
+    exists.
     """
-    record = await get_correction_by_id(correction_id)
+    record = await get_correction_by_id(
+        correction_id, user_id=user.id, user_token=user.token
+    )
     if not record:
         raise HTTPException(status_code=404, detail="Correction not found")
     return _record_to_response(record)

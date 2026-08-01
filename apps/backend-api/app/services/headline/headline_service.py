@@ -25,6 +25,7 @@ from app.core.prompts import (
     HEADLINE_VARIATION_HINTS,
     resolve_headline_length,
 )
+from app.repositories.base import persist_if_owned
 from app.repositories.headline_repository import save_generation
 from app.schemas.headline import HeadlineLengthInfo, HeadlineResponse
 
@@ -177,13 +178,14 @@ async def generate_headlines(
         first_error = next((r for r in results if isinstance(r, BaseException)), None)
         raise first_error or RuntimeError("Headline generation produced no output")
 
-    saved = await save_generation({
+    record = {
         "article_text": text,
         "headlines": headlines,
         "count": len(headlines),
         "model_provider": provider,
         "latency_ms": total_latency,
-    })
+    }
+    saved = await persist_if_owned(save_generation, record, user_id)
 
     return HeadlineResponse(
         id=str(saved["id"]),

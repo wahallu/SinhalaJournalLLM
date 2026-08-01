@@ -1,9 +1,19 @@
+/**
+ * Admin-only research instrument, moved here from the user product.
+ *
+ * Deliberately still styled with the SinAi ink/brand tokens rather than
+ * the admin palette. Restyling three large components is cosmetic work
+ * with real regression risk, and it should not ride along with a move —
+ * these tools are valued for what they do, not how they look. Tracked as
+ * follow-up in the Phase 4 plan.
+ */
+
 import { useState, useEffect } from 'react';
 import {
   FileText, Play, RotateCcw, Copy, Check, Sparkles, Zap, Trophy,
   Sliders, Activity, CheckCircle2, ShieldCheck, ChevronRight, Layers, Eye
 } from 'lucide-react';
-import { getComparisonAdapters, runComparison } from '../services/api';
+import { getComparisonAdapters, runComparison } from '../../services/api';
 
 const SAMPLE_ARTICLES = [
   {

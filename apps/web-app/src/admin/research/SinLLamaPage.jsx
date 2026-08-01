@@ -1,11 +1,21 @@
+/**
+ * Admin-only research instrument, moved here from the user product.
+ *
+ * Deliberately still styled with the SinAi ink/brand tokens rather than
+ * the admin palette. Restyling three large components is cosmetic work
+ * with real regression risk, and it should not ride along with a move —
+ * these tools are valued for what they do, not how they look. Tracked as
+ * follow-up in the Phase 4 plan.
+ */
+
 import { useState, useRef, useEffect } from 'react';
 import { Send, Trash2, Bot, User, Loader2, Cpu, WifiOff } from 'lucide-react';
-import { chatSinLlama, getSinLlamaHealth } from '../services/api';
-import PageHeader from './ui/PageHeader';
-import StatusBadge from './ui/StatusBadge';
-import ActionButton from './ui/ActionButton';
-import SamplePromptChips from './ui/SamplePromptChips';
-import { Card } from './ui/Card';
+import { chatSinLlama, getSinLlamaHealth } from '../../services/api';
+import PageHeader from '../../components/ui/PageHeader';
+import StatusBadge from '../../components/ui/StatusBadge';
+import ActionButton from '../../components/ui/ActionButton';
+import SamplePromptChips from '../../components/ui/SamplePromptChips';
+import { Card } from '../../components/ui/Card';
 
 const EXAMPLE_PROMPTS = [
   'ශ්‍රී ලංකාවේ ප්‍රධාන නගර මොනවාද?',

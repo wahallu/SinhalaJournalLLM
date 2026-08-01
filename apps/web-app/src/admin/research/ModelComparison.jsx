@@ -1,14 +1,24 @@
+/**
+ * Admin-only research instrument, moved here from the user product.
+ *
+ * Deliberately still styled with the SinAi ink/brand tokens rather than
+ * the admin palette. Restyling three large components is cosmetic work
+ * with real regression risk, and it should not ride along with a move —
+ * these tools are valued for what they do, not how they look. Tracked as
+ * follow-up in the Phase 4 plan.
+ */
+
 import { useState, useEffect } from 'react';
 import {
   Play, RefreshCw, Scale, CheckCircle2, AlertTriangle,
   Info, Sparkles, HelpCircle, CheckSquare, Square, Zap, Trophy,
 } from 'lucide-react';
-import { getComparisonAdapters, runComparison } from '../services/api';
-import PageHeader from './ui/PageHeader';
-import StatusBadge from './ui/StatusBadge';
-import ActionButton from './ui/ActionButton';
-import CopyButton from './ui/CopyButton';
-import { Card } from './ui/Card';
+import { getComparisonAdapters, runComparison } from '../../services/api';
+import PageHeader from '../../components/ui/PageHeader';
+import StatusBadge from '../../components/ui/StatusBadge';
+import ActionButton from '../../components/ui/ActionButton';
+import CopyButton from '../../components/ui/CopyButton';
+import { Card } from '../../components/ui/Card';
 
 const PRESET_CASES = {
   grammar: [

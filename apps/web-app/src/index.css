@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+/* Admin dashboard tokens — scoped to .admin-theme, never applied globally. */
+@import "./admin/theme.css";
 
 /* ── Gwen — display face used for the SinAi wordmark ── */
 @font-face {

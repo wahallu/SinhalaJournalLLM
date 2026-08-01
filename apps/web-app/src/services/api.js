@@ -3,7 +3,22 @@
  * Base URL defaults to the local FastAPI server on port 8000.
  */
 
+import supabase from '../auth/supabaseClient';
+
 export const DEFAULT_API_BASE = 'https://sinhalajournalllm.onrender.com/api/v1';
+
+/**
+ * Bearer header for the current session, or nothing when signed out.
+ *
+ * getSession() refreshes an expired access token before returning it, so a
+ * stale token is never sent. Signed-out callers get {} — the four writing
+ * tools accept anonymous requests.
+ */
+async function authHeaders() {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 // A custom base URL can be set on the Settings page; falls back to the default.
 function getApiBase() {
@@ -19,7 +34,7 @@ function getApiBase() {
 async function request(endpoint, body = null, method = 'POST') {
   const options = {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
   };
 
   if (body !== null && method !== 'GET') {
@@ -165,8 +180,27 @@ export function runComparison(inputOrPayload, adapters, task = 'grammar', style 
   return request('/comparison/compare', payload);
 }
 
+// ── Categories ──
+// Active categories only — what a user may pick from on their profile.
+export function getCategories() {
+  return request('/categories', null, 'GET');
+}
+
+// ── Unified history ──
+// Server-side and scoped to the signed-in user; returns 401 when signed out.
+// Response: { items: [{ id, tool, input_preview, output_preview, detail, created_at }] }
+export function getUnifiedHistory(limit = 50) {
+  return request(`/history?limit=${limit}`, null, 'GET');
+}
+
 // ── Image Generation (OpenRouter — Krea 2 Large) ──
 // The backend proxies to OpenRouter and returns a base64 PNG data URL or hosted image URL.
 export function generateImage(prompt) {
   return request('/image/generate', { prompt });
+}
+
+// ── Capabilities ──
+// Tasks, styles, lengths, provider status, feature flags and global defaults.
+export function getMeta() {
+  return request('/meta', null, 'GET');
 }

@@ -62,3 +62,349 @@ create index if not exists idx_style_rewrites_created_at
     on style_rewrites (created_at desc);
 create index if not exists idx_summaries_created_at
     on summaries (created_at desc);
+
+-- ── User categories (Student, Journalist, …) ──
+create table if not exists user_categories (
+    id          uuid primary key default gen_random_uuid(),
+    name        text not null,
+    slug        text not null unique,
+    description text,
+    is_active   boolean not null default true,
+    sort_order  integer not null default 0,
+    created_at  timestamptz not null default now(),
+    updated_at  timestamptz not null default now()
+);
+
+-- ── Profiles — one row per auth.users row ──
+create table if not exists profiles (
+    id           uuid primary key references auth.users(id) on delete cascade,
+    email        text not null,
+    full_name    text,
+    role         text not null default 'user'   check (role in ('user','admin')),
+    status       text not null default 'active' check (status in ('active','suspended')),
+    category_id  uuid references user_categories(id) on delete set null,
+    created_at   timestamptz not null default now(),
+    updated_at   timestamptz not null default now(),
+    last_seen_at timestamptz
+);
+
+create index if not exists idx_profiles_role     on profiles (role);
+create index if not exists idx_profiles_category on profiles (category_id);
+
+-- Every auth.users insert gets a matching profiles row, so a profile
+-- can never be missing for a valid session.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    insert into public.profiles (id, email, full_name)
+    values (
+        new.id,
+        new.email,
+        coalesce(new.raw_user_meta_data->>'full_name', '')
+    )
+    on conflict (id) do nothing;
+    return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+    after insert on auth.users
+    for each row execute function public.handle_new_user();
+
+-- role and status may only be changed by the service role. A normal
+-- authenticated session editing its own profile cannot self-promote.
+create or replace function public.guard_profile_privileges()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    if current_setting('request.jwt.claims', true) is not null
+       and coalesce(current_setting('request.jwt.claims', true)::jsonb->>'role', '') <> 'service_role'
+    then
+        if new.role is distinct from old.role then
+            raise exception 'role may only be changed by an administrator';
+        end if;
+        if new.status is distinct from old.status then
+            raise exception 'status may only be changed by an administrator';
+        end if;
+    end if;
+    new.updated_at := now();
+    return new;
+end;
+$$;
+
+drop trigger if exists on_profile_update on profiles;
+create trigger on_profile_update
+    before update on profiles
+    for each row execute function public.guard_profile_privileges();
+
+create table if not exists request_telemetry (
+    id            uuid primary key default gen_random_uuid(),
+    user_id       uuid references auth.users(id) on delete set null,
+    endpoint      text not null,
+    method        text not null default 'POST',
+    tool          text,
+    status_code   integer not null,
+    latency_ms    integer,
+    provider      text,
+    input_tokens  integer,
+    output_tokens integer,
+    error_code    text,
+    ip_hash       text,
+    created_at    timestamptz not null default now()
+);
+
+create index if not exists idx_telemetry_created  on request_telemetry (created_at desc);
+create index if not exists idx_telemetry_user     on request_telemetry (user_id, created_at desc);
+create index if not exists idx_telemetry_ip       on request_telemetry (ip_hash, created_at desc);
+
+alter table grammar_corrections  add column if not exists user_id uuid references auth.users(id) on delete cascade;
+alter table headline_generations add column if not exists user_id uuid references auth.users(id) on delete cascade;
+alter table style_rewrites       add column if not exists user_id uuid references auth.users(id) on delete cascade;
+alter table summaries            add column if not exists user_id uuid references auth.users(id) on delete cascade;
+
+create index if not exists idx_grammar_user   on grammar_corrections  (user_id, created_at desc);
+create index if not exists idx_headline_user  on headline_generations (user_id, created_at desc);
+create index if not exists idx_style_user     on style_rewrites       (user_id, created_at desc);
+create index if not exists idx_summaries_user on summaries            (user_id, created_at desc);
+
+alter table grammar_corrections  enable row level security;
+alter table headline_generations enable row level security;
+alter table style_rewrites       enable row level security;
+alter table summaries            enable row level security;
+alter table profiles             enable row level security;
+alter table user_categories      enable row level security;
+alter table request_telemetry    enable row level security;
+
+drop policy if exists own_grammar   on grammar_corrections;
+drop policy if exists own_headlines on headline_generations;
+drop policy if exists own_styles    on style_rewrites;
+drop policy if exists own_summaries on summaries;
+
+create policy own_grammar   on grammar_corrections  for all to authenticated
+    using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy own_headlines on headline_generations for all to authenticated
+    using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy own_styles    on style_rewrites       for all to authenticated
+    using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy own_summaries on summaries            for all to authenticated
+    using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+drop policy if exists own_profile      on profiles;
+drop policy if exists own_profile_upd  on profiles;
+drop policy if exists read_categories  on user_categories;
+
+create policy own_profile     on profiles        for select to authenticated using (id = auth.uid());
+create policy own_profile_upd on profiles        for update to authenticated using (id = auth.uid());
+create policy read_categories on user_categories for select to authenticated using (is_active);
+
+-- request_telemetry: no policy at all => authenticated and anon are denied
+-- everything. Only the service role touches it.
+
+insert into user_categories (name, slug, description, sort_order) values
+    ('Journalist', 'journalist', 'Working newsroom journalist',        1),
+    ('Student',    'student',    'Journalism or media student',        2),
+    ('Editor',     'editor',     'Desk editor or sub-editor',          3),
+    ('Researcher', 'researcher', 'Academic or language researcher',    4),
+    ('Other',      'other',      'Everyone else',                      99)
+on conflict (slug) do nothing;
+
+-- ── Audit log — every privileged mutation ──
+-- actor_email is denormalized on purpose: the trail must stay readable
+-- after the actor's account is deleted.
+create table if not exists audit_log (
+    id          uuid primary key default gen_random_uuid(),
+    actor_id    uuid references auth.users(id) on delete set null,
+    actor_email text not null,
+    action      text not null,
+    target_type text,
+    target_id   text,
+    before      jsonb,
+    after       jsonb,
+    ip_hash     text,
+    created_at  timestamptz not null default now()
+);
+
+create index if not exists idx_audit_created on audit_log (created_at desc);
+create index if not exists idx_audit_actor   on audit_log (actor_id, created_at desc);
+create index if not exists idx_audit_target  on audit_log (target_type, target_id);
+
+alter table audit_log enable row level security;
+-- No policy: authenticated and anon are denied everything. Only the service
+-- role touches this table, via require_admin-gated endpoints.
+
+-- ── Runtime application settings ──
+-- Key/value so adding a knob is an INSERT, not a migration. Only keys in
+-- app/core/settings_registry.py are accepted; anything else is rejected by
+-- the API before it reaches this table.
+create table if not exists app_settings (
+    key        text primary key,
+    value      jsonb not null,
+    updated_by uuid references auth.users(id) on delete set null,
+    updated_at timestamptz not null default now()
+);
+
+alter table app_settings enable row level security;
+-- No policy: authenticated and anon are denied everything. Only the service
+-- role reads and writes, via require_admin-gated endpoints.
+
+-- ── Daily usage rollup ──
+-- request_telemetry is high-write and pruned; this stays small and is kept
+-- indefinitely, so admin charts stay fast over any range.
+create table if not exists usage_daily (
+    id                  uuid primary key default gen_random_uuid(),
+    day                 date not null,
+    user_id             uuid references auth.users(id) on delete set null,
+    tool                text,
+    provider            text,
+    request_count       integer not null default 0,
+    error_count         integer not null default 0,
+    total_latency_ms    bigint  not null default 0,
+    total_input_tokens  bigint  not null default 0,
+    total_output_tokens bigint  not null default 0
+);
+
+-- NULLS NOT DISTINCT (Postgres 15+, which Supabase runs) lets anonymous
+-- traffic aggregate into one real row instead of needing a sentinel UUID.
+create unique index if not exists idx_usage_daily_unique
+    on usage_daily (day, user_id, tool, provider) nulls not distinct;
+create index if not exists idx_usage_daily_day on usage_daily (day desc);
+
+alter table usage_daily enable row level security;
+-- No policy: service-role only, like the other operational tables.
+
+-- Aggregate one day of raw telemetry into usage_daily. Idempotent per day:
+-- re-running replaces that day's rows rather than double-counting, so a
+-- retried or manually re-run job is safe.
+create or replace function public.roll_up_usage(target_day date)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    inserted integer;
+begin
+    delete from usage_daily where day = target_day;
+
+    insert into usage_daily (
+        day, user_id, tool, provider, request_count, error_count,
+        total_latency_ms, total_input_tokens, total_output_tokens
+    )
+    select
+        target_day,
+        user_id,
+        tool,
+        provider,
+        count(*),
+        count(*) filter (where status_code >= 400),
+        coalesce(sum(latency_ms), 0),
+        coalesce(sum(input_tokens), 0),
+        coalesce(sum(output_tokens), 0)
+    from request_telemetry
+    where created_at >= target_day
+      and created_at <  target_day + 1
+    group by user_id, tool, provider;
+
+    get diagnostics inserted = row_count;
+    return inserted;
+end;
+$$;
+
+-- Delete raw telemetry older than the retention window. Rolled-up totals in
+-- usage_daily survive, so history is not lost — only per-request detail.
+create or replace function public.prune_telemetry(retain_days integer default 30)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    removed integer;
+begin
+    delete from request_telemetry
+    where created_at < now() - make_interval(days => retain_days);
+    get diagnostics removed = row_count;
+    return removed;
+end;
+$$;
+
+-- ── Grants ──
+-- RLS decides which ROWS a role may touch; grants decide whether it may
+-- touch the table at all. Tables created by raw SQL do not inherit the
+-- privileges Supabase attaches to tables made through its UI, so without
+-- these every service-role read fails with "permission denied" — which
+-- surfaced as a 500 on every anonymous request, since rate limiting reads
+-- request_telemetry before any inference happens.
+--
+-- service_role bypasses RLS by design and needs full access.
+-- authenticated gets only what a policy could then narrow; tables with no
+-- policy are intentionally left ungranted, so they stay service-role only.
+
+grant all on table public.profiles           to service_role;
+grant all on table public.user_categories    to service_role;
+grant all on table public.request_telemetry  to service_role;
+grant all on table public.audit_log          to service_role;
+grant all on table public.app_settings       to service_role;
+grant all on table public.usage_daily        to service_role;
+grant all on table public.grammar_corrections  to service_role;
+grant all on table public.headline_generations to service_role;
+grant all on table public.style_rewrites       to service_role;
+grant all on table public.summaries            to service_role;
+
+-- Row-level policies constrain these further; the grant only opens the door.
+grant select, update on table public.profiles        to authenticated;
+grant select          on table public.user_categories to authenticated;
+grant select, insert, delete on table public.grammar_corrections  to authenticated;
+grant select, insert, delete on table public.headline_generations to authenticated;
+grant select, insert, delete on table public.style_rewrites       to authenticated;
+grant select, insert, delete on table public.summaries            to authenticated;
+
+-- ── Hardening applied after review ──
+
+-- guard_profile_privileges previously gated on request.jwt.claims, a GUC that
+-- PostgREST sets but nothing else does. Any UPDATE from a session that does
+-- not set it — the Studio table editor, a pg_cron job, direct psql — skipped
+-- the guard entirely. Gate on the actual database role instead, so the check
+-- is a boundary rather than a convention.
+--
+-- Also locks `email`: deps.py and audit_log.actor_email both trust it, so a
+-- user able to rewrite their own email could forge the audit trail and
+-- confuse admin search.
+create or replace function public.guard_profile_privileges()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    if current_user not in ('service_role', 'supabase_admin', 'postgres') then
+        if new.role is distinct from old.role then
+            raise exception 'role may only be changed by an administrator';
+        end if;
+        if new.status is distinct from old.status then
+            raise exception 'status may only be changed by an administrator';
+        end if;
+        if new.email is distinct from old.email then
+            raise exception 'email is managed by authentication and cannot be edited here';
+        end if;
+        if new.id is distinct from old.id then
+            raise exception 'profile id cannot be changed';
+        end if;
+    end if;
+    new.updated_at := now();
+    return new;
+end;
+$$;
+
+drop trigger if exists on_profile_update on profiles;
+create trigger on_profile_update
+    before update on profiles
+    for each row execute function public.guard_profile_privileges();

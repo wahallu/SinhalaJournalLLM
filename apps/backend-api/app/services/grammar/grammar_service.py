@@ -10,6 +10,7 @@ import logging
 from difflib import SequenceMatcher
 
 from app.core.model_gateway import model_generate
+from app.repositories.base import persist_if_owned
 from app.repositories.grammar_repository import save_correction
 from app.schemas.grammar import CorrectionDetail, GrammarCheckResponse
 
@@ -92,22 +93,24 @@ def derive_corrections(original: str, corrected: str) -> list[CorrectionDetail]:
     return corrections
 
 
-async def check_grammar(text: str) -> GrammarCheckResponse:
+async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckResponse:
     """
-    Correct Sinhala text, derive per-word corrections, persist, and return.
+    Correct Sinhala text, derive per-word corrections, persist for a known
+    caller, and return.
     """
     result = await model_generate("grammar", text)
     corrected_text = result.text or text
     corrections = derive_corrections(text, corrected_text)
 
-    saved = await save_correction({
+    record = {
         "original_text": text,
         "corrected_text": corrected_text,
         "corrections": [c.model_dump() for c in corrections],
         "correction_count": len(corrections),
         "model_provider": result.provider,
         "latency_ms": result.latency_ms,
-    })
+    }
+    saved = await persist_if_owned(save_correction, record, user_id)
 
     return GrammarCheckResponse(
         id=str(saved["id"]),

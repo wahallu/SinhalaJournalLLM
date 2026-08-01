@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, SpellCheck, Newspaper, PenLine, FileText,
-  History, Settings, ChevronLeft, ChevronRight, User, Zap, Bot, Scale, X, Layers,
+  History, Settings, ChevronLeft, ChevronRight, User, Zap, X,
+  LogIn, LogOut,
 } from 'lucide-react';
 import DotField from './DotField';
+import { useAuth } from '../auth/useAuth';
 
 const TOOL_PATHS = {
   dashboard: '/dashboard',
@@ -12,9 +14,6 @@ const TOOL_PATHS = {
   headlines: '/headlines',
   rewriter: '/rewriter',
   summarizer: '/summarizer',
-  sinllama: '/sinllama',
-  summarizer_playground: '/summarizer-playground',
-  comparison: '/comparison',
   history: '/history',
   settings: '/settings',
   profile: '/profile',
@@ -37,14 +36,6 @@ const NAV_SECTIONS = [
       { id: 'summarizer', label: 'News Summarizer', icon: FileText },
     ],
   },
-  {
-    label: 'Research',
-    items: [
-      { id: 'sinllama', label: 'SinLLaMA Playground', icon: Bot },
-      { id: 'summarizer_playground', label: 'Summarizer Lab', icon: Layers },
-      { id: 'comparison', label: 'Model Comparison', icon: Scale },
-    ],
-  },
 ];
 
 const BOTTOM_NAV = [
@@ -52,10 +43,15 @@ const BOTTOM_NAV = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-export default function Sidebar({ activeTool, onSelectTool, isOpen, onToggle, collapsed, onCollapse }) {
+export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpen, onToggle, collapsed, onCollapse }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
+
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Guest';
+  const displayEmail = user?.email || 'Not signed in';
+  const initial = displayName.charAt(0).toUpperCase();
 
   const select = (id) => {
     if (onSelectTool) {
@@ -178,7 +174,15 @@ export default function Sidebar({ activeTool, onSelectTool, isOpen, onToggle, co
 
         {/* Navigation */}
         <nav className={`relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-2 space-y-5 ${collapsed ? 'px-3' : 'px-3.5'}`}>
-          {NAV_SECTIONS.map((section) => (
+          {NAV_SECTIONS.map((section) => {
+            /* An admin can switch a tool off; hide it rather than leaving a
+               link that lands on a 503. Unknown ids are always shown, so a
+               failed /meta fetch cannot blank the navigation. */
+            const items = section.items.filter(
+              ({ id }) => !(id in features) || features[id] !== false
+            );
+            if (items.length === 0) return null;
+            return (
             <div key={section.label}>
               {!collapsed && (
                 <p className="px-3 mb-1.5 text-[9.5px] font-bold text-white/30 uppercase tracking-[0.16em]">
@@ -186,10 +190,11 @@ export default function Sidebar({ activeTool, onSelectTool, isOpen, onToggle, co
                 </p>
               )}
               <div className="space-y-0.5">
-                {section.items.map(renderNavItem)}
+                {items.map(renderNavItem)}
               </div>
             </div>
-          ))}
+            );
+          })}
         </nav>
 
         {/* Bottom navigation */}
@@ -209,17 +214,19 @@ export default function Sidebar({ activeTool, onSelectTool, isOpen, onToggle, co
             `}
           >
             <div className="w-8.5 h-8.5 rounded-lg bg-gradient-to-br from-brand-500 to-brand-800 flex items-center justify-center shrink-0 text-white text-[12px] font-bold">
-              J
+              {initial}
             </div>
             {!collapsed && (
               <div className="text-left min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <p className="text-[12.5px] font-semibold text-white truncate">Journalist</p>
-                  <span className="text-[8.5px] font-bold text-white/50 bg-white/10 px-1.5 py-px rounded uppercase tracking-wider">
-                    Free
-                  </span>
+                  <p className="text-[12.5px] font-semibold text-white truncate">{displayName}</p>
+                  {profile?.role === 'admin' && (
+                    <span className="text-[8.5px] font-bold text-white/50 bg-white/10 px-1.5 py-px rounded uppercase tracking-wider">
+                      Admin
+                    </span>
+                  )}
                 </div>
-                <p className="text-[10.5px] text-white/40 truncate">journalist@sinai.lk</p>
+                <p className="text-[10.5px] text-white/40 truncate">{displayEmail}</p>
               </div>
             )}
           </button>
@@ -230,17 +237,28 @@ export default function Sidebar({ activeTool, onSelectTool, isOpen, onToggle, co
               <div className={`absolute ${collapsed ? 'left-full ml-2 w-48' : 'left-3.5 right-3.5'} bottom-[4.25rem] z-50
                 bg-white rounded-xl shadow-pop py-1.5 border border-ink-200/80
                 animate-in fade-in slide-in-from-bottom-1 duration-150`}>
-                {[
-                  { id: 'profile-view-btn', label: 'View profile', icon: User, tool: 'profile' },
-                  { id: 'profile-upgrade-btn', label: 'Plans', icon: Zap, tool: 'plans' },
-                  { id: 'profile-settings-btn', label: 'Settings', icon: Settings, tool: 'settings' },
-                ].map(({ id, label, icon: Icon, tool }) => (
+                {(user
+                  ? [
+                      { id: 'profile-view-btn', label: 'View profile', icon: User, tool: 'profile' },
+                      { id: 'profile-upgrade-btn', label: 'Plans', icon: Zap, tool: 'plans' },
+                      { id: 'profile-settings-btn', label: 'Settings', icon: Settings, tool: 'settings' },
+                      { id: 'profile-signout-btn', label: 'Sign out', icon: LogOut, action: 'signout' },
+                    ]
+                  : [{ id: 'profile-signin-btn', label: 'Sign in', icon: LogIn, action: 'signin' }]
+                ).map(({ id, label, icon: Icon, tool, action }) => (
                   <button
                     key={id}
                     id={id}
-                    onClick={() => {
-                      select(tool);
+                    onClick={async () => {
                       setProfileOpen(false);
+                      if (action === 'signout') {
+                        await signOut();
+                        navigate('/login');
+                      } else if (action === 'signin') {
+                        navigate('/login');
+                      } else {
+                        select(tool);
+                      }
                     }}
                     className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[12.5px] font-medium text-ink-700
                       hover:bg-ink-50 hover:text-brand-700 cursor-pointer transition-colors"

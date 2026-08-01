@@ -23,6 +23,24 @@ class Settings(BaseSettings):
     # client app (web-app, chrome-extension, etc.).
     SUPABASE_SERVICE_ROLE_KEY: str
 
+    # Shared secret used to verify Supabase-issued JWTs (HS256 projects).
+    # Newer projects sign asymmetrically; those use SUPABASE_JWKS_URL instead.
+    SUPABASE_JWT_SECRET: str = ""
+    SUPABASE_JWKS_URL: str = ""
+    # Anon (publishable) key — safe to expose; used by the user-scoped client.
+    SUPABASE_ANON_KEY: str = ""
+    # Salt for hashing client IPs. Raw IPs are never stored.
+    IP_HASH_SALT: str = ""
+
+    # Anonymous requests allowed per hour per client IP. Anonymous use means
+    # unauthenticated GPU inference, so this is a cost control, not a nicety.
+    ANON_REQUESTS_PER_HOUR: int = 20
+
+    # How many proxies sit in front of this app and append to
+    # X-Forwarded-For. Only the last N entries are trustworthy; the client
+    # is the one just before them. Render's load balancer is one hop.
+    TRUSTED_PROXY_COUNT: int = 1
+
     @field_validator("PUBLIC_SUPABASE_URL")
     @classmethod
     def _strip_trailing_slash(cls, v: str) -> str:

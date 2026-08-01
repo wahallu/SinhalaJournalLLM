@@ -7,6 +7,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
+from test_user_scoping import TEST_SECRET, _auth
 
 _LONG_ARTICLE = (
     "ශ්‍රී ලංකා ක්‍රිකට් කණ්ඩායම ඊයේ පැවති තරඟයෙන් විශිෂ්ට ජයග්‍රහණයක් වාර්තා කළේය. "
@@ -27,6 +28,23 @@ HEADLINE_LENGTHS_EXPECTED = {
 
 def _client() -> AsyncClient:
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+
+@pytest.fixture(autouse=True)
+def _secret(monkeypatch):
+    """Point the verifier at the same test secret test_user_scoping's tokens are signed with."""
+    from app.core import auth as auth_module
+    monkeypatch.setattr(auth_module, "_jwt_secret", lambda: TEST_SECRET)
+
+
+@pytest.fixture
+def _history_profile(fake_supabase):
+    """A profile row for _HISTORY_USER, so require_user resolves it instead of 401ing."""
+    fake_supabase.store["profiles"] = [
+        {"id": _HISTORY_USER, "email": "history@sinai.lk", "role": "user",
+         "status": "active", "category_id": None, "created_at": "2026-01-01T00:00:00Z"},
+    ]
+    return fake_supabase
 
 
 # ── Headlines ──
@@ -95,14 +113,63 @@ async def test_generate_headlines_defaults_and_trims(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_headline_history(fake_supabase):
+@pytest.mark.parametrize("length", ["short", "medium", "long"])
+async def test_generate_headlines_respects_length_band(length):
+    """Every returned headline lands inside the requested word band, and the
+    band it was held to comes back on the response."""
+    async with _client() as client:
+        response = await client.post(
+            "/api/v1/headlines/generate",
+            json={"text": _LONG_ARTICLE, "count": 3, "length": length},
+        )
+    assert response.status_code == 200
+    data = response.json()
+
+    band = data["length"]
+    assert band["id"] == length
+    assert (band["min_words"], band["max_words"]) == HEADLINE_LENGTHS_EXPECTED[length]
+
+    for headline in data["headlines"]:
+        assert len(headline.split()) <= band["max_words"], headline
+
+
+@pytest.mark.asyncio
+async def test_generate_headlines_defaults_and_trims(monkeypatch):
+    """An unknown length falls back to medium, and output over the band
+    ceiling is trimmed to it even when every regeneration overshoots."""
+    from app.core.model_gateway import GatewayResult
+    from app.services.headline import headline_service
+
+    overlong = " ".join(f"වචන{i}" for i in range(15))
+
+    async def _always_overlong(*_args, **_kwargs):
+        return GatewayResult(text=overlong, provider="mock", latency_ms=1)
+
+    monkeypatch.setattr(headline_service, "model_generate", _always_overlong)
+
+    async with _client() as client:
+        response = await client.post(
+            "/api/v1/headlines/generate",
+            json={"text": _LONG_ARTICLE, "count": 3, "length": "nonsense"},
+        )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["length"]["id"] == "medium"
+    assert all(len(h.split()) == 7 for h in data["headlines"])
+
+
+@pytest.mark.asyncio
+async def test_headline_history(fake_supabase, _history_profile):
     """Generations are persisted and served from history."""
+    # History is per-user since Phase 1 — these calls need a signed-in caller.
+    headers = _auth(_HISTORY_USER)
     async with _client() as client:
         await client.post(
             "/api/v1/headlines/generate",
             json={"text": _LONG_ARTICLE, "count": 3},
+            headers=headers,
         )
-        response = await client.get("/api/v1/headlines/history")
+        response = await client.get("/api/v1/headlines/history", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["total"] == 1
@@ -192,15 +259,20 @@ async def test_meta_capabilities():
 # ── Unified history ──
 
 @pytest.mark.asyncio
-async def test_unified_history(fake_supabase):
+async def test_unified_history(fake_supabase, _history_profile):
     """Activity from different tools merges into one newest-first feed."""
+    # History is per-user since Phase 1 — these calls need a signed-in caller.
+    headers = _auth(_HISTORY_USER)
     async with _client() as client:
-        await client.post("/api/v1/grammar/check", json={"text": "මම ගෙදර යනව"})
+        await client.post(
+            "/api/v1/grammar/check", json={"text": "මම ගෙදර යනව"}, headers=headers,
+        )
         await client.post(
             "/api/v1/summarize",
             json={"text": _LONG_ARTICLE, "length": "short"},
+            headers=headers,
         )
-        response = await client.get("/api/v1/history?limit=10")
+        response = await client.get("/api/v1/history?limit=10", headers=headers)
     assert response.status_code == 200
     items = response.json()["items"]
     assert len(items) == 2

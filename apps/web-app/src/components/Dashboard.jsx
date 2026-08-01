@@ -9,7 +9,7 @@ import ActionButton from './ui/ActionButton';
 import EmptyState from './ui/EmptyState';
 import { TOOL_LIST, TOOL_META } from '../lib/toolMeta';
 import { getSinLlamaHealth, getComparisonAdapters } from '../services/api';
-import { getHistory } from '../lib/history';
+import { getUnifiedHistory } from '../services/api';
 
 function greeting() {
   const h = new Date().getHours();
@@ -52,11 +52,37 @@ function StatusRow({ label, badge, detail }) {
 }
 
 export default function Dashboard({ onSelectTool, onQuickStart }) {
-  const [history] = useState(getHistory);
+  const [history, setHistory] = useState([]);
   const [llamaStatus, setLlamaStatus] = useState('checking');   // online | offline | checking
   const [gatewayStatus, setGatewayStatus] = useState('checking');
   const [adapterInfo, setAdapterInfo] = useState({ mode: null, count: null });
   const [refreshing, setRefreshing] = useState(false);
+
+  // Activity stats come from the server now. Signed-out visitors get a 401
+  // here — the dashboard stays usable and simply shows an empty feed, since
+  // the four tools work anonymously.
+  useEffect(() => {
+    let active = true;
+    getUnifiedHistory()
+      .then((data) => {
+        if (!active) return;
+        setHistory(
+          (data.items ?? []).map((item) => ({
+            id: item.id,
+            tool: item.tool,
+            input: item.input_preview ?? '',
+            result: item.output_preview ?? '',
+            timestamp: item.created_at,
+          }))
+        );
+      })
+      .catch(() => {
+        if (active) setHistory([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const runChecks = () => Promise.allSettled([getSinLlamaHealth(), getComparisonAdapters()]);
 
