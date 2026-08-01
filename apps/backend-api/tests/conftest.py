@@ -23,6 +23,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.core import runtime_settings
 from app.core.config import get_settings
 
 
@@ -202,7 +203,7 @@ def fake_supabase(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def offline_model_provider(monkeypatch):
+def offline_model_provider(monkeypatch, fake_supabase):
     """
     Force the deterministic mock provider for every test, and stub out every
     binding of the SinLlama health probe so /api/v1/meta, /health/model, and
@@ -239,6 +240,19 @@ def offline_model_provider(monkeypatch):
 
     monkeypatch.setenv("MODEL_PROVIDER", "mock")
     monkeypatch.setenv("MODEL_FALLBACK", "false")
+
+    # Since Phase 3 the gateway reads the provider from runtime settings, not
+    # env. The registry's default is captured from env at import time, which
+    # is BEFORE monkeypatch.setenv above runs — so the env override alone no
+    # longer forces mock. Seed the settings store instead, which exercises the
+    # real layering code rather than bypassing it. Tests that need different
+    # settings simply overwrite this key in their own fixture.
+    fake_supabase.store["app_settings"] = [
+        {"key": "model.provider", "value": "mock", "updated_at": "2026-01-01T00:00:00Z"},
+        {"key": "model.fallback_enabled", "value": False, "updated_at": "2026-01-01T00:00:00Z"},
+    ]
+    runtime_settings.invalidate()
+
     monkeypatch.setattr(
         "app.models.sinllama_loader.sinllama_health", _offline_sinllama_health
     )
@@ -246,5 +260,7 @@ def offline_model_provider(monkeypatch):
         "app.api.v1.sinllama.sinllama_health", _offline_sinllama_health
     )
     get_settings.cache_clear()
+    runtime_settings.invalidate()
     yield
     get_settings.cache_clear()
+    runtime_settings.invalidate()
