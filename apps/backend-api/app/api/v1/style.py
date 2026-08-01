@@ -5,9 +5,11 @@ POST /rewrite         — Rewrite text into a target newspaper style
 GET  /rewrite/history — Paginated rewrite history
 """
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.core.deps import optional_user, require_user
 from app.repositories.style_repository import get_rewrites
+from app.schemas.auth import AuthUser
 from app.schemas.style import (
     StyleHistoryItem,
     StyleHistoryResponse,
@@ -20,22 +22,26 @@ router = APIRouter(tags=["Style"])
 
 
 @router.post("/rewrite", response_model=StyleRewriteResponse)
-async def rewrite_style_endpoint(payload: StyleRewriteRequest):
+async def rewrite_style_endpoint(
+    payload: StyleRewriteRequest,
+    user: AuthUser | None = Depends(optional_user),
+):
     """
     Rewrite Sinhala text in a different newspaper style.
     """
-    return await rewrite_style(payload.text, payload.tone)
+    return await rewrite_style(payload.text, payload.tone, user_id=user.id if user else None)
 
 
 @router.get("/rewrite/history", response_model=StyleHistoryResponse)
 async def style_history_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    user: AuthUser = Depends(require_user),
 ):
     """
-    Retrieve paginated style rewrite history, newest first.
+    Retrieve the caller's paginated style rewrite history, newest first.
     """
-    records, total = await get_rewrites(page=page, page_size=page_size)
+    records, total = await get_rewrites(page=page, page_size=page_size, user_id=user.id)
     items = [
         StyleHistoryItem(
             id=str(r["id"]),

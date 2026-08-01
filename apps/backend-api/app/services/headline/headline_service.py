@@ -11,6 +11,7 @@ import logging
 
 from app.core.model_gateway import model_generate
 from app.core.prompts import HEADLINE_VARIATION_HINTS
+from app.repositories.base import persist_if_owned
 from app.repositories.headline_repository import save_generation
 from app.schemas.headline import HeadlineResponse
 
@@ -30,9 +31,15 @@ def _dedupe(headlines: list[str]) -> list[str]:
     return unique
 
 
-async def generate_headlines(text: str, count: int = 5, category: str = "General") -> HeadlineResponse:
+async def generate_headlines(
+    text: str,
+    count: int = 5,
+    category: str = "General",
+    user_id: str | None = None,
+) -> HeadlineResponse:
     """
-    Generate up to `count` distinct headline candidates and persist them.
+    Generate up to `count` distinct headline candidates and persist them for
+    a known caller.
     """
     hints = HEADLINE_VARIATION_HINTS[:count]
 
@@ -62,13 +69,14 @@ async def generate_headlines(text: str, count: int = 5, category: str = "General
         first_error = next((r for r in results if isinstance(r, BaseException)), None)
         raise first_error or RuntimeError("Headline generation produced no output")
 
-    saved = await save_generation({
+    record = {
         "article_text": text,
         "headlines": headlines,
         "count": len(headlines),
         "model_provider": provider,
         "latency_ms": total_latency,
-    })
+    }
+    saved = await persist_if_owned(save_generation, record, user_id)
 
     return HeadlineResponse(
         id=str(saved["id"]),

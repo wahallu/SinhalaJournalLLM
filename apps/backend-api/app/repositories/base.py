@@ -11,6 +11,7 @@ import asyncio
 import logging
 import time
 import uuid
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -47,6 +48,24 @@ def _synthetic_record(record: dict[str, Any]) -> dict[str, Any]:
         "id": str(uuid.uuid4()),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+
+
+async def persist_if_owned(
+    save: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]],
+    record: dict[str, Any],
+    user_id: str | None,
+) -> dict[str, Any]:
+    """
+    Persist `record` against `user_id`, or return an unsaved response-shaped
+    record when the caller is anonymous.
+
+    "Login to save": anonymous runs leave no row, so `user_id IS NULL` in the
+    history tables keeps meaning "pre-auth legacy data" and nothing else.
+    The returned shape is identical either way — clients cannot tell.
+    """
+    if user_id is None:
+        return _synthetic_record(record)
+    return await save({**record, "user_id": user_id})
 
 
 async def insert_record(table: str, record: dict[str, Any]) -> dict[str, Any]:

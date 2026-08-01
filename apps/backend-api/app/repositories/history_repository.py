@@ -51,17 +51,18 @@ def _preview(value: str | None) -> str:
     return value[:_PREVIEW_CHARS]
 
 
-async def list_recent(limit: int = 50) -> list[dict[str, Any]]:
+async def list_recent(limit: int = 50, *, user_id: str | None = None) -> list[dict[str, Any]]:
     """
     Newest `limit` items across every tool, shaped as:
         {id, tool, input_preview, output_preview, detail, created_at}
     A tool whose table is missing (schema not migrated yet) is skipped.
+    Scoped to `user_id` when given.
     """
 
     async def _load(tool: str) -> list[dict[str, Any]]:
         table, input_column, extract_output = _SOURCES[tool]
         try:
-            rows = await fetch_recent(table, limit)
+            rows = await fetch_recent(table, limit, user_id=user_id)
         except Exception:
             logger.exception("History: failed to read %s — skipping", table)
             return []

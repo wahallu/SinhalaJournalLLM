@@ -6,9 +6,11 @@ POST /headlines/visual-prompt  — Generate a detailed image prompt from article
 GET  /headlines/history        — Paginated generation history
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.core.deps import optional_user, require_user
 from app.repositories.headline_repository import get_generations
+from app.schemas.auth import AuthUser
 from app.schemas.headline import (
     HeadlineHistoryItem,
     HeadlineHistoryResponse,
@@ -25,11 +27,17 @@ router = APIRouter(prefix="/headlines", tags=["Headline"])
 
 
 @router.post("/generate", response_model=HeadlineResponse)
-async def generate_headlines_endpoint(payload: HeadlineRequest):
+async def generate_headlines_endpoint(
+    payload: HeadlineRequest,
+    user: AuthUser | None = Depends(optional_user),
+):
     """
     Generate multiple headline variants from the input Sinhala text.
     """
-    return await generate_headlines(payload.text, payload.count, category=payload.category)
+    return await generate_headlines(
+        payload.text, payload.count, category=payload.category,
+        user_id=user.id if user else None,
+    )
 
 
 
@@ -56,11 +64,12 @@ async def visual_prompt_endpoint(payload: VisualPromptRequest):
 async def headline_history_endpoint(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    user: AuthUser = Depends(require_user),
 ):
     """
-    Retrieve paginated headline generation history, newest first.
+    Retrieve the caller's paginated headline generation history, newest first.
     """
-    records, total = await get_generations(page=page, page_size=page_size)
+    records, total = await get_generations(page=page, page_size=page_size, user_id=user.id)
     items = [
         HeadlineHistoryItem(
             id=str(r["id"]),
