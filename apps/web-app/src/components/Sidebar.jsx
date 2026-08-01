@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, SpellCheck, Newspaper, PenLine, FileText,
-  History, Settings, ChevronLeft, ChevronRight, User, Zap, Bot, Scale, X, Layers,
+  History, Settings, ChevronLeft, ChevronRight, User, Zap, X,
   LogIn, LogOut,
 } from 'lucide-react';
 import DotField from './DotField';
@@ -14,9 +14,6 @@ const TOOL_PATHS = {
   headlines: '/headlines',
   rewriter: '/rewriter',
   summarizer: '/summarizer',
-  sinllama: '/sinllama',
-  summarizer_playground: '/summarizer-playground',
-  comparison: '/comparison',
   history: '/history',
   settings: '/settings',
   profile: '/profile',
@@ -37,14 +34,6 @@ const NAV_SECTIONS = [
       { id: 'headlines', label: 'Headline Generator', icon: Newspaper },
       { id: 'rewriter', label: 'Style Rewriter', icon: PenLine },
       { id: 'summarizer', label: 'News Summarizer', icon: FileText },
-    ],
-  },
-  {
-    label: 'Research',
-    items: [
-      { id: 'sinllama', label: 'SinLLaMA Playground', icon: Bot },
-      { id: 'summarizer_playground', label: 'Summarizer Lab', icon: Layers },
-      { id: 'comparison', label: 'Model Comparison', icon: Scale },
     ],
   },
 ];

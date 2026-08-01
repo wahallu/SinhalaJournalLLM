@@ -14,9 +14,6 @@ import HistoryPage from './components/HistoryPage';
 import SettingsPage from './components/SettingsPage';
 import ProfilePage from './components/ProfilePage';
 import Plans from './components/Plans';
-import SinLLamaPage from './components/SinLLamaPage';
-import ModelComparison from './components/ModelComparison';
-import SummarizerPlayground from './components/SummarizerPlayground';
 import { useToolProcessor } from './hooks/useToolProcessor';
 import { usePlatformMeta } from './hooks/usePlatformMeta';
 import { checkGrammar, generateHeadlines, rewriteStyle, summarizeNews } from './services/api';
@@ -34,6 +31,9 @@ import UserDetail from './admin/pages/UserDetail';
 import Categories from './admin/pages/Categories';
 import AdminSettings from './admin/pages/Settings';
 import Activity from './admin/pages/Activity';
+import SinLLamaPage from './admin/research/SinLLamaPage';
+import SummarizerPlayground from './admin/research/SummarizerPlayground';
+import ModelComparison from './admin/research/ModelComparison';
 
 /* Auth screens render outside the sidebar shell. */
 const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email'];
@@ -86,9 +86,6 @@ const PATH_TO_TOOL = {
   '/headlines': 'headlines',
   '/rewriter': 'rewriter',
   '/summarizer': 'summarizer',
-  '/sinllama': 'sinllama',
-  '/summarizer-playground': 'summarizer_playground',
-  '/comparison': 'comparison',
   '/history': 'history',
   '/settings': 'settings',
   '/profile': 'profile',
@@ -101,9 +98,6 @@ const TOOL_TO_PATH = {
   headlines: '/headlines',
   rewriter: '/rewriter',
   summarizer: '/summarizer',
-  sinllama: '/sinllama',
-  summarizer_playground: '/summarizer-playground',
-  comparison: '/comparison',
   history: '/history',
   settings: '/settings',
   profile: '/profile',
@@ -117,9 +111,6 @@ const MAX_WIDTHS = {
   headlines: 'max-w-7xl',
   rewriter: 'max-w-7xl',
   summarizer: 'max-w-7xl',
-  comparison: 'max-w-7xl',
-  summarizer_playground: 'max-w-7xl',
-  sinllama: 'max-w-5xl',
   history: 'max-w-4xl',
   settings: 'max-w-3xl',
   profile: 'max-w-3xl',
@@ -315,7 +306,7 @@ function App() {
     }));
   }, []);
 
-  const isChat = location.pathname === '/sinllama';
+  const isChat = false; // the playground now lives under /admin/research
 
   /* Hiding a disabled tool in the sidebar still leaves its URL reachable, so
      the route itself has to bounce. The server enforces this too — this is
@@ -354,6 +345,9 @@ function App() {
           <Route path="categories" element={<Categories />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="activity" element={<Activity />} />
+          <Route path="research/playground" element={<SinLLamaPage />} />
+          <Route path="research/summarizer-lab" element={<SummarizerPlayground />} />
+          <Route path="research/comparison" element={<ModelComparison />} />
         </Route>
       </Routes>
     );
@@ -415,15 +409,18 @@ function App() {
               <Route path="/headlines" element={<ToolRunner activeTool="headlines" settings={effectiveSettings} setSettings={handleSettingsChange} />} />
               <Route path="/rewriter" element={<ToolRunner activeTool="rewriter" settings={effectiveSettings} setSettings={handleSettingsChange} />} />
               <Route path="/summarizer" element={<ToolRunner activeTool="summarizer" settings={effectiveSettings} setSettings={handleSettingsChange} />} />
-              <Route path="/sinllama" element={<SinLLamaPage />} />
-              <Route path="/summarizer-playground" element={<SummarizerPlayground />} />
-              <Route path="/comparison" element={<ModelComparison />} />
               {/* Personal routes need a session; the four tools above stay open
                   to anonymous visitors, who simply do not get results saved. */}
               <Route path="/history" element={<ProtectedRoute><HistoryPage onSelectTool={handleSelectTool} onRerun={handleQuickStart} onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage onBack={() => navigate('/dashboard')} onDefaultsChange={handleDefaultsChange} /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><ProfilePage onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
               <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
+              {/* The research tools moved to /admin/research/*. Send old
+                  bookmarks to the dashboard rather than the admin route —
+                  a non-admin would be redirected straight back out. */}
+              <Route path="/sinllama" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/summarizer-playground" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/comparison" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </div>
