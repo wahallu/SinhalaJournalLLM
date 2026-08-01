@@ -19,7 +19,15 @@ import ModelComparison from './components/ModelComparison';
 import SummarizerPlayground from './components/SummarizerPlayground';
 import { useToolProcessor } from './hooks/useToolProcessor';
 import { checkGrammar, generateHeadlines, rewriteStyle, summarizeNews } from './services/api';
-import { saveToHistory } from './lib/history';
+import ProtectedRoute from './auth/ProtectedRoute';
+import Login from './pages/auth/Login';
+import Signup from './pages/auth/Signup';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+import VerifyEmail from './pages/auth/VerifyEmail';
+
+/* Auth screens render outside the sidebar shell. */
+const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email'];
 
 const TOOL_CONFIG = {
   grammar: {
@@ -142,9 +150,9 @@ function ToolRunner({ activeTool, settings, setSettings }) {
     if (!input.trim()) return;
     const wrappedProcess = async (apiCall) => {
       await process(async (text) => {
-        const result = await apiCall(text);
-        saveToHistory(activeTool, text, result);
-        return result;
+        // The backend persists every authenticated run itself, so there is
+        // no client-side history store to keep in sync.
+        return await apiCall(text);
       });
     };
 
@@ -268,6 +276,18 @@ function App() {
 
   const isChat = location.pathname === '/sinllama';
 
+  if (AUTH_PATHS.includes(location.pathname)) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+      </Routes>
+    );
+  }
+
   return (
     <div className="relative h-full flex bg-canvas overflow-hidden">
       <Sidebar
@@ -322,10 +342,12 @@ function App() {
               <Route path="/sinllama" element={<SinLLamaPage />} />
               <Route path="/summarizer-playground" element={<SummarizerPlayground />} />
               <Route path="/comparison" element={<ModelComparison />} />
-              <Route path="/history" element={<HistoryPage onSelectTool={handleSelectTool} onRerun={handleQuickStart} onBack={() => navigate('/dashboard')} />} />
-              <Route path="/settings" element={<SettingsPage onBack={() => navigate('/dashboard')} onDefaultsChange={handleDefaultsChange} />} />
-              <Route path="/profile" element={<ProfilePage onBack={() => navigate('/dashboard')} />} />
-              <Route path="/plans" element={<Plans />} />
+              {/* Personal routes need a session; the four tools above stay open
+                  to anonymous visitors, who simply do not get results saved. */}
+              <Route path="/history" element={<ProtectedRoute><HistoryPage onSelectTool={handleSelectTool} onRerun={handleQuickStart} onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><SettingsPage onBack={() => navigate('/dashboard')} onDefaultsChange={handleDefaultsChange} /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><ProfilePage onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
+              <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </div>
