@@ -239,3 +239,18 @@ create index if not exists idx_audit_target  on audit_log (target_type, target_i
 alter table audit_log enable row level security;
 -- No policy: authenticated and anon are denied everything. Only the service
 -- role touches this table, via require_admin-gated endpoints.
+
+-- ── Runtime application settings ──
+-- Key/value so adding a knob is an INSERT, not a migration. Only keys in
+-- app/core/settings_registry.py are accepted; anything else is rejected by
+-- the API before it reaches this table.
+create table if not exists app_settings (
+    key        text primary key,
+    value      jsonb not null,
+    updated_by uuid references auth.users(id) on delete set null,
+    updated_at timestamptz not null default now()
+);
+
+alter table app_settings enable row level security;
+-- No policy: authenticated and anon are denied everything. Only the service
+-- role reads and writes, via require_admin-gated endpoints.
