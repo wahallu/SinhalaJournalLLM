@@ -93,9 +93,9 @@ def mock_headline(text: str, variation_index: int = 0, length: str = "medium") -
     if norm_len in ("short", "60"):
         lengths = [4, 5, 3, 4, 5]
     elif norm_len in ("long", "120"):
-        lengths = [11, 10, 12, 9, 10]
+        lengths = [8, 7, 9, 10, 8]
     else:
-        lengths = [7, 6, 8, 7, 6]
+        lengths = [6, 5, 7, 6, 5]
 
     # Vary the window per candidate so N candidates differ.
     starts = [0, 1, 0, 2, 1]

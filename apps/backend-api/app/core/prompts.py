@@ -116,19 +116,19 @@ HEADLINE_LENGTHS: dict[str, dict] = {
     },
     "medium": {
         "min_words": 5,
-        "max_words": 8,
-        "max_tokens": 60,
+        "max_words": 7,
+        "max_tokens": 50,
         "label_en": "Medium",
         "label_si": "මධ්‍යම",
-        "desc": "5 to 8 words (~60 tokens)",
+        "desc": "5 to 7 words (~50 tokens)",
     },
     "long": {
-        "min_words": 8,
-        "max_words": 12,
-        "max_tokens": 100,
+        "min_words": 7,
+        "max_words": 10,
+        "max_tokens": 80,
         "label_en": "Long",
         "label_si": "දීර්ඝ",
-        "desc": "8 to 12 words (~100 tokens)",
+        "desc": "7 to 10 words (~80 tokens)",
     },
 }
 
