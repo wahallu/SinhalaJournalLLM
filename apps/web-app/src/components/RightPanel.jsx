@@ -391,29 +391,10 @@ export default function RightPanel({ activeTool, settings, onSettingsChange, out
       {!output && !loading ? (
         <RightPanelCard icon={Newspaper} title="Headline controls">
           <OptionChips
-            label="Category"
-            columns={2}
-            options={HEADLINE_CATEGORIES}
-            value={settings.category || 'General'}
-            onChange={(v) => onSettingsChange({ ...settings, category: v })}
-          />
-          <OptionCards
-            label="Style"
-            options={HEADLINE_STYLES}
-            value={settings.headlineStyle}
-            onChange={(v) => onSettingsChange({ ...settings, headlineStyle: v })}
-          />
-          <OptionChips
             label="Max length"
             options={MAX_LENGTHS}
             value={settings.headlineMaxLength}
             onChange={(v) => onSettingsChange({ ...settings, headlineMaxLength: v })}
-          />
-          <OptionChips
-            label="Candidates"
-            options={HEADLINE_COUNTS}
-            value={settings.count}
-            onChange={(v) => onSettingsChange({ ...settings, count: v })}
           />
         </RightPanelCard>
       ) : (
