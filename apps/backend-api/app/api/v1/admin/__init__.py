@@ -12,6 +12,7 @@ from fastapi import APIRouter
 
 from app.api.v1.admin.categories import router as categories_router
 from app.api.v1.admin.overview import router as overview_router
+from app.api.v1.admin.settings import router as settings_router
 from app.api.v1.admin.users import router as users_router
 
 router = APIRouter()
@@ -19,3 +20,4 @@ router = APIRouter()
 router.include_router(overview_router)
 router.include_router(users_router)
 router.include_router(categories_router)
+router.include_router(settings_router)

@@ -124,6 +124,10 @@ async def test_admin_mutations_reject_non_admin():
         assert (
             await c.delete("/api/v1/admin/categories/c1", headers=_auth(USER_ID))
         ).status_code == 403
+        assert (
+            await c.patch("/api/v1/admin/settings/features.grammar",
+                          json={"value": False}, headers=_auth(USER_ID))
+        ).status_code == 403
 
 
 @pytest.mark.asyncio
