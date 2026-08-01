@@ -10,57 +10,79 @@ import { Skeleton } from './ui/Skeleton';
 // ─── Option definitions ──────────────────────────────────────────────────────
 
 const TONES = [
-  { id: 'formal',    label: 'Formal',    desc: 'Broadsheet news desk voice' },
+  { id: 'formal', label: 'Formal', desc: 'Broadsheet news desk voice' },
   { id: 'editorial', label: 'Editorial', desc: 'Analytical opinion writing' },
-  { id: 'sports',    label: 'Sports',    desc: 'Fast, energetic sports desk' },
-  { id: 'feature',   label: 'Feature',   desc: 'Narrative long-form style' },
-  { id: 'youth',     label: 'Youth',     desc: 'Casual, social-media friendly' },
+  { id: 'sports', label: 'Sports', desc: 'Fast, energetic sports desk' },
+  { id: 'feature', label: 'Feature', desc: 'Narrative long-form style' },
+  { id: 'youth', label: 'Youth', desc: 'Casual, social-media friendly' },
 ];
 
 const LENGTHS = [
-  { id: 'short',  label: 'Short',  desc: 'One to two sentence brief' },
+  { id: 'short', label: 'Short', desc: 'One to two sentence brief' },
   { id: 'medium', label: 'Medium', desc: 'Standard news summary' },
 ];
 
 const SUMMARY_VIEWS = [
   { id: 'paragraph', label: 'Paragraph' },
-  { id: 'bullets',   label: 'Bullets' },
+  { id: 'bullets', label: 'Bullets' },
+];
+
+const HEADLINE_STYLES = [
+  { id: 'formal', label: 'Formal', desc: 'Authoritative broadsheet tone' },
+  { id: 'breaking_news', label: 'Breaking News', desc: 'Urgent, attention-grabbing' },
+  { id: 'youth', label: 'Youth', desc: 'Casual, social-media friendly' },
+  { id: 'editorial', label: 'Editorial', desc: 'Analytical, thought-provoking' },
+];
+
+const HEADLINE_COUNTS = [
+  { id: 3, label: '3' },
+  { id: 5, label: '5' },
+  { id: 7, label: '7' },
 ];
 
 const MAX_LENGTHS = [
-  { id: 'short',  label: 'Short' },
-  { id: 'medium', label: 'Medium' },
-  { id: 'long',   label: 'Long' },
+  { id: 60, label: 'Short' },
+  { id: 80, label: 'Medium' },
+  { id: 120, label: 'Long' },
 ];
 
+const HEADLINE_CATEGORIES = [
+  { id: 'General', label: 'General' },
+  { id: 'Politics', label: 'Politics' },
+  { id: 'Business', label: 'Business' },
+  { id: 'Sports', label: 'Sports' },
+  { id: 'Entertainment', label: 'Entertainment' },
+  { id: 'Tech', label: 'Tech' },
+  { id: 'World', label: 'World' },
+];
 
 
 // ─── Grammar analysis ────────────────────────────────────────────────────────
 
 const RULE_META = {
-  spelling:    { label: 'Spelling',    dot: 'bg-brand-400',   bar: 'bg-brand-400' },
-  grammar:     { label: 'Grammar',     dot: 'bg-orange-400',  bar: 'bg-orange-400' },
-  word_order:  { label: 'Word Order',  dot: 'bg-purple-400',  bar: 'bg-purple-400' },
-  punctuation: { label: 'Punctuation', dot: 'bg-amber-400',   bar: 'bg-amber-400' },
-  agreement:   { label: 'Agreement',   dot: 'bg-blue-400',    bar: 'bg-blue-400' },
-  style:       { label: 'Style',       dot: 'bg-teal-400',    bar: 'bg-teal-400' },
+  spelling: { label: 'Spelling', dot: 'bg-brand-400', bar: 'bg-brand-400' },
+  grammar: { label: 'Grammar', dot: 'bg-orange-400', bar: 'bg-orange-400' },
+  word_order: { label: 'Word Order', dot: 'bg-purple-400', bar: 'bg-purple-400' },
+  punctuation: { label: 'Punctuation', dot: 'bg-amber-400', bar: 'bg-amber-400' },
+  agreement: { label: 'Agreement', dot: 'bg-blue-400', bar: 'bg-blue-400' },
+  style: { label: 'Style', dot: 'bg-teal-400', bar: 'bg-teal-400' },
 };
 
 function resolveRule(rule = '') {
   const lower = rule.toLowerCase();
-  if (lower.includes('spell'))                                  return RULE_META.spelling;
-  if (lower.includes('word_order') || lower.includes('order'))  return RULE_META.word_order;
-  if (lower.includes('punct'))                                  return RULE_META.punctuation;
+  if (lower.includes('spell')) return RULE_META.spelling;
+  if (lower.includes('word_order') || lower.includes('order')) return RULE_META.word_order;
+  if (lower.includes('punct')) return RULE_META.punctuation;
   if (lower.includes('agreement') || lower.includes('concord')) return RULE_META.agreement;
-  if (lower.includes('style'))                                  return RULE_META.style;
+  if (lower.includes('style')) return RULE_META.style;
   return RULE_META.grammar;
 }
 
 function GrammarAnalysisPanel({ output, loading }) {
   const corrections = output?.corrections ?? [];
-  const corrCount   = output?.correction_count ?? corrections.length;
-  const isPerfect   = output && corrCount === 0;
-  const hasOutput   = Boolean(output);
+  const corrCount = output?.correction_count ?? corrections.length;
+  const isPerfect = output && corrCount === 0;
+  const hasOutput = Boolean(output);
 
   const breakdown = {};
   corrections.forEach((c) => {
@@ -241,10 +263,10 @@ function HeadlineInsightsPanel({ output, loading }) {
             </p>
             <div className="space-y-2">
               {[
-                ['ROUGE-1',       bestMetrics.rouge_1],
-                ['ROUGE-2',       bestMetrics.rouge_2],
+                ['ROUGE-1', bestMetrics.rouge_1],
+                ['ROUGE-2', bestMetrics.rouge_2],
                 ['Semantic sim.', bestMetrics.semantic_similarity],
-                ['Entity cov.',   bestMetrics.entity_coverage],
+                ['Entity cov.', bestMetrics.entity_coverage],
               ].map(([label, val]) => (
                 <div key={label} className="space-y-1">
                   <div className="flex items-center justify-between text-[11px]">
@@ -369,17 +391,36 @@ export default function RightPanel({ activeTool, settings, onSettingsChange, out
       {!output && !loading ? (
         <RightPanelCard icon={Newspaper} title="Headline controls">
           <OptionChips
+            label="Category"
+            columns={2}
+            options={HEADLINE_CATEGORIES}
+            value={settings.category || 'General'}
+            onChange={(v) => onSettingsChange({ ...settings, category: v })}
+          />
+          <OptionCards
+            label="Style"
+            options={HEADLINE_STYLES}
+            value={settings.headlineStyle}
+            onChange={(v) => onSettingsChange({ ...settings, headlineStyle: v })}
+          />
+          <OptionChips
             label="Max length"
             options={MAX_LENGTHS}
             value={settings.headlineMaxLength}
             onChange={(v) => onSettingsChange({ ...settings, headlineMaxLength: v })}
+          />
+          <OptionChips
+            label="Candidates"
+            options={HEADLINE_COUNTS}
+            value={settings.count}
+            onChange={(v) => onSettingsChange({ ...settings, count: v })}
           />
         </RightPanelCard>
       ) : (
         <HeadlineInsightsPanel output={output} loading={loading} />
       )}
       <TipNote>
-        Adjust maximum character length to control headline conciseness.
+        Generate several candidates, then copy the one that best matches your section's voice.
       </TipNote>
     </>
   );

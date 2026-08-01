@@ -82,26 +82,18 @@ def mock_summarize(text: str, target_words: int) -> str:
     return " ".join(summary_parts)
 
 
-def mock_headline(text: str, variation_index: int = 0, length: str = "medium") -> str:
-    """First-sentence-derived headline, varied per candidate and length setting."""
+def mock_headline(text: str, variation_index: int = 0) -> str:
+    """First-sentence-derived headline, ≤10 words, varied per candidate."""
     sentences = _sentences(text)
     base = sentences[0] if sentences else text.strip()
     words = base.split()
 
-    norm_len = str(length).lower() if length else "medium"
-
-    if norm_len in ("short", "60"):
-        lengths = [4, 5, 3, 4, 5]
-    elif norm_len in ("long", "120"):
-        lengths = [8, 7, 9, 10, 8]
-    else:
-        lengths = [6, 5, 7, 6, 5]
-
     # Vary the window per candidate so N candidates differ.
     starts = [0, 1, 0, 2, 1]
+    lengths = [10, 9, 8, 8, 7]
     start = min(starts[variation_index % len(starts)], max(0, len(words) - 3))
-    target_len = lengths[variation_index % len(lengths)]
-    headline = " ".join(words[start:start + target_len])
+    length = lengths[variation_index % len(lengths)]
+    headline = " ".join(words[start:start + length])
     return headline.rstrip(".,;:،")
 
 
