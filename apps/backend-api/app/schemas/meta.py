@@ -36,6 +36,15 @@ class MetaResponse(BaseModel):
     default_length: str
     headline_counts: list[int]
     model: dict[str, Any] = Field(description="Model gateway provider status")
+    features: dict[str, bool] = Field(
+        default_factory=dict,
+        description="Per-tool availability. Clients hide tools that are off "
+                    "rather than letting a user click into a 503.",
+    )
+    defaults: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Admin-set starting values for users with no saved preference.",
+    )
 
 
 class HistoryItem(BaseModel):

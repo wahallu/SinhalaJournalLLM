@@ -9,6 +9,7 @@ import time
 
 from fastapi import APIRouter, Depends, Query, Request
 
+from app.core.features import require_tool_enabled
 from app.core.deps import optional_user, require_user
 from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
 from app.repositories.style_repository import get_rewrites
@@ -30,6 +31,7 @@ async def rewrite_style_endpoint(
     request: Request,
     payload: StyleRewriteRequest,
     user: AuthUser | None = Depends(optional_user),
+    _enabled: None = require_tool_enabled("rewriter"),
 ):
     """
     Rewrite Sinhala text in a different newspaper style.

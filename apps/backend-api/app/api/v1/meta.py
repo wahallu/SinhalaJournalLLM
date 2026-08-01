@@ -8,7 +8,9 @@ GET /history — newest activity across all four tools
 
 from fastapi import APIRouter, Depends, Query
 
+from app.core import runtime_settings
 from app.core.deps import require_user
+from app.core.features import all_flags
 from app.core.model_gateway import TASKS, gateway_status
 from app.core.prompts import (
     DEFAULT_LENGTH,
@@ -46,6 +48,12 @@ async def meta_endpoint():
         default_length=DEFAULT_LENGTH,
         headline_counts=[3, 5, 7],
         model=await gateway_status(),
+        features=await all_flags(),
+        defaults={
+            "tone": await runtime_settings.get("defaults.tone"),
+            "length": await runtime_settings.get("defaults.length"),
+            "headline_count": await runtime_settings.get("defaults.headline_count"),
+        },
     )
 
 

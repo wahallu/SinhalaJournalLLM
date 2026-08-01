@@ -11,6 +11,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
+from app.core.features import require_tool_enabled
 from app.core.deps import optional_user, require_user
 from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
 from app.repositories.grammar_repository import (
@@ -46,6 +47,7 @@ async def grammar_check_endpoint(
     request: Request,
     payload: GrammarCheckRequest,
     user: AuthUser | None = Depends(optional_user),
+    _enabled: None = require_tool_enabled("grammar"),
 ):
     """
     Check Sinhala text for grammatical errors.
