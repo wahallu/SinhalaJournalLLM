@@ -26,6 +26,26 @@ import pytest
 from app.core.config import get_settings
 
 
+def _matches_or(row: dict, expression: str) -> bool:
+    """
+    Evaluate a PostgREST or() expression against one row.
+
+    Only `column.ilike.*term*` clauses are supported — that is all the admin
+    user search emits. An unrecognized clause raises rather than being
+    skipped, so a test relying on an unimplemented operator fails loudly
+    instead of passing because the filter matched everything.
+    """
+    for clause in expression.split(","):
+        column, _, rest = clause.partition(".")
+        operator, _, pattern = rest.partition(".")
+        if operator != "ilike":
+            raise NotImplementedError(f"Fake or() supports ilike only, got {clause!r}")
+        needle = pattern.strip("*").lower()
+        if needle in str(row.get(column) or "").lower():
+            return True
+    return False
+
+
 class _FakeQuery:
     def __init__(self, store: dict[str, list[dict]], table: str):
         self._store = store
@@ -39,11 +59,31 @@ class _FakeQuery:
         self._limit: int | None = None
         self._single = False
         self._count = None
+        self._or: str | None = None
 
     # ── builders ──
     def insert(self, record: dict):
         self._operation = "insert"
         self._payload = record
+        return self
+
+    def update(self, record: dict):
+        self._operation = "update"
+        self._payload = record
+        return self
+
+    def delete(self):
+        self._operation = "delete"
+        return self
+
+    def or_(self, expression: str):
+        """
+        PostgREST or() — only the `col.ilike.*term*` form the admin user
+        search uses is interpreted. Anything else is ignored rather than
+        silently filtering nothing, so a test using an unsupported operator
+        fails loudly instead of passing for the wrong reason.
+        """
+        self._or = expression
         return self
 
     def select(self, *_cols, count: str | None = None):
@@ -88,11 +128,27 @@ class _FakeQuery:
             rows.append(record)
             return SimpleNamespace(data=[record], count=None)
 
+        if self._operation == "update":
+            updated = []
+            for row in rows:
+                if all(str(row.get(c)) == str(v) for c, v in self._filters):
+                    row.update(self._payload)
+                    updated.append(row)
+            return SimpleNamespace(data=updated, count=None)
+
+        if self._operation == "delete":
+            removed = [r for r in rows if all(str(r.get(c)) == str(v) for c, v in self._filters)]
+            remaining = [r for r in rows if r not in removed]
+            self._store[self._table] = remaining
+            return SimpleNamespace(data=removed, count=None)
+
         result = list(rows)
         for column, value in self._filters:
             result = [r for r in result if str(r.get(column)) == str(value)]
         for column, value in self._gte_filters:
             result = [r for r in result if str(r.get(column) or "") >= str(value)]
+        if self._or:
+            result = [r for r in result if _matches_or(r, self._or)]
         result.sort(key=lambda r: r.get("created_at") or "", reverse=self._order_desc)
         total = len(result)
         if self._range is not None:
