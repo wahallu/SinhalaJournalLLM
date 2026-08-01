@@ -34,12 +34,22 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!active) return;
-      setSession(data.session);
-      await loadProfile(data.session?.user?.id);
-      if (active) setLoading(false);
-    });
+    supabase.auth
+      .getSession()
+      .then(async ({ data }) => {
+        if (!active) return;
+        setSession(data.session);
+        await loadProfile(data.session?.user?.id);
+      })
+      .catch(() => {
+        // Treat an unreadable session as signed out. Without this the
+        // promise rejects, `loading` never clears, and every guarded route
+        // spins forever with no error and no way out.
+        if (active) setSession(null);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (_event, next) => {
       if (!active) return;

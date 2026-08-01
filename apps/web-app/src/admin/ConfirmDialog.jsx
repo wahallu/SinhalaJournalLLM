@@ -6,6 +6,7 @@
  * this.
  */
 
+import { useEffect, useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
 export default function ConfirmDialog({
@@ -21,6 +22,29 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }) {
+  const cancelRef = useRef(null);
+  const restoreFocusTo = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    // Remember where focus came from, then move it into the dialog — a
+    // dialog whose focus is still on the trigger behind the overlay is
+    // unusable by keyboard and invisible to a screen reader.
+    restoreFocusTo.current = document.activeElement;
+    cancelRef.current?.focus();
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape' && !busy) onCancel?.();
+    };
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      restoreFocusTo.current?.focus?.();
+    };
+  }, [open, busy, onCancel]);
+
   if (!open) return null;
 
   return (
@@ -29,6 +53,10 @@ export default function ConfirmDialog({
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      onMouseDown={(e) => {
+        // Backdrop click cancels; clicks inside the panel must not.
+        if (e.target === e.currentTarget && !busy) onCancel?.();
+      }}
     >
       <div className="w-full max-w-md rounded-lg border bg-card p-5" style={{ borderColor: 'var(--border)' }}>
         <div className="flex items-start gap-3">
@@ -61,6 +89,7 @@ export default function ConfirmDialog({
 
         <div className="mt-5 flex justify-end gap-2">
           <button
+            ref={cancelRef}
             onClick={onCancel}
             disabled={busy}
             className="px-3 py-1.5 rounded-md text-[13px] font-medium text-foreground

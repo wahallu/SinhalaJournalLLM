@@ -15,6 +15,7 @@ export default function Categories() {
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(null); // null = closed; {id?, ...fields} = open
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [dialogError, setDialogError] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -69,12 +70,15 @@ export default function Categories() {
 
   const confirmDelete = async () => {
     setBusy(true);
+    setDialogError(null);
     try {
       await deleteCategory(pendingDelete.id);
       setPendingDelete(null);
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      setError(err.message);
+      // Surfaced inside the dialog: the page-level banner would render
+      // behind the overlay, leaving the dialog open with no explanation.
+      setDialogError(err.message);
     } finally {
       setBusy(false);
     }
@@ -260,8 +264,12 @@ export default function Categories() {
         confirmLabel="Delete category"
         destructive
         busy={busy}
+        error={dialogError}
         onConfirm={confirmDelete}
-        onCancel={() => setPendingDelete(null)}
+        onCancel={() => {
+          setPendingDelete(null);
+          setDialogError(null);
+        }}
       />
     </div>
   );

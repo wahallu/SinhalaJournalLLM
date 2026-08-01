@@ -33,6 +33,7 @@ import AdminUsers from './admin/pages/Users';
 import UserDetail from './admin/pages/UserDetail';
 import Categories from './admin/pages/Categories';
 import AdminSettings from './admin/pages/Settings';
+import Activity from './admin/pages/Activity';
 
 /* Auth screens render outside the sidebar shell. */
 const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email'];
@@ -332,6 +333,7 @@ function App() {
           <Route path="users/:userId" element={<UserDetail />} />
           <Route path="categories" element={<Categories />} />
           <Route path="settings" element={<AdminSettings />} />
+          <Route path="activity" element={<Activity />} />
         </Route>
       </Routes>
     );

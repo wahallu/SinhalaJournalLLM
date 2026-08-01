@@ -1,10 +1,11 @@
 /**
  * Admin shell.
  *
- * The `.admin-theme` class on the outer element is what makes the admin
- * token set resolve; nothing inside it should rely on the user-facing
- * ink/brand tokens, and nothing outside it should use bg-card,
- * text-muted-foreground and friends.
+ * The `.admin-theme` class on the outer element overrides the shared design
+ * tokens with the admin palette. Those token names also exist on `:root`
+ * with SinAi values (see index.css), so using an admin utility outside this
+ * tree renders against the wrong palette rather than failing loudly — keep
+ * them inside `src/admin/`.
  */
 
 import { useState } from 'react';

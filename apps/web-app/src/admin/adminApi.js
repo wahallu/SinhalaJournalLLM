@@ -92,3 +92,18 @@ export function getSettings() {
 export function updateSetting(key, value) {
   return request(`/admin/settings/${key}`, { method: 'PATCH', body: { value } });
 }
+
+// ── Analytics & activity ──
+export function getAnalytics(days = 30) {
+  return request(`/admin/analytics?days=${days}`);
+}
+
+export function getAuditLog({ page = 1, pageSize = 50 } = {}) {
+  return request(`/admin/activity/audit?page=${page}&page_size=${pageSize}`);
+}
+
+export function getTelemetry({ page = 1, pageSize = 50, tool = '' } = {}) {
+  const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+  if (tool) params.set('tool', tool);
+  return request(`/admin/activity/telemetry?${params}`);
+}
