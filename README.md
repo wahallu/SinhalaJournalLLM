@@ -27,6 +27,8 @@ docs/                   Project documentation
 
 Training code, datasets, and the inference server live in the separate **SinAI-Training** repo (`work/sinllama/`).
 
+Authentication, roles, and per-user history are documented in [docs/auth-setup.md](docs/auth-setup.md).
+
 ## Architecture
 
 ```
@@ -58,6 +60,18 @@ docs addon ──┴─→ backend-api ─→ model │     serve_sinai.py  POST
 | `/summarize/history` | GET | Summary history |
 | `/history` | GET | Unified newest-first activity across all tools |
 | `/meta` | GET | Tasks, styles, lengths, provider status |
+
+### Authentication
+
+Requests carry a Supabase JWT as `Authorization: Bearer <token>`. Setup is in [docs/auth-setup.md](docs/auth-setup.md).
+
+| Route group | Auth |
+|---|---|
+| `/grammar/check`, `/headlines/generate`, `/rewrite`, `/summarize` | optional — anonymous allowed, rate-limited by IP, results not saved |
+| `/*/history`, `/history` | required — 401 without a valid token |
+| `/meta`, `/health` | none |
+
+Anonymous callers are capped at `ANON_REQUESTS_PER_HOUR` per hashed IP and receive 429 past that. The Chrome extension and Docs add-on use the anonymous path.
 | `/health`, `/health/model` | GET | Liveness / model gateway status (root-level, no version prefix) |
 
 ## Running locally
