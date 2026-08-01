@@ -196,3 +196,43 @@ async def test_each_history_read_uses_the_caller_scoped_client(
     assert response.status_code == 200
     assert seen_tokens, f"{endpoint} did not build a caller-scoped client"
     assert all(t == _token(USER_A) for t in seen_tokens)
+
+
+@pytest.mark.asyncio
+async def test_detail_by_id_is_scoped_to_its_owner(fake_supabase):
+    """
+    Regression: GET /grammar/{id} originally had no auth dependency and no
+    owner filter, so any caller could read any user's correction by id
+    (IDOR). Another user's record must read as not-found — 404 rather than
+    403, so the response does not confirm the id exists.
+    """
+    async with _client() as c:
+        created = await c.post("/api/v1/grammar/check", json={"text": _ARTICLE},
+                               headers=_auth(USER_A))
+        record_id = created.json()["id"]
+
+        as_owner = await c.get(f"/api/v1/grammar/{record_id}", headers=_auth(USER_A))
+        as_other = await c.get(f"/api/v1/grammar/{record_id}", headers=_auth(USER_B))
+        as_anon = await c.get(f"/api/v1/grammar/{record_id}")
+
+    assert as_owner.status_code == 200
+    assert as_other.status_code == 404
+    assert as_anon.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_legacy_null_owner_row_is_not_readable_by_id(fake_supabase):
+    """Pre-auth rows must not be reachable by guessing or replaying an id."""
+    legacy_id = "aaaaaaaa-0000-0000-0000-000000000001"
+    fake_supabase.store["grammar_corrections"] = [{
+        "id": legacy_id, "user_id": None,
+        "original_text": "legacy", "corrected_text": "legacy fixed",
+        "corrections": [], "correction_count": 0,
+        "created_at": "2025-01-01T00:00:00Z",
+    }]
+    async with _client() as c:
+        anon = await c.get(f"/api/v1/grammar/{legacy_id}")
+        signed_in = await c.get(f"/api/v1/grammar/{legacy_id}", headers=_auth(USER_A))
+
+    assert anon.status_code == 401
+    assert signed_in.status_code == 404

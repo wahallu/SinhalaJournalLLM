@@ -94,11 +94,20 @@ async def grammar_history_endpoint(
 
 
 @router.get("/{correction_id}", response_model=GrammarCheckResponse)
-async def grammar_detail_endpoint(correction_id: UUID):
+async def grammar_detail_endpoint(
+    correction_id: UUID,
+    user: AuthUser = Depends(require_user),
+):
     """
-    Retrieve a single grammar correction by ID.
+    Retrieve one of the caller's own grammar corrections by ID.
+
+    Scoped to the caller: another user's record is reported as not found
+    rather than forbidden, so the response does not confirm that the id
+    exists.
     """
-    record = await get_correction_by_id(correction_id)
+    record = await get_correction_by_id(
+        correction_id, user_id=user.id, user_token=user.token
+    )
     if not record:
         raise HTTPException(status_code=404, detail="Correction not found")
     return _record_to_response(record)
