@@ -137,3 +137,25 @@ async def test_empty_name_is_rejected():
         r = await c.post("/api/v1/admin/categories",
                          json={"name": "", "slug": "ok"}, headers=_auth(ADMIN_ID))
     assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_user_category_list_excludes_inactive(fake_supabase):
+    """The user-facing list must not offer a category an admin retired."""
+    fake_supabase.store["user_categories"].append(
+        {"id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", "name": "Retired", "slug": "retired",
+         "description": None, "is_active": False, "sort_order": 9,
+         "created_at": "2026-01-01T00:00:00Z"}
+    )
+    async with _client() as c:
+        r = await c.get("/api/v1/categories", headers=_auth(USER_ID))
+
+    assert r.status_code == 200
+    assert [c_["slug"] for c_ in r.json()] == ["journalist"]
+
+
+@pytest.mark.asyncio
+async def test_user_category_list_requires_auth():
+    async with _client() as c:
+        r = await c.get("/api/v1/categories")
+    assert r.status_code == 401

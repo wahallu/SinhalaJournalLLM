@@ -163,6 +163,12 @@ export function runComparison(inputOrPayload, adapters, task = 'grammar', style 
   return request('/comparison/compare', payload);
 }
 
+// ── Categories ──
+// Active categories only — what a user may pick from on their profile.
+export function getCategories() {
+  return request('/categories', null, 'GET');
+}
+
 // ── Unified history ──
 // Server-side and scoped to the signed-in user; returns 401 when signed out.
 // Response: { items: [{ id, tool, input_preview, output_preview, detail, created_at }] }
