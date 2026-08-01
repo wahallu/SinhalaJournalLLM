@@ -10,7 +10,7 @@ import pytest
 
 from app.core.auth import InvalidToken, decode_token, extract_bearer
 
-TEST_SECRET = "test-jwt-secret-not-a-real-one"
+TEST_SECRET = "test-jwt-secret-not-a-real-one-but-long-enough-to-avoid-warnings"
 
 
 def _token(**overrides) -> str:
@@ -45,7 +45,11 @@ def test_expired_token_rejected():
 
 
 def test_wrong_signature_rejected():
-    forged = jwt.encode({"sub": "x", "aud": "authenticated"}, "wrong-secret", algorithm="HS256")
+    forged = jwt.encode(
+        {"sub": "x", "aud": "authenticated"},
+        "wrong-secret-but-also-long-enough-to-avoid-key-length-warnings",
+        algorithm="HS256",
+    )
     with pytest.raises(InvalidToken):
         decode_token(forged)
 
