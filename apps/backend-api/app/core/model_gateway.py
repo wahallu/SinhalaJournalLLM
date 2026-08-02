@@ -59,6 +59,22 @@ class ModelGatewayError(Exception):
     """All providers failed (only possible when MODEL_FALLBACK is off)."""
 
 
+def add_tokens(total: int | None, delta: int | None) -> int | None:
+    """
+    Accumulate a token count across the several gateway calls one request can
+    make (headline candidates, the grammar second pass).
+
+    None means "this provider does not report token counts" — only sinllama
+    does; _via_openrouter returns just the model name and _via_mock returns
+    nothing. That has to stay None rather than collapsing to 0, because an
+    unknown count and a genuine zero are different facts and the admin Chats
+    view renders them differently.
+    """
+    if delta is None:
+        return total
+    return (total or 0) + delta
+
+
 async def _provider_chain() -> list[str]:
     """
     Providers to try, in order.

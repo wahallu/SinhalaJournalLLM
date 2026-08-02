@@ -50,6 +50,8 @@ async def rewrite_style_endpoint(
         status_code=200,
         latency_ms=latency_ms,
         provider=result.model_used,
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
         ip_hash=hash_ip(client_ip(request)),
     )
     return result

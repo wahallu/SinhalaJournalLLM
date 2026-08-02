@@ -52,7 +52,14 @@ class GrammarCheckResponse(BaseModel):
         default=None,
         description="Inference provider that produced this result (sinllama | openrouter | mock)",
     )
-
+    input_tokens: int | None = Field(
+        default=None,
+        description="Prompt tokens reported by the provider; null when it reports none",
+    )
+    output_tokens: int | None = Field(
+        default=None,
+        description="Generated tokens reported by the provider; null when it reports none",
+    )
 
 class GrammarHistoryResponse(BaseModel):
     """Paginated list of past grammar corrections."""

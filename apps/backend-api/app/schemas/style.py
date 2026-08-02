@@ -36,7 +36,14 @@ class StyleRewriteResponse(BaseModel):
     id: str | None = Field(default=None, description="Rewrite record ID")
     model_used: str | None = Field(default=None)
     created_at: datetime | None = Field(default=None)
-
+    input_tokens: int | None = Field(
+        default=None,
+        description="Prompt tokens reported by the provider; null when it reports none",
+    )
+    output_tokens: int | None = Field(
+        default=None,
+        description="Generated tokens reported by the provider; null when it reports none",
+    )
 
 class StyleHistoryItem(BaseModel):
     """One stored style rewrite."""

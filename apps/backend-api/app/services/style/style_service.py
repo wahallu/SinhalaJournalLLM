@@ -20,6 +20,8 @@ async def rewrite_style(
     style = resolve_style(tone)
     result = await model_generate("style", text, style=style)
     rewritten = result.text or text
+    input_tokens = result.meta.get("input_tokens")
+    output_tokens = result.meta.get("output_tokens")
 
     record = {
         "original_text": text,
@@ -27,6 +29,8 @@ async def rewrite_style(
         "style": style,
         "model_provider": result.provider,
         "latency_ms": result.latency_ms,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
     }
     saved = await persist_if_owned(save_rewrite, record, user_id)
 
@@ -38,4 +42,6 @@ async def rewrite_style(
         style=style,
         model_used=result.provider,
         created_at=saved.get("created_at"),
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
     )

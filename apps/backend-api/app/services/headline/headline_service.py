@@ -19,7 +19,7 @@ short real headline beats an empty result.
 import asyncio
 import logging
 
-from app.core.model_gateway import model_generate
+from app.core.model_gateway import add_tokens, model_generate
 from app.core.prompts import (
     HEADLINE_LENGTHS,
     HEADLINE_VARIATION_HINTS,
@@ -129,6 +129,9 @@ async def generate_headlines(
     candidates: list[str | None] = []
     provider = None
     total_latency = 0
+    # Summed across every call this request makes — the initial fan-out plus
+    # each retry round — the same way latency already is.
+    input_tokens, output_tokens = None, None
     for outcome in results:
         if isinstance(outcome, BaseException):
             logger.warning("Headline candidate failed: %s", outcome)
@@ -137,6 +140,8 @@ async def generate_headlines(
         candidates.append(outcome.text)
         provider = provider or outcome.provider
         total_latency += outcome.latency_ms
+        input_tokens = add_tokens(input_tokens, outcome.meta.get("input_tokens"))
+        output_tokens = add_tokens(output_tokens, outcome.meta.get("output_tokens"))
 
     for _ in range(MAX_LENGTH_RETRY_ROUNDS):
         retry_slots = [
@@ -166,6 +171,8 @@ async def generate_headlines(
                 logger.warning("Headline length retry failed: %s", outcome)
                 continue
             total_latency += outcome.latency_ms
+            input_tokens = add_tokens(input_tokens, outcome.meta.get("input_tokens"))
+            output_tokens = add_tokens(output_tokens, outcome.meta.get("output_tokens"))
             # Sampling can hand back something worse than what it replaces,
             # so a retry only wins when it's actually closer to the band.
             if _band_distance(outcome.text, band) < _band_distance(
@@ -185,6 +192,8 @@ async def generate_headlines(
         "count": len(headlines),
         "model_provider": provider,
         "latency_ms": total_latency,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
     }
     saved = await persist_if_owned(save_generation, record, user_id)
 
@@ -198,4 +207,6 @@ async def generate_headlines(
         ),
         model_used=provider,
         created_at=saved.get("created_at"),
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
     )

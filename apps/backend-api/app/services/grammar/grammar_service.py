@@ -9,7 +9,7 @@ against the input, and persists the result.
 import logging
 from difflib import SequenceMatcher
 
-from app.core.model_gateway import model_generate
+from app.core.model_gateway import add_tokens, model_generate
 from app.repositories.base import persist_if_owned
 from app.repositories.grammar_repository import save_correction
 from app.schemas.grammar import CorrectionDetail, GrammarCheckResponse
@@ -174,6 +174,7 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
     corrected_text = text
     provider: str | None = None
     total_latency = 0
+    input_tokens, output_tokens = None, None
 
     for pass_num in range(MAX_PASSES):
         num_candidates = ENSEMBLE_SIZE if pass_num == 0 else 1
@@ -182,6 +183,8 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
         )
         total_latency += result.latency_ms
         provider = result.provider
+        input_tokens = add_tokens(input_tokens, result.meta.get("input_tokens"))
+        output_tokens = add_tokens(output_tokens, result.meta.get("output_tokens"))
 
         candidates = result.meta.get("candidates") or [result.text]
         raw = _pick_consensus(candidates)
@@ -200,6 +203,8 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
         "correction_count": len(corrections),
         "model_provider": provider,
         "latency_ms": total_latency,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
     }
     saved = await persist_if_owned(save_correction, record, user_id)
 
@@ -210,4 +215,6 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
         correction_count=len(corrections),
         created_at=saved.get("created_at"),
         model_used=provider,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
     )
