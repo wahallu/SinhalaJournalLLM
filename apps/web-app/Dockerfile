@@ -26,13 +26,18 @@ ARG VITE_SUPABASE_ANON_KEY
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 
-# Fail loudly at build time rather than shipping an image that renders blank.
-RUN test -n "$VITE_SUPABASE_URL" \
-      || (echo "ERROR: --build-arg VITE_SUPABASE_URL is required" && exit 1) \
- && test -n "$VITE_SUPABASE_ANON_KEY" \
-      || (echo "ERROR: --build-arg VITE_SUPABASE_ANON_KEY is required" && exit 1)
-
 RUN npm run build
+
+# Verify the values actually made it into the bundle, rather than checking
+# one particular way of supplying them. Vite reads .env.production from the
+# build context when no build arg is set, so a platform that does not pass
+# --build-arg (Render, for one) still produces a working image — but an
+# image whose bundle has no Supabase URL renders a blank page, so that must
+# fail here instead of at a visitor's browser.
+RUN grep -rq "supabase.co" dist/assets/*.js \
+      || (echo "ERROR: built bundle contains no Supabase URL." \
+       && echo "Set apps/web-app/.env.production, or pass --build-arg VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY." \
+       && exit 1)
 
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
