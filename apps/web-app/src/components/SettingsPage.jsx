@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ArrowLeft, Globe, Sliders, RotateCcw, CheckCircle2, Info, Settings as SettingsIcon } from 'lucide-react';
+import { ArrowLeft, Sliders, RotateCcw, CheckCircle2, Settings as SettingsIcon } from 'lucide-react';
 import PageHeader from './ui/PageHeader';
 import ActionButton from './ui/ActionButton';
+import Dropdown from './ui/Dropdown';
 import { Card } from './ui/Card';
-import { DEFAULT_API_BASE } from '../services/api';
+import { TONES, LENGTHS, HEADLINE_COUNTS } from '../lib/toolOptions';
 
 function getSettings() {
   try {
@@ -18,17 +19,12 @@ function saveSettings(settings) {
 }
 
 const DEFAULT_SETTINGS = {
-  apiBaseUrl: '',
   defaultTone: 'formal',
   defaultLength: 'short',
   headlineCount: 5,
 };
 
 const LABEL_CLASS = 'block text-[12.5px] font-semibold text-ink-700 mb-1.5';
-const INPUT_CLASS = `w-full px-3.5 py-2.5 text-[14px] text-ink-800 border border-ink-200 rounded-xl bg-white
-  placeholder:text-ink-400 transition-all duration-150
-  focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]`;
-const SELECT_CLASS = `${INPUT_CLASS} cursor-pointer`;
 
 function SettingsSection({ icon: Icon, title, description, children }) {
   return (
@@ -56,7 +52,7 @@ export default function SettingsPage({ onBack, onDefaultsChange }) {
   // Which fields the user actually edited this visit. Saving everything on
   // screen would convert the displayed fallbacks into explicit choices,
   // permanently overriding the admin's global defaults even for someone who
-  // only came here to change the API URL.
+  // only came here to change one field.
   const [touched, setTouched] = useState(() => new Set());
 
   const update = (key, value) => {
@@ -92,7 +88,7 @@ export default function SettingsPage({ onBack, onDefaultsChange }) {
       <PageHeader
         icon={SettingsIcon}
         title="Settings"
-        description="Tool defaults and API connection."
+        description="Starting values for the writing tools."
         actions={
           <ActionButton id="settings-back" size="sm" variant="ghost" icon={ArrowLeft} onClick={onBack}>
             Dashboard
@@ -101,81 +97,52 @@ export default function SettingsPage({ onBack, onDefaultsChange }) {
       />
 
       <div className="space-y-4">
-        {/* API configuration */}
-        <SettingsSection
-          icon={Globe}
-          title="API configuration"
-          description="Where SinAi sends grammar, headline, rewrite, and summary requests."
-        >
-          <label htmlFor="api-url" className={LABEL_CLASS}>API base URL</label>
-          <input
-            id="api-url"
-            type="url"
-            value={settings.apiBaseUrl}
-            onChange={(e) => update('apiBaseUrl', e.target.value)}
-            placeholder={DEFAULT_API_BASE}
-            className={INPUT_CLASS}
-          />
-          <p className="flex items-center gap-1.5 text-[11.5px] text-ink-500 mt-2">
-            <Info size={11} className="shrink-0" />
-            Leave empty to use the default hosted endpoint.
-          </p>
-        </SettingsSection>
-
-        {/* Tool defaults */}
         <SettingsSection
           icon={Sliders}
           title="Tool defaults"
-          description="Starting values used when you open each writing tool."
+          description="Used when you open each writing tool. You can still change them per run from the editor toolbar."
         >
           <div className="space-y-4">
             <div>
-              <label htmlFor="default-tone" className={LABEL_CLASS}>Default tone — Style Rewriter</label>
-              <select
+              <label className={LABEL_CLASS}>Default tone — Style Rewriter</label>
+              <Dropdown
                 id="default-tone"
+                label="Tone"
+                variant="full"
+                options={TONES}
                 value={settings.defaultTone}
-                onChange={(e) => update('defaultTone', e.target.value)}
-                className={SELECT_CLASS}
-              >
-                <option value="formal">Formal</option>
-                <option value="editorial">Editorial</option>
-                <option value="youth">Youth</option>
-              </select>
+                onChange={(v) => update('defaultTone', v)}
+              />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="default-length" className={LABEL_CLASS}>Default summary length</label>
-                <select
+                <label className={LABEL_CLASS}>Default summary length</label>
+                <Dropdown
                   id="default-length"
+                  label="Length"
+                  variant="full"
+                  options={LENGTHS}
                   value={settings.defaultLength}
-                  onChange={(e) => update('defaultLength', e.target.value)}
-                  className={SELECT_CLASS}
-                >
-                  <option value="short">Short</option>
-                  <option value="medium">Medium</option>
-                  <option value="long">Long</option>
-                </select>
+                  onChange={(v) => update('defaultLength', v)}
+                />
               </div>
 
               <div>
-                <label htmlFor="headline-count" className={LABEL_CLASS}>Default headline count</label>
-                <select
+                <label className={LABEL_CLASS}>Default headline count</label>
+                <Dropdown
                   id="headline-count"
+                  label="Count"
+                  variant="full"
+                  options={HEADLINE_COUNTS}
                   value={settings.headlineCount}
-                  onChange={(e) => update('headlineCount', Number(e.target.value))}
-                  className={SELECT_CLASS}
-                >
-                  <option value={3}>3 headlines</option>
-                  <option value={5}>5 headlines</option>
-                  <option value={7}>7 headlines</option>
-                </select>
+                  onChange={(v) => update('headlineCount', v)}
+                />
               </div>
             </div>
           </div>
         </SettingsSection>
 
-        {/* Actions */}
         <div className="flex items-center gap-2.5 pt-1">
           <ActionButton
             id="save-settings"
