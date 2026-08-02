@@ -91,25 +91,19 @@ export async function generateHeadlines(text, options = {}) {
 
   const band = raw.length || HEADLINE_LENGTH_BANDS[length] || HEADLINE_LENGTH_BANDS.medium;
 
-  // Transform flat { headlines: string[] } → rich output shape for HeadlineOutputPanel
+  // Only two derived values, both computed from text the backend actually
+  // returned: the word count and whether it landed in the requested band.
+  // Everything else this function used to synthesize — validation flags,
+  // ROUGE/BLEU/semantic scores, entities, themes, a pipeline log — was
+  // invented client-side and rendered as if the model had produced it.
   const headlines = raw.headlines || [];
   const candidates = headlines.map((headline, i) => {
     const words = headline.trim().split(/\s+/).length;
     return {
       headline,
       rank: i + 1,
-      passed_validation: true,
-      metrics: {
-        rouge_1: 0,
-        rouge_2: 0,
-        rouge_l: 0,
-        bleu: 0,
-        semantic_similarity: 0,
-        entity_coverage: 0,
-        grammar_pass: true,
-        word_count: words,
-        length_ok: words >= band.min_words && words <= band.max_words,
-      },
+      word_count: words,
+      length_ok: words >= band.min_words && words <= band.max_words,
     };
   });
 
@@ -117,10 +111,6 @@ export async function generateHeadlines(text, options = {}) {
     ...raw,
     best_headline: headlines[0] || null,
     candidates,
-    source_entities: [],
-    semantic_extraction: {},
-    pipeline_log: [],
-    regeneration_count: 0,
   };
 }
 

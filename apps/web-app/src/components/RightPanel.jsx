@@ -1,6 +1,6 @@
 import {
-  CheckCircle2, Lightbulb, BookOpen, BarChart3, Tag, Sparkles,
-  ShieldCheck, Layers, PenLine, FileText, Newspaper, AlertTriangle,
+  CheckCircle2, Lightbulb, BookOpen,
+  ShieldCheck, Layers, PenLine, FileText, Newspaper,
 } from 'lucide-react';
 import { RightPanelCard } from './ui/Card';
 import { OptionCards, OptionChips } from './ui/Options';
@@ -146,126 +146,6 @@ function GrammarAnalysisPanel({ output, loading }) {
   );
 }
 
-// ─── Headline insights ───────────────────────────────────────────────────────
-
-function HeadlineInsightsPanel({ output, loading }) {
-  if (loading) {
-    return (
-      <RightPanelCard icon={BarChart3} title="Pipeline insights">
-        <div className="space-y-2">
-          {[1, 2, 3].map((n) => <Skeleton key={n} className="h-13 rounded-xl" />)}
-        </div>
-      </RightPanelCard>
-    );
-  }
-
-  const candidates = output.candidates || [];
-  const passed = candidates.filter((c) => c.passed_validation).length;
-  const entities = output.source_entities || [];
-  const pipelineLog = output.pipeline_log || [];
-  const totalTime = pipelineLog.reduce((sum, l) => sum + l.duration_ms, 0);
-
-  const best = candidates[0];
-  const bestMetrics = best?.metrics ?? {};
-  const hasRealMetrics = Object.values(bestMetrics).some((v) => typeof v === 'number' && v > 0);
-
-  return (
-    <RightPanelCard icon={BarChart3} title="Pipeline insights">
-      <div className="space-y-4">
-        {/* Summary stats */}
-        <div className="grid grid-cols-2 gap-2">
-          <div className="px-3 py-2.5 bg-ink-50 rounded-xl text-center">
-            <p className="text-[17px] font-bold text-ink-800 tabular-nums">{candidates.length}</p>
-            <p className="text-[9.5px] text-ink-500 uppercase tracking-wider font-semibold">Candidates</p>
-          </div>
-          <div className="px-3 py-2.5 bg-emerald-50 rounded-xl text-center">
-            <p className="text-[17px] font-bold text-emerald-700 tabular-nums">{passed}</p>
-            <p className="text-[9.5px] text-ink-500 uppercase tracking-wider font-semibold">Passed</p>
-          </div>
-          {entities.length > 0 && (
-            <div className="px-3 py-2.5 bg-blue-50 rounded-xl text-center">
-              <p className="text-[17px] font-bold text-blue-700 tabular-nums">{entities.length}</p>
-              <p className="text-[9.5px] text-ink-500 uppercase tracking-wider font-semibold">Entities</p>
-            </div>
-          )}
-          {totalTime > 0 && (
-            <div className="px-3 py-2.5 bg-amber-50 rounded-xl text-center">
-              <p className="text-[17px] font-bold text-amber-700 tabular-nums">
-                {totalTime.toFixed(0)}<span className="text-[11px] font-medium">ms</span>
-              </p>
-              <p className="text-[9.5px] text-ink-500 uppercase tracking-wider font-semibold">Total time</p>
-            </div>
-          )}
-        </div>
-
-        {/* Regeneration warning */}
-        {output.regeneration_count > 0 && (
-          <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 rounded-xl border border-amber-200/70">
-            <AlertTriangle size={13} className="text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-[11.5px] text-amber-800 leading-relaxed">
-              Pipeline triggered <strong>{output.regeneration_count}</strong> regeneration{output.regeneration_count > 1 ? 's' : ''} to meet quality thresholds.
-            </p>
-          </div>
-        )}
-
-        {/* Best candidate metrics — only when the backend returned real scores */}
-        {hasRealMetrics && (
-          <div>
-            <p className="text-[10px] font-bold text-ink-500 uppercase tracking-[0.12em] mb-2.5 flex items-center gap-1.5">
-              <Sparkles size={10} /> Best headline metrics
-            </p>
-            <div className="space-y-2">
-              {[
-                ['ROUGE-1', bestMetrics.rouge_1],
-                ['ROUGE-2', bestMetrics.rouge_2],
-                ['Semantic sim.', bestMetrics.semantic_similarity],
-                ['Entity cov.', bestMetrics.entity_coverage],
-              ].map(([label, val]) => (
-                <div key={label} className="space-y-1">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-ink-500">{label}</span>
-                    <span className="text-ink-700 font-semibold tabular-nums">{(val * 100).toFixed(1)}%</span>
-                  </div>
-                  <div className="h-1 bg-ink-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-brand-500/80 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(val * 100, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Entity distribution */}
-        {entities.length > 0 && (
-          <div>
-            <p className="text-[10px] font-bold text-ink-500 uppercase tracking-[0.12em] mb-2 flex items-center gap-1.5">
-              <Tag size={10} /> Entity types
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {Object.entries(
-                entities.reduce((acc, e) => {
-                  acc[e.label] = (acc[e.label] || 0) + 1;
-                  return acc;
-                }, {})
-              ).map(([label, count]) => (
-                <span
-                  key={label}
-                  className="px-2.5 py-1 bg-ink-50 rounded-lg border border-ink-200 text-[11px] font-medium text-ink-600"
-                >
-                  {label} <span className="text-ink-400 tabular-nums">×{count}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </RightPanelCard>
-  );
-}
-
 // ─── Tip note ────────────────────────────────────────────────────────────────
 
 function TipNote({ children }) {
@@ -340,25 +220,16 @@ export default function RightPanel({ activeTool, settings, onSettingsChange, out
 
   // headlines
   return (
-    <>
-      {!output && !loading ? (
-        <RightPanelCard icon={Newspaper} title="Headline controls">
-          <OptionChips
-            label="Max length"
-            options={HEADLINE_LENGTHS_OPTIONS}
-            value={settings.headlineLength}
-            onChange={(v) => onSettingsChange({ ...settings, headlineLength: v })}
-          />
-          <p className="-mt-3.5 text-[11px] text-ink-500">
-            {HEADLINE_LENGTHS_OPTIONS.find((o) => o.id === settings.headlineLength)?.desc}
-          </p>
-        </RightPanelCard>
-      ) : (
-        <HeadlineInsightsPanel output={output} loading={loading} />
-      )}
-      <TipNote>
-        Generate several candidates, then copy the one that best matches your section's voice.
-      </TipNote>
-    </>
+    <RightPanelCard icon={Newspaper} title="Headline controls">
+      <OptionChips
+        label="Max length"
+        options={HEADLINE_LENGTHS_OPTIONS}
+        value={settings.headlineLength}
+        onChange={(v) => onSettingsChange({ ...settings, headlineLength: v })}
+      />
+      <p className="-mt-3.5 text-[11px] text-ink-500">
+        {HEADLINE_LENGTHS_OPTIONS.find((o) => o.id === settings.headlineLength)?.desc}
+      </p>
+    </RightPanelCard>
   );
 }
