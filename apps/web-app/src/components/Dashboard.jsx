@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  ArrowRight, ArrowUpRight, Activity, Bot, Clock, Cpu, RefreshCw,
-  Scale, Sparkles, Zap, History as HistoryIcon,
+  ArrowRight, ArrowUpRight, Activity, Clock, Cpu, RefreshCw,
+  Sparkles, Zap, SpellCheck, Newspaper, History as HistoryIcon,
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import StatusBadge from './ui/StatusBadge';
 import ActionButton from './ui/ActionButton';
 import EmptyState from './ui/EmptyState';
 import { TOOL_LIST, TOOL_META } from '../lib/toolMeta';
+import { useAuth } from '../auth/useAuth';
 import { getSinLlamaHealth, getComparisonAdapters } from '../services/api';
 import { getUnifiedHistory } from '../services/api';
 
@@ -52,6 +54,8 @@ function StatusRow({ label, badge, detail }) {
 }
 
 export default function Dashboard({ onSelectTool, onQuickStart }) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [history, setHistory] = useState([]);
   const [llamaStatus, setLlamaStatus] = useState('checking');   // online | offline | checking
   const [gatewayStatus, setGatewayStatus] = useState('checking');
@@ -178,28 +182,44 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
             </ActionButton>
             <ActionButton
               size="lg"
-              icon={Bot}
-              onClick={() => onSelectTool('sinllama')}
+              icon={Newspaper}
+              onClick={() => onSelectTool('headlines')}
               className="!bg-white/10 !text-white !border-white/15 hover:!bg-white/15 hover:!border-white/25 !shadow-none"
             >
-              Open playground
+              Generate headlines
             </ActionButton>
           </div>
         </div>
       </section>
 
-      {/* ── Metrics ── */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5" aria-label="Usage metrics">
-        <StatCard label="Total runs" value={stats.total} hint="Across all tools" />
-        <StatCard label="Today" value={stats.today} hint="Runs since midnight" />
-        <StatCard label="This week" value={stats.week} hint="Last 7 days" />
-        <StatCard
-          label="Most used"
-          small={stats.topTool !== '—'}
-          value={stats.topTool}
-          hint={stats.topTool === '—' ? 'No runs yet' : 'Your go-to tool'}
-        />
-      </section>
+      {/* ── Metrics ──
+           Signed out, /history 401s and every tile can only ever read 0, so
+           show an introduction instead of four zeroes. */}
+      {user ? (
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5" aria-label="Usage metrics">
+          <StatCard label="Total runs" value={stats.total} hint="Across all tools" />
+          <StatCard label="Today" value={stats.today} hint="Runs since midnight" />
+          <StatCard label="This week" value={stats.week} hint="Last 7 days" />
+          <StatCard
+            label="Most used"
+            small={stats.topTool !== '—'}
+            value={stats.topTool}
+            hint={stats.topTool === '—' ? 'No runs yet' : 'Your go-to tool'}
+          />
+        </section>
+      ) : (
+        <Card className="px-5 py-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <p className="text-[13px] text-ink-700 font-medium">
+            All four writing tools are free to use without an account.
+          </p>
+          <button
+            onClick={() => navigate('/login')}
+            className="text-[13px] font-semibold text-brand-700 hover:underline cursor-pointer"
+          >
+            Sign in to save your work →
+          </button>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
         {/* ── Left: tools + activity ── */}
@@ -369,9 +389,12 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
               <h2 className="text-[13px] font-bold text-ink-900">Quick actions</h2>
             </div>
             <div className="p-2">
+              {/* These used to point at 'comparison' and 'sinllama', which
+                  moved to /admin/research/* in Phase 4 — both routes redirect
+                  to /dashboard, so clicking them did nothing. */}
               {[
-                { label: 'Compare model adapters', icon: Scale, action: () => onSelectTool('comparison') },
-                { label: 'Chat with the base model', icon: Bot, action: () => onSelectTool('sinllama') },
+                { label: 'Check Sinhala grammar', icon: SpellCheck, action: () => onSelectTool('grammar') },
+                { label: 'Generate headlines', icon: Newspaper, action: () => onSelectTool('headlines') },
                 { label: 'Review your history', icon: HistoryIcon, action: () => onSelectTool('history') },
               ].map(({ label, icon: Icon, action }) => (
                 <button
@@ -389,27 +412,6 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
             </div>
           </Card>
 
-          <Card className="overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-ink-100">
-              <Sparkles size={14} className="text-brand-600" />
-              <h2 className="text-[13px] font-bold text-ink-900">Try a sample</h2>
-            </div>
-            <div className="p-3 space-y-1">
-              {TOOL_LIST.map(({ id, sampleLabel, sample }) => (
-                <button
-                  key={id}
-                  onClick={() => onQuickStart(id, sample)}
-                  className="w-full text-left px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-150
-                    hover:bg-brand-50 group"
-                >
-                  <p className="text-[12.5px] font-semibold text-ink-700 group-hover:text-brand-800">{sampleLabel}</p>
-                  <p className="text-[11px] text-ink-500 mt-0.5">
-                    {TOOL_META[id].label} · sample loaded for you
-                  </p>
-                </button>
-              ))}
-            </div>
-          </Card>
         </div>
       </div>
     </div>
