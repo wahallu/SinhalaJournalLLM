@@ -1,7 +1,92 @@
-import { AlertTriangle, CheckCircle2, FileSearch, ArrowRight } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileSearch, ArrowRight, Layers } from 'lucide-react';
 import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
 import { SkeletonLines } from './ui/Skeleton';
+
+// Relocated from the deleted RightPanel. These corrections are real —
+// derived server-side by grammar_service.derive_corrections() — unlike the
+// headline "metrics" removed in the same redesign.
+const RULE_META = {
+  spelling: { label: 'Spelling', dot: 'bg-brand-400', bar: 'bg-brand-400' },
+  grammar: { label: 'Grammar', dot: 'bg-orange-400', bar: 'bg-orange-400' },
+  word_order: { label: 'Word Order', dot: 'bg-purple-400', bar: 'bg-purple-400' },
+  punctuation: { label: 'Punctuation', dot: 'bg-amber-400', bar: 'bg-amber-400' },
+  agreement: { label: 'Agreement', dot: 'bg-blue-400', bar: 'bg-blue-400' },
+  style: { label: 'Style', dot: 'bg-teal-400', bar: 'bg-teal-400' },
+};
+
+function resolveRule(rule = '') {
+  const lower = rule.toLowerCase();
+  if (lower.includes('spell')) return RULE_META.spelling;
+  if (lower.includes('word_order') || lower.includes('order')) return RULE_META.word_order;
+  if (lower.includes('punct')) return RULE_META.punctuation;
+  if (lower.includes('agreement') || lower.includes('concord')) return RULE_META.agreement;
+  if (lower.includes('style')) return RULE_META.style;
+  return RULE_META.grammar;
+}
+
+function CorrectionsList({ corrections }) {
+  if (!corrections.length) return null;
+
+  const breakdown = {};
+  corrections.forEach((c) => {
+    const meta = resolveRule(c.rule);
+    breakdown[meta.label] = breakdown[meta.label] || { count: 0, meta };
+    breakdown[meta.label].count += 1;
+  });
+  const entries = Object.entries(breakdown);
+
+  return (
+    <Card className="px-4 py-4 space-y-4">
+      {entries.length > 1 && (
+        <div>
+          <p className="text-[10px] font-bold text-ink-500 uppercase tracking-[0.12em] mb-2 flex items-center gap-1.5">
+            <Layers size={10} /> By category
+          </p>
+          <div className="space-y-1.5">
+            {entries.map(([label, { count, meta }]) => (
+              <div key={label} className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${meta.dot}`} />
+                <span className="text-[11.5px] text-ink-600 flex-1">{label}</span>
+                <div className="w-20 h-1.5 bg-ink-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${meta.bar}`}
+                    style={{ width: `${Math.round((count / corrections.length) * 100)}%` }}
+                  />
+                </div>
+                <span className="text-[11px] font-semibold text-ink-600 w-3 text-right tabular-nums">{count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <p className="text-[10px] font-bold text-ink-500 uppercase tracking-[0.12em] mb-2">
+          Corrections applied
+        </p>
+        <div className="space-y-1.5">
+          {corrections.map((c, i) => {
+            const meta = resolveRule(c.rule);
+            return (
+              <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 bg-ink-50/70 border border-ink-100 rounded-xl">
+                <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[12px] text-ink-400 line-through decoration-brand-300">{c.original}</span>
+                    <span className="text-ink-300 text-[10px]">→</span>
+                    <span className="text-[12px] font-semibold text-ink-800">{c.corrected}</span>
+                  </div>
+                  <p className="text-[10px] text-ink-500 mt-0.5 uppercase tracking-wide">{meta.label}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 /**
  * Generic output panel for grammar, style rewriter, and summarizer tools.
@@ -63,7 +148,7 @@ function TextCard({ children, muted = false, className = '' }) {
   );
 }
 
-export default function OutputPanel({ output, loading, error, type, input, summaryView = 'paragraph' }) {
+export default function OutputPanel({ output, loading, error, type, input, summaryView = 'paragraph', showCorrections = false }) {
   if (loading) {
     return (
       <div id="output-loading" className="space-y-3">
@@ -226,6 +311,8 @@ export default function OutputPanel({ output, loading, error, type, input, summa
           )}
         </div>
       )}
+
+      {showCorrections && <CorrectionsList corrections={corrections} />}
 
       <p className="text-center text-[11px] text-ink-400 pt-1">
         SinAi can make mistakes. Please double-check responses.

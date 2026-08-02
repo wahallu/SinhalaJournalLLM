@@ -1,14 +1,17 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Menu } from 'lucide-react';
+import { Menu, ArrowDownToLine } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import { TOOL_META } from './lib/toolMeta';
+import { SUMMARY_VIEWS } from './lib/toolOptions';
 import PageHeader from './components/ui/PageHeader';
 import StatusBadge from './components/ui/StatusBadge';
-import InputBox from './components/InputBox';
+import ActionButton from './components/ui/ActionButton';
+import Dropdown from './components/ui/Dropdown';
+import Editor from './components/editor/Editor';
+import ResultsPane from './components/editor/ResultsPane';
 import OutputPanel from './components/OutputPanel';
 import HeadlineOutputPanel from './components/HeadlineOutputPanel';
-import RightPanel from './components/RightPanel';
 import Dashboard from './components/Dashboard';
 import HistoryPage from './components/HistoryPage';
 import SettingsPage from './components/SettingsPage';
@@ -47,7 +50,6 @@ const TOOL_CONFIG = {
     outputType: 'text',
     icon: TOOL_META.grammar.icon,
     helper: 'Paste or type Sinhala text to check grammar',
-    sample: TOOL_META.grammar.sample,
   },
   headlines: {
     title: TOOL_META.headlines.label,
@@ -57,7 +59,6 @@ const TOOL_CONFIG = {
     outputType: 'headlines',
     icon: TOOL_META.headlines.icon,
     helper: 'Paste the full article to generate headlines',
-    sample: TOOL_META.headlines.sample,
   },
   rewriter: {
     title: TOOL_META.rewriter.label,
@@ -67,7 +68,6 @@ const TOOL_CONFIG = {
     outputType: 'text',
     icon: TOOL_META.rewriter.icon,
     helper: 'Paste text to rewrite in a different tone',
-    sample: TOOL_META.rewriter.sample,
   },
   summarizer: {
     title: TOOL_META.summarizer.label,
@@ -77,7 +77,6 @@ const TOOL_CONFIG = {
     outputType: 'text',
     icon: TOOL_META.summarizer.icon,
     helper: 'Paste the article to summarize',
-    sample: TOOL_META.summarizer.sample,
   },
 };
 
@@ -129,7 +128,7 @@ function loadDefaultSettings() {
     tone: stored.defaultTone,
     length: stored.defaultLength,
     count: stored.headlineCount,
-    headlineStyle: 'formal',
+    category: 'General',
     headlineLength: 'medium',
     summaryView: 'paragraph',
   };
@@ -164,7 +163,6 @@ function ToolRunner({ activeTool, settings, setSettings }) {
       case 'headlines':
         wrappedProcess((text) =>
           generateHeadlines(text, {
-            style: settings.headlineStyle,
             length: settings.headlineLength,
             numCandidates: settings.count,
             category: settings.category || 'General',
@@ -182,6 +180,37 @@ function ToolRunner({ activeTool, settings, setSettings }) {
 
   if (!config) return null;
 
+  // Matches OutputPanel's own resolution order. Headlines are excluded from
+  // Apply: a headline is not a replacement for the article it came from.
+  const resultText = output?.corrected ?? output?.rewritten ?? output?.summary ?? '';
+  const canApply = Boolean(resultText) && activeTool !== 'headlines';
+
+  const resultsTitle = activeTool === 'headlines' ? 'Generated headlines' : 'Result';
+  const resultsControls = (
+    <>
+      {activeTool === 'summarizer' && output && (
+        <Dropdown
+          id="summary-view"
+          label="View"
+          options={SUMMARY_VIEWS}
+          value={settings.summaryView}
+          onChange={(v) => setSettings({ ...settings, summaryView: v })}
+        />
+      )}
+      {canApply && (
+        <ActionButton
+          size="sm"
+          variant="ghost"
+          icon={ArrowDownToLine}
+          onClick={() => setInput(resultText)}
+          title="Replace the editor content with this result"
+        >
+          Apply
+        </ActionButton>
+      )}
+    </>
+  );
+
   return (
     <>
       <PageHeader
@@ -192,55 +221,46 @@ function ToolRunner({ activeTool, settings, setSettings }) {
       />
 
       <div className="tool-grid">
-        <div className="tg-input">
-          <InputBox
+        <div className="tg-input flex flex-col">
+          <Editor
+            tool={activeTool}
+            title={config.title}
+            icon={config.icon}
+            placeholder={config.placeholder}
+            actionLabel={config.actionLabel}
+            helper={config.helper}
             value={input}
             onChange={setInput}
-            placeholder={config.placeholder}
-            onSubmit={handleRun}
-            disabled={loading}
-            activeTool={activeTool}
-            helper={config.helper}
-            sample={config.sample}
-            actionLabel={config.actionLabel}
-            loading={loading}
             onRun={handleRun}
             onClear={clear}
+            loading={loading}
+            settings={settings}
+            onSettingsChange={setSettings}
           />
         </div>
 
-        <div className="tg-panel">
-          <div className="xl:sticky xl:top-6 space-y-4">
-            <RightPanel
-              activeTool={activeTool}
-              settings={settings}
-              onSettingsChange={setSettings}
-              output={output}
-              loading={loading}
-              input={input}
-            />
-          </div>
-        </div>
-
-        <div className="tg-output">
-          {activeTool === 'headlines' ? (
-            <HeadlineOutputPanel
-              output={output}
-              loading={loading}
-              error={error}
-              articleText={input}
-            />
-          ) : (
-            <OutputPanel
-              output={output}
-              loading={loading}
-              error={error}
-              type={config.outputType}
-              activeTool={activeTool}
-              input={input}
-              summaryView={settings.summaryView}
-            />
-          )}
+        <div className="tg-output flex flex-col">
+          <ResultsPane title={resultsTitle} right={resultsControls}>
+            {activeTool === 'headlines' ? (
+              <HeadlineOutputPanel
+                output={output}
+                loading={loading}
+                error={error}
+                articleText={input}
+              />
+            ) : (
+              <OutputPanel
+                output={output}
+                loading={loading}
+                error={error}
+                type={config.outputType}
+                activeTool={activeTool}
+                input={input}
+                summaryView={settings.summaryView}
+                showCorrections={activeTool === 'grammar'}
+              />
+            )}
+          </ResultsPane>
         </div>
       </div>
     </>

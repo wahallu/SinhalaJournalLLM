@@ -48,3 +48,26 @@ export const HEADLINE_CATEGORIES = [
   { id: 'Tech', label: 'Tech' },
   { id: 'World', label: 'World' },
 ];
+
+/**
+ * Which dropdowns each tool shows in its editor toolbar, keyed by the
+ * settings field each one drives.
+ *
+ * Request parameters only — display options (the summarizer's
+ * paragraph/bullets toggle) live on the results pane instead, because they
+ * do not change the request. Grammar is deliberately empty:
+ * POST /grammar/check takes only `text`.
+ *
+ * Lives here rather than in EditorToolbar.jsx because a file that exports
+ * both a component and an object trips react-refresh/only-export-components.
+ */
+export const TOOLBAR_CONTROLS = {
+  grammar: [],
+  headlines: [
+    { key: 'headlineLength', label: 'Length', options: HEADLINE_LENGTHS_OPTIONS },
+    { key: 'count', label: 'Count', options: HEADLINE_COUNTS },
+    { key: 'category', label: 'Category', options: HEADLINE_CATEGORIES },
+  ],
+  rewriter: [{ key: 'tone', label: 'Tone', options: TONES }],
+  summarizer: [{ key: 'length', label: 'Length', options: LENGTHS }],
+};
