@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { getAnalytics, getOverview } from '../adminApi';
+import SystemStatusPanel from '../SystemStatusPanel';
 
 const CHART_COLORS = [
   'var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)',
@@ -146,6 +147,8 @@ export default function Overview() {
       </div>
 
       <div className="space-y-5">
+        <SystemStatusPanel />
+
         <Panel
           title="Requests over time"
           note={sourceNote}
