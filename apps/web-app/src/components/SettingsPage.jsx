@@ -154,6 +154,7 @@ export default function SettingsPage({ onBack, onDefaultsChange }) {
                 >
                   <option value="short">Short</option>
                   <option value="medium">Medium</option>
+                  <option value="long">Long</option>
                 </select>
               </div>
 

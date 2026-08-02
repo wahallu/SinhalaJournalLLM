@@ -13,8 +13,7 @@
  * broken. Keep admin utilities inside `src/admin/` regardless.
  */
 
-@import '@fontsource-variable/inter';
-@import '@fontsource-variable/jetbrains-mono';
+
 
 .admin-theme {
   --card: hsl(0, 0%, 100%);

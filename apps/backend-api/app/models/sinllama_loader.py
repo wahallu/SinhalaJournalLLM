@@ -35,6 +35,7 @@ async def sinllama_generate(
     prompt: str,
     task: str,
     style: str | None = None,
+    length: str | None = None,
     adapter: str | None = None,
 ) -> dict[str, Any]:
     """
@@ -57,6 +58,8 @@ async def sinllama_generate(
     payload: dict[str, Any] = {"prompt": prompt, "task": task}
     if style is not None:
         payload["style"] = style
+    if length is not None:
+        payload["length"] = length
     if adapter:
         # Only sent when an admin has chosen one. A server that predates
         # adapter support ignores the extra field, so this stays backward

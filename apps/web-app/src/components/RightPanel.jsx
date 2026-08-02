@@ -18,8 +18,9 @@ const TONES = [
 ];
 
 const LENGTHS = [
-  { id: 'short', label: 'Short', desc: 'One to two sentence brief' },
-  { id: 'medium', label: 'Medium', desc: 'Standard news summary' },
+  { id: 'short', label: 'Short', desc: 'Brief summary (~10% length)' },
+  { id: 'medium', label: 'Medium', desc: 'Standard summary (~20% length)' },
+  { id: 'long', label: 'Long', desc: 'Detailed summary (~35% length)' },
 ];
 
 const SUMMARY_VIEWS = [

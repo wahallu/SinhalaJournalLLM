@@ -195,17 +195,24 @@ HEADLINE_VARIATION_HINTS: list[str] = [
 ]
 
 
+SUMMARIZER_LENGTH_LINES = {
+    "short":  "සාරාංශය ඉතා කෙටි විය යුතුය — මුල් ලිපියේ දිගෙන් 10%ක් පමණ.",
+    "medium": "සාරාංශය මධ්‍යම දිගකින් විය යුතුය — මුල් ලිපියේ දිගෙන් 20%ක් පමණ.",
+    "long":   "සාරාංශය සවිස්තරාත්මක විය යුතුය — මුල් ලිපියේ දිගෙන් 35%ක් පමණ.",
+}
+
+
 def prompt_summarizer(text: str, length: str = DEFAULT_LENGTH) -> str:
-    cfg = SUMMARY_LENGTHS[resolve_length(length)]
-    word_count = len(text.split())
-    target = max(cfg["min_words"], int(word_count * cfg["ratio"]))
+    resolved = resolve_length(length)
+    line = SUMMARIZER_LENGTH_LINES.get(resolved, SUMMARIZER_LENGTH_LINES[DEFAULT_LENGTH])
     return (
-        "### Instruction:\n"
-        "ඔබ සිංහල පුවත් ලිපි සාරාංශ කිරීමේ විශේෂඥයෙකි.\n"
-        "පහත සිංහල පුවත් ලිපිය කියවා, ලිපියේ ප්‍රධාන කරුණු ඇතුළත් සාරාංශයක් ලියන්න.\n"
-        f"සාරාංශය වචන {target}කට සීමා කරන්න.\n\n"
+        "<|begin_of_text|><|start_header_id|>user<|end_header_id|>\n\n"
+        "පහත සිංහල පුවත් ලිපිය සාරාංශ කරන්න.\n\n"
+        "ලිපියේ ඇති තොරතුරු පමණක් භාවිතා කරන්න.\n"
+        f"{line}\n"
+        "අමතර අදහස්, විශ්ලේෂණ හෝ නව තොරතුරු එකතු නොකරන්න.\n\n"
         f"Article:\n{text}\n\n"
-        "### Response:\n"
+        "<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n"
     )
 
 

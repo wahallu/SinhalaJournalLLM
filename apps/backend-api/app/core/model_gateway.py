@@ -183,7 +183,7 @@ async def _via_sinllama(
     adapter = str(await runtime_settings.get(f"adapters.{task}") or "").strip()
 
     try:
-        data = await sinllama_generate(prompt, task, style, adapter=adapter or None)
+        data = await sinllama_generate(prompt, task, style, length=length or DEFAULT_LENGTH, adapter=adapter or None)
     except httpx.HTTPStatusError as exc:
         # 422 here means the server rejected the adapter — it was renamed,
         # deleted, or belongs to another task. Retry on the task default
@@ -194,7 +194,7 @@ async def _via_sinllama(
                 "to the task default. Update the setting in the dashboard.",
                 adapter, task,
             )
-            data = await sinllama_generate(prompt, task, style)
+            data = await sinllama_generate(prompt, task, style, length=length or DEFAULT_LENGTH)
         else:
             raise
 
