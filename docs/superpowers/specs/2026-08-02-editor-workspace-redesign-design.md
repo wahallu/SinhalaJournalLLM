@@ -28,7 +28,7 @@ Each records the alternative rejected, so a later reader knows the choice was de
 | D8 | **API base URL field removed from Settings** | Keeping it as a power-user feature. A production user repointing the app at an arbitrary origin is a liability, not a feature. The `sinai_settings.apiBaseUrl` key is still honoured by `getApiBase()` for local development — only the UI goes. |
 | D9 | Signed-out users get **the full editor plus a post-result sign-in cue** | A marketing landing page, or a persistent top banner. The tools already work anonymously (D11 of the dashboard spec); the moment saving becomes worth something is after the first result, not before. |
 | D10 | **Client character cap raised 2,000 → 10,000** to match the backend | Leaving it. Every tool schema accepts 10,000 (§4.3); 2,000 is roughly 300 Sinhala words, far below the article lengths the summarizer and headline generator exist to handle. |
-| D11 | **Custom `Dropdown` component**, not native `<select>` | Native `<select>`. Cannot be styled consistently across platforms to the standard the rest of this UI holds, and cannot show the secondary description text each option carries today. Accessibility is preserved by implementing the listbox pattern properly (§5.1). |
+| D11 | **`Dropdown` built on Radix `Select`**, not native `<select>` and not hand-rolled | Native `<select>` cannot be styled consistently across platforms to the standard the rest of this UI holds, nor show the secondary description text each option carries. A hand-rolled listbox was the original plan until `radix-ui@1.6.4` was found already in `package.json` and imported nowhere in `src/` — it provides the listbox pattern, keyboard nav, focus management, portalling and collision detection as tested code, so hand-rolling would be strictly worse. |
 | D12 | Headline **Count and Category surfaced** in the toolbar | Leaving them settings-only. Both are already sent on every request and were simply never exposed — surfacing them is a capability gain, not new scope. Headline `style` stays unexposed because it is explicitly not sent. |
 
 ## 3. Architecture
@@ -123,12 +123,11 @@ Removed: the `Example` button and `loadSample` in the editor, `sample`/`sampleLa
 
 ### 5.1 `ui/Dropdown.jsx`
 
-Trigger button showing the current option's label and a chevron; popover listing options with optional description text. Requirements:
+A thin styled wrapper over Radix `Select` (`import { Select } from 'radix-ui'`), which already ships the listbox pattern, keyboard navigation, focus return, outside-click dismissal, portalling and collision-aware positioning. The wrapper supplies only SinAi styling and the option shape used across this app.
 
-- `role="listbox"` on the popover, `role="option"` with `aria-selected` on each item, `aria-expanded` and `aria-haspopup="listbox"` on the trigger.
-- Keyboard: Enter/Space/ArrowDown opens; ArrowUp/ArrowDown move; Enter/Space select; Escape closes and returns focus to the trigger; Tab closes.
-- Closes on outside click. Popover is positioned below the trigger, right-aligned when it would overflow the pane.
-- Compact variant for the toolbar (dense, label-only trigger) and a full variant for Settings (with descriptions).
+Props: `value`, `onChange`, `options` (`[{ id, label, desc? }]`), `label` (accessible name), `variant` (`'compact'` for the toolbar, `'full'` for Settings — the latter renders each option's `desc`), and `id`.
+
+Content is portalled, so it escapes the editor pane's `overflow` without clipping — the reason not to render it inline. Trigger shows the selected option's label plus a chevron.
 
 ### 5.2 Toolbar contents per tool
 
