@@ -1,12 +1,13 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Tags, SlidersHorizontal, ScrollText,
-  Bot, Layers, Scale, ArrowLeft, Moon, Sun,
+  MessagesSquare, Bot, Layers, Scale, ArrowLeft, Moon, Sun,
 } from 'lucide-react';
 
 const NAV = [
   { to: '/admin', end: true, label: 'Overview', icon: LayoutDashboard },
   { to: '/admin/users', end: false, label: 'Users', icon: Users },
+  { to: '/admin/chats', end: false, label: 'Chats', icon: MessagesSquare },
   { to: '/admin/categories', end: false, label: 'Categories', icon: Tags },
   { to: '/admin/activity', end: false, label: 'Activity', icon: ScrollText },
   { to: '/admin/settings', end: false, label: 'Settings', icon: SlidersHorizontal },

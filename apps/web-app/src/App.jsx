@@ -30,6 +30,7 @@ import AdminLayout from './admin/AdminLayout';
 import Overview from './admin/pages/Overview';
 import AdminUsers from './admin/pages/Users';
 import UserDetail from './admin/pages/UserDetail';
+import Chats from './admin/pages/Chats';
 import Categories from './admin/pages/Categories';
 import AdminSettings from './admin/pages/Settings';
 import Activity from './admin/pages/Activity';
@@ -371,6 +372,7 @@ function App() {
           <Route index element={<Overview />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="users/:userId" element={<UserDetail />} />
+          <Route path="chats" element={<Chats />} />
           <Route path="categories" element={<Categories />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="activity" element={<Activity />} />

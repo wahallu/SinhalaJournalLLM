@@ -108,6 +108,13 @@ export function getTelemetry({ page = 1, pageSize = 50, tool = '' } = {}) {
   return request(`/admin/activity/telemetry?${params}`);
 }
 
+// Every user's tool runs with content previews and token usage. Sourced from
+// the four history tables, not telemetry — telemetry has the token columns
+// but none of the text.
+export function getChats({ limit = 100 } = {}) {
+  return request(`/admin/activity/chats?limit=${limit}`);
+}
+
 // ── Adapters ──
 // The model server owns this list; /comparison/adapters is already
 // admin-only, so the Settings page reuses it rather than adding an endpoint.
