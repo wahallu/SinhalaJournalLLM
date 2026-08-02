@@ -92,3 +92,46 @@ async def list_recent(limit: int = 50, *, user_id: str | None = None, user_token
     merged = [item for items in per_tool for item in items]
     merged.sort(key=lambda item: item.get("created_at") or "", reverse=True)
     return merged[:limit]
+
+
+async def list_all_recent(limit: int = 100) -> list[dict[str, Any]]:
+    """
+    Every user's newest runs, merged newest-first, for the admin Chats view.
+
+    Deliberately separate from list_recent rather than a flag on it: this
+    shape carries `user_id` and token counts, and the user-facing /history
+    response should not widen just because the admin console needs more.
+
+    Anonymous runs are not stored at all (see persist_if_owned), so every
+    row here has an owner.
+    """
+
+    async def _load(tool: str) -> list[dict[str, Any]]:
+        table, input_column, extract_output = _SOURCES[tool]
+        try:
+            rows = await fetch_recent(table, limit)
+        except Exception:
+            logger.exception("Admin chats: failed to read %s — skipping", table)
+            return []
+        return [
+            {
+                "id": str(row.get("id")),
+                "user_id": row.get("user_id"),
+                "tool": tool,
+                "input_preview": _preview(row.get(input_column)),
+                "output_preview": _preview(extract_output(row)),
+                "model_provider": row.get("model_provider"),
+                "latency_ms": row.get("latency_ms"),
+                # None when the provider reported nothing — only sinllama
+                # does. The UI shows that as "—", not 0.
+                "input_tokens": row.get("input_tokens"),
+                "output_tokens": row.get("output_tokens"),
+                "created_at": row.get("created_at"),
+            }
+            for row in rows
+        ]
+
+    per_tool = await asyncio.gather(*[_load(tool) for tool in _SOURCES])
+    merged = [item for items in per_tool for item in items]
+    merged.sort(key=lambda item: item.get("created_at") or "", reverse=True)
+    return merged[:limit]
