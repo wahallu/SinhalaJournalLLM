@@ -202,73 +202,87 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
           {BOTTOM_NAV.map(renderNavItem)}
         </div>
 
-        {/* User */}
+        {/* User — a signed-out visitor gets a real sign-in button rather than
+            "Guest / Not signed in" as dead text behind a one-item menu. */}
         <div className={`relative z-10 pb-4 pt-1 ${collapsed ? 'px-3' : 'px-3.5'}`}>
-          <button
-            id="user-profile-btn"
-            onClick={() => setProfileOpen((v) => !v)}
-            className={`
-              w-full flex items-center gap-2.5 rounded-xl cursor-pointer
-              ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}
-              hover:bg-white/[0.06] transition-colors duration-150
-            `}
-          >
-            <div className="w-8.5 h-8.5 rounded-lg bg-gradient-to-br from-brand-500 to-brand-800 flex items-center justify-center shrink-0 text-white text-[12px] font-bold">
-              {initial}
-            </div>
-            {!collapsed && (
-              <div className="text-left min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-[12.5px] font-semibold text-white truncate">{displayName}</p>
-                  {profile?.role === 'admin' && (
-                    <span className="text-[8.5px] font-bold text-white/50 bg-white/10 px-1.5 py-px rounded uppercase tracking-wider">
-                      Admin
-                    </span>
-                  )}
-                </div>
-                <p className="text-[10.5px] text-white/40 truncate">{displayEmail}</p>
-              </div>
-            )}
-          </button>
-
-          {profileOpen && (
+          {user ? (
             <>
-              <div className="fixed inset-0 z-50" onClick={() => setProfileOpen(false)} />
-              <div className={`absolute ${collapsed ? 'left-full ml-2 w-48' : 'left-3.5 right-3.5'} bottom-[4.25rem] z-50
-                bg-white rounded-xl shadow-pop py-1.5 border border-ink-200/80
-                animate-in fade-in slide-in-from-bottom-1 duration-150`}>
-                {(user
-                  ? [
+              <button
+                id="user-profile-btn"
+                onClick={() => setProfileOpen((v) => !v)}
+                className={`
+                  w-full flex items-center gap-2.5 rounded-xl cursor-pointer
+                  ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}
+                  hover:bg-white/[0.06] transition-colors duration-150
+                `}
+              >
+                <div className="w-8.5 h-8.5 rounded-lg bg-gradient-to-br from-brand-500 to-brand-800 flex items-center justify-center shrink-0 text-white text-[12px] font-bold">
+                  {initial}
+                </div>
+                {!collapsed && (
+                  <div className="text-left min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[12.5px] font-semibold text-white truncate">{displayName}</p>
+                      {profile?.role === 'admin' && (
+                        <span className="text-[8.5px] font-bold text-white/50 bg-white/10 px-1.5 py-px rounded uppercase tracking-wider">
+                          Admin
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10.5px] text-white/40 truncate">{displayEmail}</p>
+                  </div>
+                )}
+              </button>
+
+              {profileOpen && (
+                <>
+                  <div className="fixed inset-0 z-50" onClick={() => setProfileOpen(false)} />
+                  <div className={`absolute ${collapsed ? 'left-full ml-2 w-48' : 'left-3.5 right-3.5'} bottom-[4.25rem] z-50
+                    bg-white rounded-xl shadow-pop py-1.5 border border-ink-200/80
+                    animate-in fade-in slide-in-from-bottom-1 duration-150`}>
+                    {[
                       { id: 'profile-view-btn', label: 'View profile', icon: User, tool: 'profile' },
                       { id: 'profile-upgrade-btn', label: 'Plans', icon: Zap, tool: 'plans' },
                       { id: 'profile-settings-btn', label: 'Settings', icon: Settings, tool: 'settings' },
                       { id: 'profile-signout-btn', label: 'Sign out', icon: LogOut, action: 'signout' },
-                    ]
-                  : [{ id: 'profile-signin-btn', label: 'Sign in', icon: LogIn, action: 'signin' }]
-                ).map(({ id, label, icon: Icon, tool, action }) => (
-                  <button
-                    key={id}
-                    id={id}
-                    onClick={async () => {
-                      setProfileOpen(false);
-                      if (action === 'signout') {
-                        await signOut();
-                        navigate('/login');
-                      } else if (action === 'signin') {
-                        navigate('/login');
-                      } else {
-                        select(tool);
-                      }
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[12.5px] font-medium text-ink-700
-                      hover:bg-ink-50 hover:text-brand-700 cursor-pointer transition-colors"
-                  >
-                    <Icon size={15} strokeWidth={2} className="text-ink-400" />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
+                    ].map(({ id, label, icon: Icon, tool, action }) => (
+                      <button
+                        key={id}
+                        id={id}
+                        onClick={async () => {
+                          setProfileOpen(false);
+                          if (action === 'signout') {
+                            await signOut();
+                            navigate('/login');
+                          } else {
+                            select(tool);
+                          }
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-[12.5px] font-medium text-ink-700
+                          hover:bg-ink-50 hover:text-brand-700 cursor-pointer transition-colors"
+                      >
+                        <Icon size={15} strokeWidth={2} className="text-ink-400" />
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </>
+          ) : (
+            <button
+              id="sidebar-signin"
+              onClick={() => navigate('/login')}
+              title={collapsed ? 'Sign in' : undefined}
+              className={`
+                w-full flex items-center gap-2.5 rounded-xl cursor-pointer
+                ${collapsed ? 'justify-center px-0 py-2.5' : 'px-2.5 py-2.5'}
+                bg-white/[0.06] hover:bg-white/[0.1] transition-colors duration-150
+              `}
+            >
+              <LogIn size={16} className="text-white/70 shrink-0" />
+              {!collapsed && <span className="text-[12.5px] font-semibold text-white">Sign in</span>}
+            </button>
           )}
         </div>
       </aside>

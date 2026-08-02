@@ -19,6 +19,7 @@ import { useToolProcessor } from './hooks/useToolProcessor';
 import { usePlatformMeta } from './hooks/usePlatformMeta';
 import { checkGrammar, generateHeadlines, rewriteStyle, summarizeNews } from './services/api';
 import ProtectedRoute from './auth/ProtectedRoute';
+import { useAuth } from './auth/useAuth';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -134,6 +135,8 @@ function loadDefaultSettings() {
 
 function ToolRunner({ activeTool, settings, setSettings }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const config = TOOL_CONFIG[activeTool];
   const { input, setInput, output, loading, error, process, clear } = useToolProcessor();
 
@@ -249,6 +252,23 @@ function ToolRunner({ activeTool, settings, setSettings }) {
               summaryView={settings.summaryView}
               showCorrections={activeTool === 'grammar'}
             />
+          )}
+
+          {/* Offered once the result exists — the moment saving is actually
+              worth something — rather than gating the tool up front. */}
+          {!user && output && !loading && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-3
+              rounded-xl bg-ink-50 border border-ink-200/70">
+              <span className="text-[12.5px] text-ink-600">
+                Sign in to save this to your history.
+              </span>
+              <button
+                onClick={() => navigate('/login')}
+                className="text-[12.5px] font-semibold text-brand-700 hover:underline cursor-pointer"
+              >
+                Sign in
+              </button>
+            </div>
           )}
         </ResultsPane>
       </div>
