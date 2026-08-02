@@ -37,6 +37,7 @@ async def sinllama_generate(
     style: str | None = None,
     length: str | None = None,
     adapter: str | None = None,
+    num_candidates: int = 1,
 ) -> dict[str, Any]:
     """
     Call the inference server's /generate endpoint.
@@ -46,9 +47,17 @@ async def sinllama_generate(
     it for the per-task token budget, which a formed prompt can't carry.
     Servers on an older build ignore the field.
 
+    `num_candidates` requests multiple sampled candidates in one call (server
+    support: work/serve_sinai.py's PromptRequest.num_candidates — forces
+    sampling even for tasks that default to greedy, e.g. grammar). 1, the
+    default, omits the field entirely, so the request is byte-identical to
+    what a server predating this parameter already understands.
+
     Returns the raw response dict:
         {"response", "task", "style", "length", "input_tokens", "max_cap_used",
-         "output_tokens"}
+         "output_tokens", "candidates"?}
+    "candidates" is present only when num_candidates > 1 and the server
+    supports it.
 
     Raises:
         SinLlamaUnavailable: on connection errors, timeouts, or 5xx responses.
@@ -66,6 +75,8 @@ async def sinllama_generate(
         # compatible; one that supports it but rejects the value returns 422,
         # which the gateway retries without the override.
         payload["adapter"] = adapter
+    if num_candidates and num_candidates > 1:
+        payload["num_candidates"] = num_candidates
 
     try:
         async with httpx.AsyncClient(timeout=settings.SINLLAMA_TIMEOUT_SECONDS) as client:

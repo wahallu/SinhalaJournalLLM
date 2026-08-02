@@ -18,6 +18,22 @@ logger = logging.getLogger(__name__)
 
 _PUNCTUATION = set(".,;:!?'\"()[]{}«»‘’“”-–—/؟।")
 
+# Self-consistency candidate count for the first correction pass. 1 disables
+# the ensemble (today's single greedy call, zero added cost) — bump once
+# validated on the GPU box against SinAI-Training's test_grammar.py stage2-5
+# sets. >1 forces sampling server-side (grammar's TaskSpec is greedy by
+# default) at ENSEMBLE_TEMPERATURE/ENSEMBLE_TOP_P from
+# SinAI-Training/work/tasks/grammar.py — every extra candidate is a full
+# extra generation.
+ENSEMBLE_SIZE = 1
+
+# Passes over the model's own output. 2 targets the compound-error gap the
+# v21 eval showed: a sentence with several simultaneous mistakes where one
+# greedy pass fixes some but not all. The second call re-runs correction on
+# the first pass's output; skipped entirely when a pass changes nothing, so
+# an already-correct sentence still costs exactly one round trip.
+MAX_PASSES = 2
+
 
 def _tokenize_with_offsets(text: str) -> tuple[list[str], list[int]]:
     """Split on whitespace, keeping each token's character offset."""
@@ -93,13 +109,88 @@ def derive_corrections(original: str, corrected: str) -> list[CorrectionDetail]:
     return corrections
 
 
+def _sanitize_correction(raw: str | None, fallback: str) -> str:
+    """
+    First line only, falling back to `fallback` when what's left is empty or
+    too short to be a real answer.
+
+    Mirrors SinAI-Training/work/sinllama/scripts/test_grammar.py's
+    correct_sentence(): the eval harness stops generation at the first
+    newline (NewlineStoppingCriteria) and then takes only that first line as
+    a second safety net. Production's stop sequences
+    (serve_sinai.py's STOP_SEQUENCES) don't include a bare newline, so
+    nothing upstream guarantees single-line output — this reproduces that
+    same safety net here, task-scoped, rather than in the shared decode path
+    where it would affect the other three tasks too.
+    """
+    if not raw:
+        return fallback
+    first_line = raw.strip().split("\n", 1)[0].strip()
+    if not first_line or len(first_line) < 2:
+        return fallback
+    return first_line
+
+
+def _pick_consensus(candidates: list[str]) -> str:
+    """
+    Self-consistency selection over sampled candidates: return the one most
+    representative of the set (highest average similarity to the others),
+    not a token-level majority vote — free-text corrections of different
+    lengths don't align cleanly enough across candidates for that. A single
+    candidate is returned unchanged; an all-blank list returns "". Ties
+    resolve to the earliest candidate, so this stays deterministic for a
+    fixed input list.
+    """
+    cleaned = [c for c in candidates if c]
+    if not cleaned:
+        return ""
+    if len(cleaned) == 1:
+        return cleaned[0]
+
+    best_index = 0
+    best_score = -1.0
+    for i, candidate in enumerate(cleaned):
+        total = sum(
+            SequenceMatcher(None, candidate, other).ratio()
+            for j, other in enumerate(cleaned)
+            if j != i
+        )
+        if total > best_score:
+            best_score = total
+            best_index = i
+    return cleaned[best_index]
+
+
 async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckResponse:
     """
     Correct Sinhala text, derive per-word corrections, persist for a known
     caller, and return.
+
+    Runs up to MAX_PASSES over the model, feeding each pass's own output
+    back in as the next pass's input, and stops as soon as a pass changes
+    nothing. The first pass optionally samples ENSEMBLE_SIZE candidates and
+    picks the consensus; later passes are always single-shot.
     """
-    result = await model_generate("grammar", text)
-    corrected_text = result.text or text
+    corrected_text = text
+    provider: str | None = None
+    total_latency = 0
+
+    for pass_num in range(MAX_PASSES):
+        num_candidates = ENSEMBLE_SIZE if pass_num == 0 else 1
+        result = await model_generate(
+            "grammar", corrected_text, num_candidates=num_candidates
+        )
+        total_latency += result.latency_ms
+        provider = result.provider
+
+        candidates = result.meta.get("candidates") or [result.text]
+        raw = _pick_consensus(candidates)
+        next_text = _sanitize_correction(raw, fallback=corrected_text)
+
+        if next_text == corrected_text:
+            break
+        corrected_text = next_text
+
     corrections = derive_corrections(text, corrected_text)
 
     record = {
@@ -107,8 +198,8 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
         "corrected_text": corrected_text,
         "corrections": [c.model_dump() for c in corrections],
         "correction_count": len(corrections),
-        "model_provider": result.provider,
-        "latency_ms": result.latency_ms,
+        "model_provider": provider,
+        "latency_ms": total_latency,
     }
     saved = await persist_if_owned(save_correction, record, user_id)
 
@@ -118,5 +209,5 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
         corrections=corrections,
         correction_count=len(corrections),
         created_at=saved.get("created_at"),
-        model_used=result.provider,
+        model_used=provider,
     )

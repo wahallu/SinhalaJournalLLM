@@ -85,6 +85,7 @@ async def model_generate(
     length: str | None = None,
     category: str | None = None,
     variation_hint: str | None = None,
+    num_candidates: int = 1,
 ) -> GatewayResult:
     """
     Run one inference through the provider chain.
@@ -101,6 +102,11 @@ async def model_generate(
                         each candidate toward a different angle (actor,
                         number, location, ...) rather than leaving diversity
                         to sampling alone
+        num_candidates: sinllama only (self-consistency sampling) — >1 asks
+                        the server for that many sampled candidates in one
+                        call, surfaced on the result as
+                        meta["candidates"]. openrouter and mock ignore it and
+                        always return exactly one.
     """
     if task not in TASKS:
         raise ValueError(f"Unknown task {task!r}; expected one of {TASKS}")
@@ -120,7 +126,8 @@ async def model_generate(
         try:
             if provider == "sinllama":
                 result_text, meta = await _via_sinllama(
-                    task, text, resolved_style, resolved_length, resolved_category, variation_hint
+                    task, text, resolved_style, resolved_length, resolved_category, variation_hint,
+                    num_candidates=num_candidates,
                 )
             elif provider == "openrouter":
                 result_text, meta = await _via_openrouter(
@@ -161,6 +168,8 @@ async def _via_sinllama(
     length: str | None,
     category: str | None,
     variation_hint: str | None,
+    *,
+    num_candidates: int = 1,
 ) -> tuple[str, dict]:
     """
     Build the request per the serve_sinai.py contract. Raw text lets the
@@ -180,7 +189,10 @@ async def _via_sinllama(
     adapter = str(await runtime_settings.get(f"adapters.{task}") or "").strip()
 
     try:
-        data = await sinllama_generate(prompt, task, style, length=length or DEFAULT_LENGTH, adapter=adapter or None)
+        data = await sinllama_generate(
+            prompt, task, style, length=length or DEFAULT_LENGTH,
+            adapter=adapter or None, num_candidates=num_candidates,
+        )
     except httpx.HTTPStatusError as exc:
         # 422 here means the server rejected the adapter — it was renamed,
         # deleted, or belongs to another task. Retry on the task default
@@ -191,7 +203,10 @@ async def _via_sinllama(
                 "to the task default. Update the setting in the dashboard.",
                 adapter, task,
             )
-            data = await sinllama_generate(prompt, task, style, length=length or DEFAULT_LENGTH)
+            data = await sinllama_generate(
+                prompt, task, style, length=length or DEFAULT_LENGTH,
+                num_candidates=num_candidates,
+            )
         else:
             raise
 
@@ -200,6 +215,8 @@ async def _via_sinllama(
         "output_tokens": data.get("output_tokens"),
         "adapter": data.get("adapter"),
     }
+    if num_candidates > 1 and data.get("candidates"):
+        meta["candidates"] = data["candidates"]
     return data["response"], meta
 
 

@@ -8,8 +8,15 @@ the rule table in app/core/mock_provider.py.
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.core.model_gateway import GatewayResult
 from app.main import app
-from app.services.grammar.grammar_service import derive_corrections
+from app.services.grammar import grammar_service
+from app.services.grammar.grammar_service import (
+    _pick_consensus,
+    _sanitize_correction,
+    check_grammar,
+    derive_corrections,
+)
 from test_user_scoping import TEST_SECRET, _auth
 
 # A signed-in caller for the history test below — history is per-user since
@@ -112,3 +119,147 @@ def test_derive_corrections_word_replacement():
 def test_derive_corrections_no_change():
     """Identical texts produce no corrections."""
     assert derive_corrections("මම ගෙදර යනවා", "මම ගෙදර යනවා") == []
+
+
+# ── _sanitize_correction ──
+# Mirrors test_grammar.py (SinAI-Training)'s correct_sentence() safety net:
+# production's stop sequences don't catch a bare newline the way the eval
+# harness's NewlineStoppingCriteria does, so anything past the first line is
+# discarded rather than shipped to the diff/UI.
+
+def test_sanitize_correction_takes_first_line_only():
+    raw = "නිවැරදි කළ පාඨය\nඅමතර පේළියක්"
+    assert _sanitize_correction(raw, fallback="original") == "නිවැරදි කළ පාඨය"
+
+
+def test_sanitize_correction_falls_back_on_empty_output():
+    assert _sanitize_correction("", fallback="original") == "original"
+    assert _sanitize_correction(None, fallback="original") == "original"
+
+
+def test_sanitize_correction_falls_back_on_too_short_output():
+    """Mirrors correct_sentence()'s `len(result) < 2` guard against garbage."""
+    assert _sanitize_correction("a", fallback="original") == "original"
+
+
+def test_sanitize_correction_strips_whitespace():
+    assert _sanitize_correction("  නිවැරදි කළ පාඨය  \n", fallback="original") == "නිවැරදි කළ පාඨය"
+
+
+def test_sanitize_correction_passes_through_normal_output():
+    assert _sanitize_correction("නිවැරදි කළ පාඨය", fallback="original") == "නිවැරදි කළ පාඨය"
+
+
+# ── _pick_consensus ──
+# Self-consistency selection over N sampled candidates: the candidate most
+# representative of the set (highest average similarity to the others), not
+# a token-level majority vote — free-text outputs don't align cleanly enough
+# for that, but a medoid over whole-string similarity is easy to reason about
+# and needs no model access to test.
+
+def test_pick_consensus_single_candidate():
+    assert _pick_consensus(["only one"]) == "only one"
+
+
+def test_pick_consensus_empty_list():
+    assert _pick_consensus([]) == ""
+
+
+def test_pick_consensus_ignores_blank_candidates():
+    assert _pick_consensus(["", "the answer", ""]) == "the answer"
+
+
+def test_pick_consensus_picks_the_majority_agreement():
+    """Two candidates agree closely, one is a clear outlier — the outlier must lose."""
+    candidates = [
+        "ශ්‍රී ලංකා කණ්ඩායම ජයග්‍රහණය කළා.",
+        "ශ්‍රී ලංකා කණ්ඩායම ජයග්‍රහණය කළේය.",
+        "මුළුමනින්ම වෙනස් වාක්‍යයක් මෙතන තියෙනවා.",
+    ]
+    result = _pick_consensus(candidates)
+    assert result in candidates[:2]
+
+
+def test_pick_consensus_ties_favor_first_candidate():
+    """Equidistant candidates resolve deterministically to the first (canonical) one."""
+    candidates = ["aaaa", "bbbb", "cccc"]
+    assert _pick_consensus(candidates) == "aaaa"
+
+
+# ── Two-pass correction ──
+# check_grammar() re-runs the model on its own output once when the first
+# pass changed something, so a sentence with two simultaneous errors gets a
+# real chance at both being fixed even though a single greedy pass often only
+# catches one (the compound-error recall gap measured in the v21 eval).
+
+@pytest.mark.asyncio
+async def test_two_pass_fixes_a_residual_error_the_first_pass_missed(monkeypatch):
+    """Pass 1 fixes one error and leaves a second; pass 2 catches the rest."""
+    calls: list[str] = []
+
+    async def fake_model_generate(task, text, **_kwargs):
+        calls.append(text)
+        if text == "input with two errors":
+            fixed = "input with one error"
+        elif text == "input with one error":
+            fixed = "fully fixed input"
+        else:
+            fixed = text
+        return GatewayResult(text=fixed, provider="mock", latency_ms=5)
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+
+    result = await check_grammar("input with two errors")
+
+    assert result.corrected == "fully fixed input"
+    assert calls == ["input with two errors", "input with one error"]
+
+
+@pytest.mark.asyncio
+async def test_two_pass_skips_second_call_when_first_pass_made_no_change(monkeypatch):
+    """Already-correct input shouldn't cost a second GPU round trip."""
+    calls: list[str] = []
+
+    async def fake_model_generate(task, text, **_kwargs):
+        calls.append(text)
+        return GatewayResult(text=text, provider="mock", latency_ms=5)
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+
+    result = await check_grammar("already correct sentence")
+
+    assert result.corrected == "already correct sentence"
+    assert calls == ["already correct sentence"]
+
+
+@pytest.mark.asyncio
+async def test_two_pass_stops_after_two_rounds_even_if_still_changing(monkeypatch):
+    """A pathological model that never converges must not loop forever."""
+    calls: list[str] = []
+
+    async def fake_model_generate(task, text, **_kwargs):
+        calls.append(text)
+        return GatewayResult(text=text + "!", provider="mock", latency_ms=5)
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+
+    result = await check_grammar("start")
+
+    assert len(calls) == 2
+    assert result.corrected == "start!!"
+
+
+@pytest.mark.asyncio
+async def test_two_pass_sums_latency_across_both_calls(monkeypatch, fake_supabase):
+    async def fake_model_generate(task, text, **_kwargs):
+        if text == "needs fixing":
+            return GatewayResult(text="halfway fixed", provider="mock", latency_ms=30)
+        return GatewayResult(text=text, provider="mock", latency_ms=20)
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+
+    result = await check_grammar("needs fixing", user_id="55555555-5555-5555-5555-555555555555")
+
+    assert result.corrected == "halfway fixed"
+    [record] = fake_supabase.store["grammar_corrections"]
+    assert record["latency_ms"] == 50  # 30 (pass 1) + 20 (pass 2)

@@ -47,7 +47,7 @@ async def test_adapter_is_sent_when_set(fake_supabase, monkeypatch):
     _seed(fake_supabase, **{"adapters.grammar": "grammar_sinllama_v13"})
     sent = {}
 
-    async def _fake_generate(prompt, task, style=None, adapter=None):
+    async def _fake_generate(prompt, task, style=None, adapter=None, **_kwargs):
         sent["adapter"] = adapter
         return {"response": "ok", "adapter": adapter}
 
@@ -64,7 +64,7 @@ async def test_no_adapter_sent_when_unset(fake_supabase, monkeypatch):
     _seed(fake_supabase)
     sent = {}
 
-    async def _fake_generate(prompt, task, style=None, adapter=None):
+    async def _fake_generate(prompt, task, style=None, adapter=None, **_kwargs):
         sent["adapter"] = adapter
         return {"response": "ok"}
 
@@ -85,7 +85,7 @@ async def test_rejected_adapter_falls_back_to_the_task_default(fake_supabase, mo
     _seed(fake_supabase, **{"adapters.grammar": "deleted_adapter_v99"})
     calls = []
 
-    async def _fake_generate(prompt, task, style=None, adapter=None):
+    async def _fake_generate(prompt, task, style=None, adapter=None, **_kwargs):
         calls.append(adapter)
         if adapter:
             raise httpx.HTTPStatusError(
@@ -110,7 +110,7 @@ async def test_other_http_errors_are_not_swallowed(fake_supabase, monkeypatch):
     """Only 422 means "bad adapter"; a 500 must still surface."""
     _seed(fake_supabase, **{"adapters.grammar": "grammar_sinllama_v13"})
 
-    async def _fake_generate(prompt, task, style=None, adapter=None):
+    async def _fake_generate(prompt, task, style=None, adapter=None, **_kwargs):
         raise httpx.HTTPStatusError(
             "boom",
             request=httpx.Request("POST", "http://model/generate"),
