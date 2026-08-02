@@ -6,6 +6,6 @@
 
 update profiles
 set role = 'admin', updated_at = now()
-where email = 'REPLACE_WITH_YOUR_EMAIL';
+where email = 'holysliit5@gmail.com';
 
 select id, email, role, status from profiles where role = 'admin';

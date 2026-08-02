@@ -25,6 +25,7 @@ import pytest
 
 from app.core import runtime_settings
 from app.core.config import get_settings
+from app.models.sinllama_loader import SinLlamaUnavailable
 
 
 def _matches_or(row: dict, expression: str) -> bool:
@@ -249,18 +250,22 @@ def fake_supabase(monkeypatch):
 def offline_model_provider(monkeypatch, fake_supabase):
     """
     Force the deterministic mock provider for every test, and stub out every
-    binding of the SinLlama health probe so /api/v1/meta, /health/model, and
-    /api/v1/sinllama/health can't reach the network either.
+    binding of the SinLlama health probe and adapter listing so
+    /api/v1/meta, /health/model, /api/v1/sinllama/health and
+    /api/v1/comparison/adapters can't reach the network either — all four
+    became reachable without a session once the dashboard's public status
+    widget started depending on them.
 
     config.Settings loads apps/backend-api/.env, where MODEL_PROVIDER points
     at the research GPU server. Without this override the suite makes real
     network calls: slow, non-deterministic, and dependent on whether the GPU
     box happens to be up.
 
-    sinllama_health is defined in app.models.sinllama_loader and reached
-    through two different kinds of import, which need two different patches:
+    sinllama_health and sinllama_get_comparison_adapters are defined in
+    app.models.sinllama_loader and each reached through two different kinds
+    of import, which need two different patches per function:
 
-    - model_gateway.gateway_status() looks it up via `from
+    - model_gateway.gateway_status() looks up sinllama_health via `from
       app.models.sinllama_loader import sinllama_health` INSIDE its own
       function body, so it re-resolves the name from
       app.models.sinllama_loader on every call — patching
@@ -268,18 +273,23 @@ def offline_model_provider(monkeypatch, fake_supabase):
       module never binds the name at module level, and even force-setting it
       there is shadowed by the function-local import). The patch has to
       target app.models.sinllama_loader, where the name is actually defined.
-    - app.api.v1.sinllama imports the name at module level, which binds its
-      own `sinllama_health` in that module's namespace once, at import time.
-      Patching app.models.sinllama_loader never touches that copy, so the
-      route handler keeps holding the real function unless
-      app.api.v1.sinllama.sinllama_health is patched separately.
+    - app.api.v1.sinllama and app.api.v1.comparison each import their
+      function at module level, which binds its own copy in that module's
+      namespace once, at import time. Patching app.models.sinllama_loader
+      never touches those copies, so the route handlers keep holding the
+      real functions unless app.api.v1.sinllama.sinllama_health and
+      app.api.v1.comparison.sinllama_get_comparison_adapters are patched
+      separately.
 
-    Any future module that imports sinllama_health at module level will need
+    Any future module that imports either function at module level will need
     its own patch line added here too.
     """
 
     async def _offline_sinllama_health() -> bool:
         return False
+
+    async def _offline_comparison_adapters() -> dict:
+        raise SinLlamaUnavailable("Comparison server unreachable in tests")
 
     monkeypatch.setenv("MODEL_PROVIDER", "mock")
     monkeypatch.setenv("MODEL_FALLBACK", "false")
@@ -301,6 +311,14 @@ def offline_model_provider(monkeypatch, fake_supabase):
     )
     monkeypatch.setattr(
         "app.api.v1.sinllama.sinllama_health", _offline_sinllama_health
+    )
+    monkeypatch.setattr(
+        "app.models.sinllama_loader.sinllama_get_comparison_adapters",
+        _offline_comparison_adapters,
+    )
+    monkeypatch.setattr(
+        "app.api.v1.comparison.sinllama_get_comparison_adapters",
+        _offline_comparison_adapters,
     )
     get_settings.cache_clear()
     runtime_settings.invalidate()

@@ -65,13 +65,26 @@ async def test_every_post_endpoint_is_either_public_or_rejects_anonymous(fake_su
 
 
 @pytest.mark.asyncio
-async def test_research_endpoints_require_admin(fake_supabase):
-    """Comparison and the playground reach the GPU box; admin-only."""
+async def test_research_actions_require_admin(fake_supabase):
+    """Compare and chat run real inference on the GPU box; admin-only."""
     async with _client() as c:
         for path in ("/api/v1/comparison/compare", "/api/v1/sinllama/chat"):
             assert (await c.post(path, json={})).status_code in (401, 403, 422), path
-        assert (await c.get("/api/v1/comparison/adapters")).status_code == 401
-        assert (await c.get("/api/v1/sinllama/health")).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_research_status_reads_are_public(fake_supabase):
+    """
+    Adapter listing and the health probe are cheap reads with no GPU cost —
+    the public dashboard's status widget calls both for every visitor,
+    signed in or not, so neither may require a session.
+    """
+    async with _client() as c:
+        adapters = await c.get("/api/v1/comparison/adapters")
+        health = await c.get("/api/v1/sinllama/health")
+    assert adapters.status_code != 401
+    assert health.status_code != 401
+    assert health.json() == {"available": False}
 
 
 @pytest.mark.asyncio

@@ -100,10 +100,11 @@ async def generate_headlines(
     count: int = 5,
     category: str = "General",
     length: str | None = None,
+    user_id: str | None = None,
 ) -> HeadlineResponse:
     """
     Generate up to `count` distinct headline candidates inside the requested
-    word band and persist them.
+    word band and persist them for a known caller.
     """
     resolved_length = resolve_headline_length(length)
     band = HEADLINE_LENGTHS[resolved_length]

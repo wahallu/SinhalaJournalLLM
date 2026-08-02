@@ -1,8 +1,9 @@
 """
 SinLLaMA Playground endpoints.
 
-POST /chat   — raw base-model generation (no task adapter, no persistence)
-GET  /health — is the inference server reachable right now
+POST /chat   — raw base-model generation (no task adapter, no persistence).
+               Admin-only: hits the GPU box with no per-user quota.
+GET  /health — is the inference server reachable right now. Public.
 
 Proxies straight to the inference server's "base" task so the playground
 exercises the merged model with every LoRA adapter disabled. The server's
@@ -40,6 +41,11 @@ async def playground_chat(
 
 
 @router.get("/health")
-async def playground_health(_admin: AuthUser = Depends(require_admin)):
-    """Whether the inference server is reachable — never exposes its address."""
+async def playground_health():
+    """
+    Whether the inference server is reachable — never exposes its address.
+
+    Public: the dashboard's status widget polls this for every visitor,
+    signed in or not. It costs nothing beyond a ping, unlike /chat below.
+    """
     return {"available": await sinllama_health()}

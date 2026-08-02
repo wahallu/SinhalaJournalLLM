@@ -13,8 +13,10 @@ from app.models.sinllama_loader import (
 
 router = APIRouter(prefix="/comparison", tags=["Model Comparison"])
 
-# Research tooling. Admin-only since Phase 4 — these calls reach the GPU box
-# directly and have no per-user quota of their own.
+# Research tooling, moved to /admin in Phase 4. /compare is admin-only — it
+# reaches the GPU box directly and has no per-user quota of its own. /adapters
+# is a cheap metadata read with no inference cost, so it stays public: the
+# dashboard's status widget calls it for every visitor, signed in or not.
 
 
 class CompareRequestSchema(BaseModel):
@@ -26,7 +28,7 @@ class CompareRequestSchema(BaseModel):
 
 
 @router.get("/adapters")
-async def get_comparison_adapters(_admin: AuthUser = Depends(require_admin)):
+async def get_comparison_adapters():
     """Get list of dynamically available adapters for comparison from the model server."""
     try:
         return await sinllama_get_comparison_adapters()
