@@ -4,8 +4,6 @@ import { Menu, ArrowDownToLine } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import { TOOL_META } from './lib/toolMeta';
 import { SUMMARY_VIEWS } from './lib/toolOptions';
-import PageHeader from './components/ui/PageHeader';
-import StatusBadge from './components/ui/StatusBadge';
 import ActionButton from './components/ui/ActionButton';
 import Dropdown from './components/ui/Dropdown';
 import Editor from './components/editor/Editor';
@@ -44,7 +42,6 @@ const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', 
 const TOOL_CONFIG = {
   grammar: {
     title: TOOL_META.grammar.label,
-    description: 'Detect and fix Sinhala spelling, grammar, and agreement issues before publishing.',
     placeholder: 'මෙහි ඔබගේ සිංහල වාක්‍යය ඇතුළත් කරන්න…',
     actionLabel: 'Correct',
     outputType: 'text',
@@ -53,7 +50,6 @@ const TOOL_CONFIG = {
   },
   headlines: {
     title: TOOL_META.headlines.label,
-    description: 'Generate ranked Sinhala headline candidates from a full article.',
     placeholder: 'මෙහි ප්‍රවෘත්ති ලිපිය ඇතුළත් කරන්න…',
     actionLabel: 'Generate',
     outputType: 'headlines',
@@ -62,7 +58,6 @@ const TOOL_CONFIG = {
   },
   rewriter: {
     title: TOOL_META.rewriter.label,
-    description: 'Rewrite copy for a different desk — formal, editorial, sports, feature, or youth.',
     placeholder: 'නැවත ලිවීමට අවශ්‍ය පෙළ ඇතුළත් කරන්න…',
     actionLabel: 'Rewrite',
     outputType: 'text',
@@ -71,7 +66,6 @@ const TOOL_CONFIG = {
   },
   summarizer: {
     title: TOOL_META.summarizer.label,
-    description: 'Condense long-form Sinhala articles into publication-ready summaries.',
     placeholder: 'සාරාංශ කිරීමට ලිපිය ඇතුළත් කරන්න…',
     actionLabel: 'Summarize',
     outputType: 'text',
@@ -104,12 +98,16 @@ const TOOL_TO_PATH = {
   dashboard: '/dashboard',
 };
 
+/* The four writing tools render the two-pane editor workspace, which is
+   full-height with independently scrolling panes at xl and stacks below. */
+const EDITOR_TOOLS = ['grammar', 'headlines', 'rewriter', 'summarizer'];
+
 const MAX_WIDTHS = {
   dashboard: 'max-w-7xl',
-  grammar: 'max-w-7xl',
-  headlines: 'max-w-7xl',
-  rewriter: 'max-w-7xl',
-  summarizer: 'max-w-7xl',
+  grammar: 'max-w-[1600px]',
+  headlines: 'max-w-[1600px]',
+  rewriter: 'max-w-[1600px]',
+  summarizer: 'max-w-[1600px]',
   history: 'max-w-4xl',
   settings: 'max-w-3xl',
   profile: 'max-w-3xl',
@@ -212,16 +210,8 @@ function ToolRunner({ activeTool, settings, setSettings }) {
   );
 
   return (
-    <>
-      <PageHeader
-        icon={config.icon}
-        title={config.title}
-        description={config.description}
-        badge={<StatusBadge status="brand" label="SinLLaMA adapter" />}
-      />
-
-      <div className="tool-grid">
-        <div className="tg-input flex flex-col">
+    <div className="tool-workspace">
+      <div className="tw-editor flex flex-col">
           <Editor
             tool={activeTool}
             title={config.title}
@@ -239,31 +229,30 @@ function ToolRunner({ activeTool, settings, setSettings }) {
           />
         </div>
 
-        <div className="tg-output flex flex-col">
-          <ResultsPane title={resultsTitle} right={resultsControls}>
-            {activeTool === 'headlines' ? (
-              <HeadlineOutputPanel
-                output={output}
-                loading={loading}
-                error={error}
-                articleText={input}
-              />
-            ) : (
-              <OutputPanel
-                output={output}
-                loading={loading}
-                error={error}
-                type={config.outputType}
-                activeTool={activeTool}
-                input={input}
-                summaryView={settings.summaryView}
-                showCorrections={activeTool === 'grammar'}
-              />
-            )}
-          </ResultsPane>
-        </div>
+      <div className="tw-results flex flex-col">
+        <ResultsPane title={resultsTitle} right={resultsControls}>
+          {activeTool === 'headlines' ? (
+            <HeadlineOutputPanel
+              output={output}
+              loading={loading}
+              error={error}
+              articleText={input}
+            />
+          ) : (
+            <OutputPanel
+              output={output}
+              loading={loading}
+              error={error}
+              type={config.outputType}
+              activeTool={activeTool}
+              input={input}
+              summaryView={settings.summaryView}
+              showCorrections={activeTool === 'grammar'}
+            />
+          )}
+        </ResultsPane>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -326,7 +315,7 @@ function App() {
     }));
   }, []);
 
-  const isChat = false; // the playground now lives under /admin/research
+  const isEditor = EDITOR_TOOLS.includes(activeTool);
 
   /* Hiding a disabled tool in the sidebar still leaves its URL reachable, so
      the route itself has to bounce. The server enforces this too — this is
@@ -415,12 +404,12 @@ function App() {
           </div>
         </header>
 
-        <main className={`flex-1 min-h-0 ${isChat ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}>
+        <main className={`flex-1 min-h-0 overflow-y-auto ${isEditor ? 'xl:overflow-hidden xl:flex xl:flex-col' : ''}`}>
           <div
             key={location.pathname}
             className={`mx-auto w-full ${MAX_WIDTHS[activeTool] ?? 'max-w-5xl'} px-4 sm:px-6 lg:px-8 py-6 lg:py-8
               animate-in fade-in slide-in-from-bottom-2 duration-300
-              ${isChat ? 'flex-1 min-h-0 flex flex-col' : ''}`}
+              ${isEditor ? 'xl:flex-1 xl:min-h-0 xl:flex xl:flex-col' : ''}`}
           >
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />

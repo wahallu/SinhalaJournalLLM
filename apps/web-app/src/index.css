@@ -103,27 +103,26 @@ textarea { resize: vertical; }
   animation: subtle-pulse 1.5s ease-in-out infinite;
 }
 
-/* ── Tool workspace grid: center editor + right context panel.
-     Below xl the panel slots between input and output so tool
-     options stay reachable on tablet. ── */
-.tool-grid {
+/* ── Tool workspace: editor left, results right.
+     Below 80rem the two stack and the page scrolls normally; at and above
+     it each pane is full height and scrolls independently. ── */
+.tool-workspace {
   display: grid;
   gap: 1.25rem;
-  grid-template-areas: "input" "panel" "output";
+  grid-template-columns: minmax(0, 1fr);
 }
-.tool-grid > .tg-input  { grid-area: input;  min-width: 0; }
-.tool-grid > .tg-panel  { grid-area: panel;  min-width: 0; }
-.tool-grid > .tg-output { grid-area: output; min-width: 0; }
+.tool-workspace > .tw-editor,
+.tool-workspace > .tw-results { min-width: 0; }
 
 @media (min-width: 80rem) {
-  .tool-grid {
-    grid-template-columns: minmax(0, 1fr) 21rem;
-    grid-template-areas:
-      "input panel"
-      "output panel";
-    align-items: start;
+  .tool-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 1.5rem;
+    flex: 1;
+    min-height: 0;
   }
+  .tool-workspace > .tw-editor,
+  .tool-workspace > .tw-results { min-height: 0; }
 }
 
 /* ── shadcn semantic tokens mapped onto the SinAi palette ── */
