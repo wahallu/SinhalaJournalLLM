@@ -167,10 +167,7 @@ async def _via_sinllama(
     server apply its own (identical) template; a fully-formed prompt is sent
     when we need knobs the server doesn't expose.
     """
-    if task == "summarizer":
-        # Length control: server hardcodes a ~10% target, so send our prompt.
-        prompt = prompt_summarizer(text, length or DEFAULT_LENGTH)
-    elif task == "headline":
+    if task == "headline":
         prompt = prompt_headline(
             text,
             category=category or "General",
