@@ -105,130 +105,106 @@ function VisualPromptModule({ headline, articleText }) {
 
       {open && (
         <div className="p-4 space-y-3">
-          {/* ── Prompt loading skeleton ── */}
-          {loading && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-[12px] text-ink-500">
-                <Loader2 size={12} className="animate-spin" />
-                <span>Generating visual prompt from article…</span>
-              </div>
-              <Skeleton className="h-20 rounded-lg" />
-            </div>
-          )}
-
-          {/* ── Editable prompt textarea ── */}
-          {!loading && (
-            <div className="space-y-1.5">
+          {/* Prompt and image sit side by side when the pane is wide enough,
+              and stack below md. The image box keeps a fixed aspect ratio in
+              every state — placeholder, skeleton, loaded — so generating one
+              never shifts the surrounding layout. */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
+            {/* ── Prompt column ── */}
+            <div className="space-y-2 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 min-w-0">
+                <span className="flex items-center gap-1.5 min-w-0 text-[11px] text-ink-500 font-medium">
                   <Edit3 size={11} className="text-ink-400 shrink-0" />
-                  <span className="text-[11px] text-ink-500 font-medium truncate">
-                    AI-generated English image prompt — edit before generating
-                  </span>
-                </div>
+                  <span className="truncate">English image prompt — edit before generating</span>
+                </span>
                 {prompt && <CopyButton text={prompt} />}
               </div>
-              <textarea
-                value={prompt}
-                onChange={(e) => { setPrompt(e.target.value); setImageData(null); setImgError(null); }}
-                rows={4}
-                className="w-full px-3 py-2.5 text-[13px] text-ink-700 bg-ink-50 border border-ink-200 rounded-lg resize-none
-                  focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300 leading-relaxed font-mono"
-                placeholder={error ? 'Prompt generation failed — see error below.' : 'Visual prompt will appear here…'}
-                aria-label="Visual prompt"
-              />
-            </div>
-          )}
 
-          {/* ── Regenerate prompt button ── */}
-          {!loading && (
-            <ActionButton
-              variant="secondary"
-              size="md"
-              icon={RefreshCw}
-              onClick={() => generate()}
-              disabled={!articleText}
-              className="w-full"
-            >
-              නැවත සාදන්න / Regenerate prompt
-            </ActionButton>
-          )}
+              {loading ? (
+                <Skeleton className="h-28 rounded-lg" />
+              ) : (
+                <textarea
+                  value={prompt}
+                  onChange={(e) => { setPrompt(e.target.value); setImageData(null); setImgError(null); }}
+                  rows={5}
+                  className="w-full px-3 py-2.5 text-[13px] text-ink-700 bg-ink-50 border border-ink-200
+                    rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-brand-200
+                    focus:border-brand-300 leading-relaxed font-mono"
+                  placeholder={error ? 'Prompt generation failed — see below.' : 'Visual prompt will appear here…'}
+                  aria-label="Visual prompt"
+                />
+              )}
 
-          {/* ── Generate Image button ── */}
-          {!loading && prompt && (
-            <ActionButton
-              variant="primary"
-              size="md"
-              icon={imgLoading ? Loader2 : Wand2}
-              onClick={handleGenerateImage}
-              disabled={imgLoading}
-              className={`w-full${imgLoading ? ' opacity-80' : ''}`}
-            >
-              {imgLoading ? 'රූපය සාදමින්… / Generating image…' : 'රූපය සාදන්න / Generate Image'}
-            </ActionButton>
-          )}
-
-          {/* ── Image loading skeleton ── */}
-          {imgLoading && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-[12px] text-ink-500">
-                <Loader2 size={12} className="animate-spin text-brand-500" />
-                <span>Generating with OpenRouter · Krea 2 Large…</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <ActionButton
+                  variant="secondary"
+                  size="sm"
+                  icon={RefreshCw}
+                  onClick={() => generate()}
+                  disabled={loading || !articleText}
+                >
+                  Regenerate
+                </ActionButton>
+                {prompt && !loading && (
+                  <ActionButton
+                    variant="primary"
+                    size="sm"
+                    icon={imgLoading ? Loader2 : Wand2}
+                    onClick={handleGenerateImage}
+                    disabled={imgLoading}
+                  >
+                    {imgLoading ? 'Generating…' : 'Generate image'}
+                  </ActionButton>
+                )}
               </div>
-              <Skeleton className="h-64 w-full rounded-xl" />
             </div>
-          )}
 
-          {/* ── Generated image display ── */}
-          {imageData && !imgLoading && (
-            <div className="space-y-2 animate-in fade-in duration-300">
-              <div className="flex items-center justify-between">
-                <p className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.12em] flex items-center gap-1.5">
-                  <ImageIcon size={11} className="text-brand-500" />
-                  AI-generated image
-                </p>
-                <div className="flex items-center gap-3">
-                  <a
-                    href={imageData}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-brand-600 font-semibold hover:underline"
+            {/* ── Image column ── */}
+            <div className="min-w-0">
+              {imgLoading && <Skeleton className="w-full aspect-[16/10] rounded-xl" />}
+
+              {imageData && !imgLoading && (
+                <div className="relative group rounded-xl overflow-hidden border border-ink-200
+                  bg-ink-100 aspect-[16/10] animate-in fade-in duration-300">
+                  <img src={imageData} alt="AI-generated news image" className="w-full h-full object-cover" />
+                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0
+                    group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                    <a
+                      href={imageData} target="_blank" rel="noopener noreferrer" title="Open full size"
+                      className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur flex items-center justify-center
+                        text-ink-600 hover:text-ink-900"
+                    >
+                      <ExternalLink size={13} />
+                    </a>
+                    <a
+                      href={imageData} download="sinai-image.png" title="Download"
+                      className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur flex items-center justify-center
+                        text-ink-600 hover:text-ink-900"
+                    >
+                      <Download size={13} />
+                    </a>
+                  </div>
+                  <button
+                    onClick={handleGenerateImage}
+                    className="absolute inset-x-0 bottom-0 py-1.5 text-[11px] font-medium text-white
+                      bg-ink-950/55 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                   >
-                    <ExternalLink size={11} /> Open full size
-                  </a>
-                  <a
-                    href={imageData}
-                    download="sinai-image.png"
-                    className="inline-flex items-center gap-1 text-[11px] text-ink-500 font-semibold hover:text-ink-800"
-                  >
-                    <Download size={11} /> Download
-                  </a>
+                    ↺ Generate a different image
+                  </button>
                 </div>
-              </div>
-              <div className="relative rounded-xl overflow-hidden border border-ink-200 shadow-sm bg-ink-100">
-                <img
-                  src={imageData}
-                  alt="AI-generated news image"
-                  className="w-full h-auto object-cover max-h-96 block"
-                />
-                {/* subtle bottom vignette */}
-                <div
-                  className="absolute inset-x-0 bottom-0 h-12 pointer-events-none"
-                  style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.18), transparent)' }}
-                />
-              </div>
-              <p className="text-[10px] text-ink-400 text-center">
-                Generated by OpenRouter (Krea 2 Large) · For editorial reference only
-              </p>
-              {/* Re-generate image button */}
-              <button
-                onClick={handleGenerateImage}
-                className="w-full text-[11px] text-ink-400 hover:text-ink-600 font-medium py-1 transition-colors cursor-pointer"
-              >
-                ↺ Generate a different image
-              </button>
+              )}
+
+              {!imageData && !imgLoading && (
+                <div className="w-full aspect-[16/10] rounded-xl border border-dashed border-ink-300/70
+                  flex flex-col items-center justify-center gap-1.5 text-center px-4">
+                  <ImageIcon size={18} className="text-ink-300" />
+                  <p className="text-[11.5px] text-ink-400">
+                    {prompt ? 'Generate an image from the prompt' : 'A prompt is generated from your article first'}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* ── Image generation error ── */}
           {imgError && !imgLoading && (
@@ -241,7 +217,7 @@ function VisualPromptModule({ headline, articleText }) {
                   onClick={handleGenerateImage}
                   className="mt-2 text-[11px] text-brand-700 font-semibold hover:underline cursor-pointer"
                 >
-                  නැවත උත්සාහ කරන්න / Retry
+                  Retry
                 </button>
               </div>
             </div>
@@ -258,7 +234,7 @@ function VisualPromptModule({ headline, articleText }) {
                   onClick={() => generate()}
                   className="mt-2 text-[11px] text-brand-700 font-semibold hover:underline cursor-pointer"
                 >
-                  නැවත උත්සාහ කරන්න / Retry
+                  Retry
                 </button>
               </div>
             </div>
