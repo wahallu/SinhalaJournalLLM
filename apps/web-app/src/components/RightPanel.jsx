@@ -6,59 +6,9 @@ import { RightPanelCard } from './ui/Card';
 import { OptionCards, OptionChips } from './ui/Options';
 import EmptyState from './ui/EmptyState';
 import { Skeleton } from './ui/Skeleton';
-
-// ─── Option definitions ──────────────────────────────────────────────────────
-
-const TONES = [
-  { id: 'formal', label: 'Formal', desc: 'Broadsheet news desk voice' },
-  { id: 'editorial', label: 'Editorial', desc: 'Analytical opinion writing' },
-  { id: 'sports', label: 'Sports', desc: 'Fast, energetic sports desk' },
-  { id: 'feature', label: 'Feature', desc: 'Narrative long-form style' },
-  { id: 'youth', label: 'Youth', desc: 'Casual, social-media friendly' },
-];
-
-const LENGTHS = [
-  { id: 'short', label: 'Short', desc: 'Brief summary (~10% length)' },
-  { id: 'medium', label: 'Medium', desc: 'Standard summary (~20% length)' },
-  { id: 'long', label: 'Long', desc: 'Detailed summary (~35% length)' },
-];
-
-const SUMMARY_VIEWS = [
-  { id: 'paragraph', label: 'Paragraph' },
-  { id: 'bullets', label: 'Bullets' },
-];
-
-const HEADLINE_STYLES = [
-  { id: 'formal', label: 'Formal', desc: 'Authoritative broadsheet tone' },
-  { id: 'breaking_news', label: 'Breaking News', desc: 'Urgent, attention-grabbing' },
-  { id: 'youth', label: 'Youth', desc: 'Casual, social-media friendly' },
-  { id: 'editorial', label: 'Editorial', desc: 'Analytical, thought-provoking' },
-];
-
-const HEADLINE_COUNTS = [
-  { id: 3, label: '3' },
-  { id: 5, label: '5' },
-  { id: 7, label: '7' },
-];
-
-// Word bands, mirroring HEADLINE_LENGTHS in the backend's app/core/prompts.py.
-// Non-overlapping, so a headline's word count maps to exactly one band.
-const HEADLINE_LENGTHS_OPTIONS = [
-  { id: 'short', label: 'Short', words: '3–5 words' },
-  { id: 'medium', label: 'Medium', words: '6–7 words' },
-  { id: 'long', label: 'Long', words: '8–10 words' },
-];
-
-const HEADLINE_CATEGORIES = [
-  { id: 'General', label: 'General' },
-  { id: 'Politics', label: 'Politics' },
-  { id: 'Business', label: 'Business' },
-  { id: 'Sports', label: 'Sports' },
-  { id: 'Entertainment', label: 'Entertainment' },
-  { id: 'Tech', label: 'Tech' },
-  { id: 'World', label: 'World' },
-];
-
+import {
+  TONES, LENGTHS, SUMMARY_VIEWS, HEADLINE_LENGTHS_OPTIONS,
+} from '../lib/toolOptions';
 
 // ─── Grammar analysis ────────────────────────────────────────────────────────
 
@@ -400,7 +350,7 @@ export default function RightPanel({ activeTool, settings, onSettingsChange, out
             onChange={(v) => onSettingsChange({ ...settings, headlineLength: v })}
           />
           <p className="-mt-3.5 text-[11px] text-ink-500">
-            {HEADLINE_LENGTHS_OPTIONS.find((o) => o.id === settings.headlineLength)?.words}
+            {HEADLINE_LENGTHS_OPTIONS.find((o) => o.id === settings.headlineLength)?.desc}
           </p>
         </RightPanelCard>
       ) : (
