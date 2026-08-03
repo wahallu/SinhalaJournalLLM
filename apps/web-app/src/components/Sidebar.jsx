@@ -108,10 +108,27 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
         />
       )}
 
+      {/* Below lg this is a fixed overlay drawer. From lg it is a normal
+          in-flow flex child, so it takes its own column in the parent row and
+          cannot sit on top of the content.
+
+          It used to stay `fixed` at every width, with a separate spacer div in
+          App.jsx repeating the same width to reserve room. That is two sources
+          of truth for one measurement, and the reported overlap is what it
+          looks like when they disagree. Reproducing that exact disagreement
+          here was not possible — every width, both collapsed states, and
+          mid-transition all measured zero overlap under the old code too — so
+          this is a structural fix for the most plausible cause rather than a
+          confirmed repro. In-flow layout makes the class of bug impossible
+          regardless.
+
+          `relative`, not `static`: DotField, the collapse chevron and the
+          profile menu are all positioned against this element, and `static`
+          would silently reparent them to the page. */}
       <aside
         aria-label="Primary navigation"
         className={`
-          fixed inset-y-0 left-0 z-50 overflow-hidden
+          fixed lg:relative inset-y-0 left-0 lg:h-full z-50 lg:z-auto overflow-hidden
           ${collapsed ? 'w-[4.75rem]' : 'w-[17rem]'} bg-[#F5F4F4] border-r border-ink-100
           flex flex-col shrink-0
           transition-all duration-200 ease-in-out

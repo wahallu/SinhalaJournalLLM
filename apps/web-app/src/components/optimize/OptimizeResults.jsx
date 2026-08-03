@@ -117,7 +117,7 @@ function GrammarStage({ data }) {
 
   return (
     <div className="space-y-2.5">
-      <p className="text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
+      <p className="font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
         <CorrectedText text={data.corrected} corrections={corrections} />
       </p>
       <button
@@ -146,7 +146,7 @@ function StyleStage({ data }) {
         </span>
         <CopyButton text={data.rewritten} className="ml-auto" />
       </div>
-      <p className="text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">{data.rewritten}</p>
+      <p className="font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">{data.rewritten}</p>
     </div>
   );
 }
@@ -173,7 +173,7 @@ function HeadlineStage({ data, onUse }) {
             <span className="mt-0.5 text-[10px] font-bold text-ink-400 tabular-nums w-3 shrink-0">
               {i + 1}
             </span>
-            <span className="text-[13.5px] text-ink-800 leading-snug flex-1 min-w-0">{headline}</span>
+            <span className="font-sinhala text-[13.5px] text-ink-800 leading-snug flex-1 min-w-0">{headline}</span>
             <span
               className={`text-[10px] tabular-nums shrink-0 mt-0.5 ${inBand ? 'text-ink-400' : 'text-amber-600 font-semibold'}`}
               title={
@@ -218,7 +218,7 @@ function SummaryStage({ data, articleLength }) {
         </span>
         <CopyButton text={summary} className="ml-auto" />
       </div>
-      <p className="text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">{summary}</p>
+      <p className="font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">{summary}</p>
       {articleLength > summary.length && (
         <p className="text-[11px] text-ink-400 tabular-nums">
           Condensed by {Math.round((1 - summary.length / articleLength) * 100)}% —{' '}

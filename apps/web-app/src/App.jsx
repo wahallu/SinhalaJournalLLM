@@ -434,11 +434,9 @@ function App() {
         onCollapse={() => setSidebarCollapsed((v) => !v)}
       />
 
-      {/* Desktop sidebar spacer — gives the fixed sidebar its flex-row space on lg+ */}
-      <div className={`
-        hidden lg:block shrink-0 transition-all duration-200
-        ${sidebarCollapsed ? 'w-[4.75rem]' : 'w-[17rem]'}
-      `} />
+      {/* No spacer div here any more. The sidebar is an in-flow flex child
+          from lg upward (see Sidebar.jsx), so it reserves its own column and
+          nothing has to repeat its width to keep the content clear of it. */}
 
       <div className="flex-1 min-w-0 h-full flex flex-col">
         {/* Mobile top bar */}

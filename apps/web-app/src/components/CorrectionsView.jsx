@@ -72,11 +72,12 @@ function locate(text, corrections) {
 }
 
 /**
- * Corrected text with every applied edit underlined in red.
+ * Corrected text with every applied edit highlighted in yellow.
  *
- * Red wavy underline is the convention every writing tool uses for "this was
- * wrong", so it needs no legend — and unlike the highlight it replaced, it
- * leaves the Sinhala glyphs on a plain background where they stay legible.
+ * Same treatment the admin Model Comparison pane uses for its verbatim-match
+ * marks, so a changed word reads identically in both places. A red wavy
+ * underline sat too close to the Sinhala glyphs' own descenders and vowel
+ * signs — the mark and the script competed; a background fill does not.
  */
 export function CorrectedText({ text, corrections = [], className = '' }) {
   if (!text) return null;
@@ -91,8 +92,8 @@ export function CorrectedText({ text, corrections = [], className = '' }) {
       <mark
         key={i}
         title={`${correction.original || '—'} → ${term}`}
-        className={`bg-transparent text-inherit underline decoration-wavy decoration-brand-600
-          decoration-[1.5px] underline-offset-[5px] ${className}`}
+        className={`bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px]
+          border border-yellow-300/70 ${className}`}
       >
         {term}
       </mark>
@@ -159,9 +160,9 @@ export function CorrectionsList({ corrections = [], className = '' }) {
                 <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[12px] text-ink-400 line-through decoration-brand-300">{c.original}</span>
+                    <span className="font-sinhala text-[12px] text-ink-400 line-through decoration-brand-300">{c.original}</span>
                     <span className="text-ink-300 text-[10px]">→</span>
-                    <span className="text-[12px] font-semibold text-ink-800">{c.corrected}</span>
+                    <span className="font-sinhala text-[12px] font-semibold text-ink-800">{c.corrected}</span>
                   </div>
                   <p className="text-[10px] text-ink-500 mt-0.5 uppercase tracking-wide">{meta.label}</p>
                 </div>

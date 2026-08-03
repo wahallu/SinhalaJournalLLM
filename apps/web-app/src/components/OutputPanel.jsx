@@ -33,7 +33,7 @@ function ResultLabel({ children }) {
 function TextCard({ children, muted = false, className = '' }) {
   return (
     <Card className={`px-5 py-4 ${muted ? 'bg-ink-50/60' : ''} ${className}`}>
-      <p className={`text-[15px] leading-[1.85] whitespace-pre-wrap ${muted ? 'text-ink-500' : 'text-ink-800'}`}>
+      <p className={`font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap ${muted ? 'text-ink-500' : 'text-ink-800'}`}>
         {children}
       </p>
     </Card>
@@ -135,8 +135,34 @@ export default function OutputPanel({ output, loading, error, type, input, summa
         </div>
       )}
 
-      {/* ── Before / after (grammar + rewriter) ── */}
-      {(isGrammar && !isPerfect) || isRewrite ? (
+      {/* ── Corrected text (grammar) ──
+           Corrected only, not a before/after pair. The original is already on
+           screen in the editor immediately to the left, so showing it again
+           halved the width available to the result — the text people actually
+           came to read — for a column they were already looking at. The
+           rewriter keeps its pair below, where the whole point is comparing
+           two phrasings of the same sentence. */}
+      {isGrammar && !isPerfect ? (
+        <div>
+          <div className="flex items-center justify-between mb-2 h-7">
+            <ResultLabel>Corrected</ResultLabel>
+            <CopyButton id="copy-output" text={displayText} />
+          </div>
+          <Card className="px-5 py-4 border-emerald-200/60">
+            <p className="font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
+              <CorrectedText text={displayText} corrections={corrections} />
+            </p>
+            {corrections.length > 0 && (
+              <p className="text-[11px] text-ink-400 mt-3 pt-2.5 border-t border-ink-100">
+                <mark className="bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px] border border-yellow-300/70">
+                  Highlighted
+                </mark>{' '}
+                words were changed — hover one to see the original.
+              </p>
+            )}
+          </Card>
+        </div>
+      ) : isRewrite ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="min-w-0">
             <div className="flex items-center justify-between mb-2 h-7">
@@ -148,8 +174,8 @@ export default function OutputPanel({ output, loading, error, type, input, summa
             <div className="flex items-center justify-between mb-2 h-7">
               <span className="inline-flex items-center gap-1.5">
                 <ArrowRight size={12} className="text-ink-400 md:hidden" />
-                <ResultLabel>{isGrammar ? 'Corrected' : 'Rewritten'}</ResultLabel>
-                {isRewrite && output.tone && (
+                <ResultLabel>Rewritten</ResultLabel>
+                {output.tone && (
                   <span className="text-[10px] font-bold uppercase tracking-wider text-brand-700 bg-brand-50 border border-brand-200/70 rounded-full px-2 py-0.5">
                     {output.tone}
                   </span>
@@ -157,23 +183,10 @@ export default function OutputPanel({ output, loading, error, type, input, summa
               </span>
               <CopyButton id="copy-output" text={displayText} />
             </div>
-            {/* The legend lives inside the card, not under it: the two
-                columns are stretched to the same row height, so anything
-                appended after the card overflows the grid cell. */}
             <Card className="px-5 py-4 border-emerald-200/60 h-[calc(100%-2.25rem)]">
-              <p className="text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
-                {isGrammar
-                  ? <CorrectedText text={displayText} corrections={corrections} />
-                  : displayText}
+              <p className="font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
+                {displayText}
               </p>
-              {isGrammar && corrections.length > 0 && (
-                <p className="text-[11px] text-ink-400 mt-3 pt-2.5 border-t border-ink-100">
-                  <span className="underline decoration-wavy decoration-brand-600 decoration-[1.5px] underline-offset-[3px]">
-                    Underlined
-                  </span>{' '}
-                  words were changed — hover one to see the original.
-                </p>
-              )}
             </Card>
           </div>
         </div>
@@ -196,14 +209,14 @@ export default function OutputPanel({ output, loading, error, type, input, summa
             {isSummary && summaryView === 'bullets' ? (
               <ul className="space-y-2.5">
                 {splitSentences(displayText).map((s, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-[15px] leading-[1.7] text-ink-800">
+                  <li key={i} className="font-sinhala flex items-start gap-2.5 text-[15px] leading-[1.7] text-ink-800">
                     <span className="mt-[0.65em] w-1.5 h-1.5 rounded-full bg-brand-400 shrink-0" aria-hidden="true" />
                     <span>{s}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-[15px] text-ink-800 leading-[1.85] whitespace-pre-wrap">{displayText}</p>
+              <p className="font-sinhala text-[15px] text-ink-800 leading-[1.85] whitespace-pre-wrap">{displayText}</p>
             )}
           </Card>
 

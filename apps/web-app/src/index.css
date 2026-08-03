@@ -47,6 +47,23 @@
   font-family: 'UBIN16S', sans-serif;
 }
 
+/* ── Sinhala body text ────────────────────────────────────────────────────
+   The stack the admin Model Comparison pane renders its Sinhala output in —
+   byte-identical to `--font-sans` in admin/theme.css, which this file already
+   imports, so Inter Variable is loaded app-wide and both surfaces resolve to
+   exactly the same face.
+
+   Deliberately NOT the app's own --font-sans. That stack lists
+   'Noto Sans Sinhala' second, but the webfont never actually loads
+   (document.fonts.check returns false), so app Sinhala was silently falling
+   through to a different system face than the admin console — the two panes
+   disagreed on the same text. Applied to the surfaces that hold Sinhala:
+   the editor, and every result card. */
+.font-sinhala {
+  font-family: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+               Roboto, sans-serif;
+}
+
 /* Placeholder only. The editor's placeholders are written in the legacy
    encoding, but whatever the user types is real Unicode Sinhala — so the
    face is scoped to ::placeholder and the typed value keeps the normal
