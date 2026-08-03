@@ -1,4 +1,4 @@
-import { SpellCheck, Newspaper, PenLine, FileText } from 'lucide-react';
+import { SpellCheck, Newspaper, PenLine, FileText, Wand2 } from 'lucide-react';
 
 /**
  * Shared metadata for the four writing tools.
@@ -33,3 +33,18 @@ export const TOOL_META = {
 };
 
 export const TOOL_LIST = Object.values(TOOL_META);
+
+/**
+ * Optimize Article — deliberately outside TOOL_META.
+ *
+ * It is not a fifth tool: it runs the four above in order and persists under
+ * their history tables, so putting it in TOOL_META would add a phantom card
+ * to the dashboard grid and a tool label the history feed can never emit.
+ * It gets the primary call to action instead.
+ */
+export const OPTIMIZE_META = {
+  id: 'optimize',
+  label: 'Optimize Article',
+  shortDesc: 'Correct, restyle, headline, and summarize in one run.',
+  icon: Wand2,
+};

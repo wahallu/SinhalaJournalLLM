@@ -1,0 +1,273 @@
+/**
+ * ShinyButton — animated conic-gradient border with a shimmer sweep.
+ *
+ * Co-located with the component rather than in index.css: nothing else in
+ * the app uses it, and the @property registrations below are document-global
+ * wherever they are declared, so there is no scoping to be gained by moving
+ * them.
+ *
+ * Ported from a styled-jsx (Next.js) original. `<style jsx>` is a Next
+ * compiler feature and silently does nothing under Vite — the rules would
+ * have been emitted as literal text into the DOM — so the stylesheet is a
+ * real CSS file imported by the component instead.
+ */
+
+/* Registered so the browser can interpolate them. A plain custom property is
+   a string as far as animation is concerned, and would snap between values
+   rather than sweeping. */
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --gradient-angle-offset {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@property --gradient-percent {
+  syntax: "<percentage>";
+  initial-value: 5%;
+  inherits: false;
+}
+
+@property --gradient-shine {
+  syntax: "<color>";
+  initial-value: white;
+  inherits: false;
+}
+
+.shiny-cta {
+  /* Brand red, not the original's blue. The body is solid, never
+     translucent: it sits over the hero's animated shader, and a mid-tone
+     pill would let moving noise run under the label.
+
+     The body is now brighter than the shell it sits on (#e03538 against
+     --shell-* #b01e1f), which inverts what the highlights have to do. The
+     old coral sweep was chosen to read against a near-black body; against
+     this fill it has almost no contrast left, so the sweep is white and
+     the inset ring is lighter than the fill rather than darker — a dark
+     rim on a bright pill reads as grime rather than depth. */
+  --shiny-cta-bg: #9e0205;
+  --shiny-cta-bg-subtle: #f06d6f;
+  --shiny-cta-fg: #ffffff;
+  --shiny-cta-highlight: #ffffff;
+  --shiny-cta-highlight-subtle: #ffe4e2;
+
+  --animation: gradient-angle linear infinite;
+  /* One full rotation of the border gradient. The original 3s is landing-page
+     pace; this button is persistent chrome in the sidebar, so it is halved to
+     a calm sweep. Every other timing derives from this — the reverse layer at
+     duration/0.4 and the label glow at duration*1.5 — so they scale with it. */
+  --duration: 6s;
+  --shadow-size: 2px;
+  --transition: 800ms cubic-bezier(0.25, 1, 0.5, 1);
+
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  outline-offset: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* The original hardcoded 1.25rem 2.5rem / 1.125rem, which is far too large
+     for a 17rem sidebar. Size variants drive these instead. */
+  padding: var(--shiny-cta-padding, 0.625rem 1.125rem);
+  font-family: inherit;
+  font-size: var(--shiny-cta-font-size, 0.8125rem);
+  line-height: 1.2;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  border-radius: var(--shiny-cta-radius, 360px);
+  color: var(--shiny-cta-fg);
+  background:
+    linear-gradient(var(--shiny-cta-bg), var(--shiny-cta-bg)) padding-box,
+    conic-gradient(
+      from calc(var(--gradient-angle) - var(--gradient-angle-offset)),
+      transparent,
+      var(--shiny-cta-highlight) var(--gradient-percent),
+      var(--gradient-shine) calc(var(--gradient-percent) * 2),
+      var(--shiny-cta-highlight) calc(var(--gradient-percent) * 3),
+      transparent calc(var(--gradient-percent) * 4)
+    ) border-box;
+  box-shadow: inset 0 0 0 1px var(--shiny-cta-bg-subtle);
+  transition: var(--transition);
+  transition-property: --gradient-angle-offset, --gradient-percent, --gradient-shine;
+}
+
+.shiny-cta::before,
+.shiny-cta::after,
+.shiny-cta .shiny-cta-label::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  translate: -50% -50%;
+  z-index: -1;
+}
+
+.shiny-cta:active {
+  translate: 0 1px;
+}
+
+/* Dots pattern */
+.shiny-cta::before {
+  --size: calc(100% - var(--shadow-size) * 3);
+  --position: 2px;
+  --space: calc(var(--position) * 2);
+  width: var(--size);
+  height: var(--size);
+  background: radial-gradient(
+    circle at var(--position) var(--position),
+    white calc(var(--position) / 4),
+    transparent 0
+  ) padding-box;
+  background-size: var(--space) var(--space);
+  background-repeat: space;
+  mask-image: conic-gradient(
+    from calc(var(--gradient-angle) + 45deg),
+    black,
+    transparent 10% 90%,
+    black
+  );
+  border-radius: inherit;
+  opacity: 0.4;
+  z-index: -1;
+}
+
+/* Inner shimmer */
+.shiny-cta::after {
+  --animation: shimmer linear infinite;
+  width: 100%;
+  aspect-ratio: 1;
+  background: linear-gradient(
+    -50deg,
+    transparent,
+    var(--shiny-cta-highlight),
+    transparent
+  );
+  mask-image: radial-gradient(circle at bottom, transparent 40%, black);
+  opacity: 0.6;
+}
+
+.shiny-cta .shiny-cta-label {
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.shiny-cta .shiny-cta-label::before {
+  --size: calc(100% + 1rem);
+  width: var(--size);
+  height: var(--size);
+  box-shadow: inset 0 -1ex 2rem 4px var(--shiny-cta-highlight);
+  opacity: 0;
+  transition: opacity var(--transition);
+  animation: calc(var(--duration) * 1.5) shiny-breathe linear infinite;
+}
+
+/* Animate */
+.shiny-cta,
+.shiny-cta::before,
+.shiny-cta::after {
+  animation:
+    var(--animation) var(--duration),
+    var(--animation) calc(var(--duration) / 0.4) reverse paused;
+  animation-composition: add;
+}
+
+.shiny-cta:is(:hover, :focus-visible) {
+  --gradient-percent: 20%;
+  --gradient-angle-offset: 95deg;
+  --gradient-shine: var(--shiny-cta-highlight-subtle);
+}
+
+.shiny-cta:is(:hover, :focus-visible),
+.shiny-cta:is(:hover, :focus-visible)::before,
+.shiny-cta:is(:hover, :focus-visible)::after {
+  animation-play-state: running;
+}
+
+.shiny-cta:is(:hover, :focus-visible) .shiny-cta-label::before {
+  opacity: 1;
+}
+
+.shiny-cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.shiny-cta:disabled,
+.shiny-cta:disabled::before,
+.shiny-cta:disabled::after {
+  animation-play-state: paused;
+}
+
+/* ── Size variants ── */
+.shiny-cta--sm {
+  --shiny-cta-padding: 0.5rem 0.875rem;
+  --shiny-cta-font-size: 0.75rem;
+}
+
+.shiny-cta--lg {
+  --shiny-cta-padding: 0.75rem 1.5rem;
+  --shiny-cta-font-size: 0.875rem;
+}
+
+/* Collapsed sidebar: a square icon target with no label. */
+.shiny-cta--icon {
+  --shiny-cta-padding: 0.625rem;
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.shiny-cta--block {
+  display: flex;
+  width: 100%;
+}
+
+@keyframes gradient-angle {
+  to {
+    --gradient-angle: 360deg;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes shiny-breathe {
+  from,
+  to {
+    scale: 1;
+  }
+  50% {
+    scale: 1.2;
+  }
+}
+
+/* The border sweep runs continuously and this button lives in the sidebar on
+   every screen, so an unqualified infinite animation is a standing motion
+   distraction. Hold the gradient still and keep the static styling. */
+@media (prefers-reduced-motion: reduce) {
+  .shiny-cta,
+  .shiny-cta::before,
+  .shiny-cta::after,
+  .shiny-cta .shiny-cta-label::before {
+    animation: none;
+  }
+
+  .shiny-cta {
+    --gradient-percent: 20%;
+    --gradient-shine: var(--shiny-cta-highlight-subtle);
+  }
+}

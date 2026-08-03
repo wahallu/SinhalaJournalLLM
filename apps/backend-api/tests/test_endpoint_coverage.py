@@ -24,6 +24,9 @@ ANONYMOUS_OK = {
     "/api/v1/rewrite",
     "/api/v1/summarize",
     "/api/v1/headlines/visual-prompt",
+    # Composes the four writing tools and applies the same anonymous limit
+    # once for the whole run — see test_optimize.py.
+    "/api/v1/optimize",
 }
 
 

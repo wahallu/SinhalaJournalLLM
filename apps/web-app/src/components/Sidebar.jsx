@@ -22,13 +22,15 @@ const TOOL_PATHS = {
 
 const NAV_SECTIONS = [
   {
-    label: 'Workspace',
+    id: 'workspace',
+    label: '',
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     ],
   },
   {
-    label: 'Writing tools',
+    id: 'writing-tools',
+    label: '',
     items: [
       { id: 'grammar', label: 'Grammar Checker', icon: SpellCheck },
       { id: 'headlines', label: 'Headline Generator', icon: Newspaper },
@@ -78,19 +80,16 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
         className={`
           relative w-full flex items-center gap-3 rounded-lg cursor-pointer
           ${collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'}
-          text-[13px] font-medium transition-colors duration-150
+          text-[13.5px] font-medium transition-colors duration-150
           ${isActive
-            ? 'bg-white/[0.08] text-white'
-            : 'text-white/55 hover:text-white hover:bg-white/[0.05]'}
+            ? 'bg-brand-600 text-white'
+            : 'text-ink-900 hover:bg-ink-50'}
         `}
       >
-        {isActive && (
-          <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4.5 w-[3px] rounded-full bg-brand-500" aria-hidden="true" />
-        )}
         <Icon
           size={17}
           strokeWidth={2}
-          className={`shrink-0 ${isActive ? 'text-brand-400' : 'text-white/45 group-hover:text-white/70'}`}
+          className={`shrink-0 ${isActive ? 'text-white' : 'text-ink-500'}`}
         />
         {!collapsed && <span className="truncate">{label}</span>}
       </button>
@@ -111,13 +110,15 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
         aria-label="Primary navigation"
         className={`
           fixed inset-y-0 left-0 z-50 overflow-hidden
-          ${collapsed ? 'w-[4.75rem]' : 'w-[17rem]'} bg-ink-950
+          ${collapsed ? 'w-[4.75rem]' : 'w-[17rem]'} bg-[#F5F4F4] border-r border-ink-100
           flex flex-col shrink-0
           transition-all duration-200 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
-        {/* Ambient dot field — kept subtle so text stays readable */}
+        {/* Ambient dot field — kept subtle so text stays readable. Brand-red
+            tinted, not white: white dots on the white shell would be
+            invisible, so the field now reads as a faint red texture. */}
         <DotField
           className="absolute inset-0 z-0 opacity-25 pointer-events-none"
           dotRadius={1.2}
@@ -129,43 +130,73 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
           cursorRadius={400}
           cursorForce={0.015}
           bulgeOnly
-          gradientFrom="rgba(233,115,113,0.35)"
-          gradientTo="rgba(255,255,255,0.05)"
-          glowColor="#cd191a"
+          gradientFrom="rgba(205,25,26,0.35)"
+          gradientTo="rgba(205,25,26,0.08)"
+          glowColor="#f6c2c1"
         />
 
-        {/* Brand */}
-        <div className={`relative z-10 flex items-center gap-3 pt-5 pb-4 ${collapsed ? 'justify-center px-2' : 'px-5'}`}>
-          <div className="w-9 h-9 rounded-xl bg-brand-600 shadow-lg shadow-brand-950/40 flex items-center justify-center shrink-0">
-            <img src="/logo.png" alt="" className="w-full h-full object-contain p-1.5" />
-          </div>
-          {!collapsed && (
-            <div className="flex flex-col min-w-0">
+        {/* Brand.
+            Collapsed, the mark is the only thing that fits, so the logo image
+            stands alone and doubles as the expand control — hovering it swaps
+            in a chevron. Expanded, the wordmark carries the identity on its
+            own and the image would only repeat it, so the slot is given over
+            to the wordmark and the collapse control fades in on hover. */}
+        <div
+          className={`group relative z-10 flex items-center gap-3 pt-5 pb-4
+            ${collapsed ? 'justify-center px-2' : 'px-5'}`}
+        >
+          {collapsed ? (
+            <button
+              id="sidebar-collapse"
+              onClick={onCollapse}
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+              /* Bordered, not shadow-only: the shell is white again, so a
+                 plain white tile needs an edge to read against it. */
+              className="relative w-9 h-9 rounded-xl bg-white border border-ink-100 shadow-card
+                flex items-center justify-center shrink-0 cursor-pointer
+                transition-colors duration-150 hover:bg-brand-50"
+            >
+              <img
+                src="/logored.svg"
+                alt="SinAi"
+                className="w-full h-full object-contain p-1.5 transition-opacity duration-150
+                  group-hover:opacity-0"
+              />
+              <ChevronRight
+                size={17}
+                strokeWidth={2.5}
+                className="absolute text-brand-600 opacity-0 transition-opacity duration-150
+                  group-hover:opacity-100"
+                aria-hidden="true"
+              />
+            </button>
+          ) : (
+            <>
               <span
-                className="text-white leading-none tracking-tight"
-                style={{ fontSize: '22px', fontFamily: "'Gwen', 'Satoshi', sans-serif" }}
+                className="text-brand-600 leading-none tracking-tight min-w-0 truncate"
+                style={{ fontSize: '34px', fontFamily: "'Gwen', 'Satoshi', sans-serif" }}
               >
                 SinAi
               </span>
-              <span className="text-[9.5px] text-white/35 uppercase tracking-[0.18em] mt-1">
-                Journalism AI
-              </span>
-            </div>
+              <button
+                id="sidebar-collapse"
+                onClick={onCollapse}
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+                className="hidden lg:flex items-center justify-center w-7 h-7 rounded-lg ml-auto
+                  text-ink-400 hover:text-ink-900 hover:bg-ink-100 cursor-pointer
+                  opacity-0 group-hover:opacity-100 focus-visible:opacity-100
+                  transition-all duration-150"
+              >
+                <ChevronLeft size={15} strokeWidth={2} />
+              </button>
+            </>
           )}
-          <button
-            id="sidebar-collapse"
-            onClick={onCollapse}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={`hidden lg:flex items-center justify-center w-7 h-7 rounded-lg text-white/40
-              hover:text-white hover:bg-white/10 transition-colors duration-150 cursor-pointer
-              ${collapsed ? 'absolute top-1.5 right-1.5' : 'ml-auto'}`}
-          >
-            {collapsed ? <ChevronRight size={15} strokeWidth={2} /> : <ChevronLeft size={15} strokeWidth={2} />}
-          </button>
           {/* Mobile close */}
           <button
             onClick={onToggle}
-            className="lg:hidden ml-auto flex items-center justify-center w-8 h-8 rounded-lg text-white/50 hover:text-white hover:bg-white/10 cursor-pointer"
+            className="lg:hidden ml-auto flex items-center justify-center w-8 h-8 rounded-lg text-ink-400 hover:text-ink-900 hover:bg-ink-100 cursor-pointer"
             aria-label="Close navigation"
           >
             <X size={17} />
@@ -183,22 +214,22 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
             );
             if (items.length === 0) return null;
             return (
-            <div key={section.label}>
-              {!collapsed && (
-                <p className="px-3 mb-1.5 text-[9.5px] font-bold text-white/30 uppercase tracking-[0.16em]">
-                  {section.label}
-                </p>
-              )}
-              <div className="space-y-0.5">
-                {items.map(renderNavItem)}
+              <div key={section.id}>
+                {!collapsed && (
+                  <p className="px-3 mb-1.5 text-[9.5px] font-bold text-ink-400 uppercase tracking-[0.16em]">
+                    {section.label}
+                  </p>
+                )}
+                <div className="space-y-0.5">
+                  {items.map(renderNavItem)}
+                </div>
               </div>
-            </div>
             );
           })}
         </nav>
 
         {/* Bottom navigation */}
-        <div className={`relative z-10 py-3 space-y-0.5 border-t border-white/[0.07] ${collapsed ? 'px-3' : 'px-3.5'}`}>
+        <div className={`relative z-10 py-3 space-y-0.5 border-t border-ink-100 ${collapsed ? 'px-3' : 'px-3.5'}`}>
           {BOTTOM_NAV.map(renderNavItem)}
         </div>
 
@@ -213,7 +244,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
                 className={`
                   w-full flex items-center gap-2.5 rounded-xl cursor-pointer
                   ${collapsed ? 'justify-center px-0 py-2' : 'px-2.5 py-2'}
-                  hover:bg-white/[0.06] transition-colors duration-150
+                  hover:bg-ink-50 transition-colors duration-150
                 `}
               >
                 <div className="w-8.5 h-8.5 rounded-lg bg-gradient-to-br from-brand-500 to-brand-800 flex items-center justify-center shrink-0 text-white text-[12px] font-bold">
@@ -222,14 +253,14 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
                 {!collapsed && (
                   <div className="text-left min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-[12.5px] font-semibold text-white truncate">{displayName}</p>
+                      <p className="text-[13px] font-semibold text-ink-900 truncate">{displayName}</p>
                       {profile?.role === 'admin' && (
-                        <span className="text-[8.5px] font-bold text-white/50 bg-white/10 px-1.5 py-px rounded uppercase tracking-wider">
+                        <span className="text-[8.5px] font-bold text-brand-700 bg-brand-50 px-1.5 py-px rounded uppercase tracking-wider">
                           Admin
                         </span>
                       )}
                     </div>
-                    <p className="text-[10.5px] text-white/40 truncate">{displayEmail}</p>
+                    <p className="text-[11px] text-ink-400 truncate">{displayEmail}</p>
                   </div>
                 )}
               </button>
@@ -272,16 +303,16 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
           ) : (
             <button
               id="sidebar-signin"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/login', { state: { backgroundLocation: location } })}
               title={collapsed ? 'Sign in' : undefined}
               className={`
-                w-full flex items-center gap-2.5 rounded-xl cursor-pointer
+                w-full flex items-center gap-2.5 rounded-xl cursor-pointer border border-ink-200
                 ${collapsed ? 'justify-center px-0 py-2.5' : 'px-2.5 py-2.5'}
-                bg-white/[0.06] hover:bg-white/[0.1] transition-colors duration-150
+                bg-white hover:bg-ink-50 hover:border-ink-300 transition-colors duration-150
               `}
             >
-              <LogIn size={16} className="text-white/70 shrink-0" />
-              {!collapsed && <span className="text-[12.5px] font-semibold text-white">Sign in</span>}
+              <LogIn size={16} className="text-ink-500 shrink-0" />
+              {!collapsed && <span className="text-[13px] font-semibold text-ink-800">Sign in</span>}
             </button>
           )}
         </div>

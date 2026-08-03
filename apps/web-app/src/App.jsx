@@ -10,6 +10,8 @@ import Editor from './components/editor/Editor';
 import ResultsPane from './components/editor/ResultsPane';
 import OutputPanel from './components/OutputPanel';
 import HeadlineOutputPanel from './components/HeadlineOutputPanel';
+import OptimizePage from './components/optimize/OptimizePage';
+import RouteDialog from './components/RouteDialog';
 import Dashboard from './components/Dashboard';
 import HistoryPage from './components/HistoryPage';
 import SettingsPage from './components/SettingsPage';
@@ -38,13 +40,23 @@ import SinLLamaPage from './admin/research/SinLLamaPage';
 import SummarizerPlayground from './admin/research/SummarizerPlayground';
 import ModelComparison from './admin/research/ModelComparison';
 
-/* Auth screens render outside the sidebar shell. */
-const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email'];
+/* Routes that render as a dialog over whatever page is behind them, rather
+   than as a page of their own. In-app navigation to one of these carries the
+   current location forward as backgroundLocation, so that page keeps
+   rendering underneath; reached directly — an email link, a pasted URL —
+   there is no such page, so the shell falls back to the dashboard instead. */
+const MODAL_PATHS = [
+  '/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/profile',
+];
 
+/* Placeholders are written in the legacy ubin16s encoding (see index.css).
+   Punctuation is remapped along with everything else: "." draws ග and "¡"
+   draws a ligature, so a trailing ellipsis has to be spelled "'''" — the
+   apostrophe is the slot holding the full stop in that face. */
 const TOOL_CONFIG = {
   grammar: {
     title: TOOL_META.grammar.label,
-    placeholder: 'fuys Tnf.a isxy, jdlHh we;=<;a lrkak¡¡¡',
+    placeholder: "fuys Tnf.a isxy, jdlHh we;=<;a lrkak'''",
     actionLabel: 'Correct',
     outputType: 'text',
     icon: TOOL_META.grammar.icon,
@@ -52,7 +64,7 @@ const TOOL_CONFIG = {
   },
   headlines: {
     title: TOOL_META.headlines.label,
-    placeholder: 'fuys m%jD;a;s ,smsh we;=<;a lrkak¡¡¡',
+    placeholder: "fuys m%jD;a;s ,smsh we;=<;a lrkak'''",
     actionLabel: 'Generate',
     outputType: 'headlines',
     icon: TOOL_META.headlines.icon,
@@ -60,7 +72,7 @@ const TOOL_CONFIG = {
   },
   rewriter: {
     title: TOOL_META.rewriter.label,
-    placeholder: 'kej; ,sùug wjYH ,smsh we;=<;a lrkak¡¡¡',
+    placeholder: "kej; ,sùug wjYH ,smsh we;=<;a lrkak'''",
     actionLabel: 'Rewrite',
     outputType: 'text',
     icon: TOOL_META.rewriter.icon,
@@ -68,7 +80,7 @@ const TOOL_CONFIG = {
   },
   summarizer: {
     title: TOOL_META.summarizer.label,
-    placeholder: 'idrdxY lsÍug wjYH ,smsh we;=<;a lrkak¡¡¡',
+    placeholder: "idrdxY lsÍug wjYH ,smsh we;=<;a lrkak'''",
     actionLabel: 'Summarize',
     outputType: 'text',
     icon: TOOL_META.summarizer.icon,
@@ -77,18 +89,19 @@ const TOOL_CONFIG = {
 };
 
 const PATH_TO_TOOL = {
+  '/optimize': 'optimize',
   '/grammar': 'grammar',
   '/headlines': 'headlines',
   '/rewriter': 'rewriter',
   '/summarizer': 'summarizer',
   '/history': 'history',
   '/settings': 'settings',
-  '/profile': 'profile',
   '/plans': 'plans',
   '/dashboard': 'dashboard',
 };
 
 const TOOL_TO_PATH = {
+  optimize: '/optimize',
   grammar: '/grammar',
   headlines: '/headlines',
   rewriter: '/rewriter',
@@ -100,12 +113,13 @@ const TOOL_TO_PATH = {
   dashboard: '/dashboard',
 };
 
-/* The four writing tools render the two-pane editor workspace, which is
+/* The writing tools render the two-pane editor workspace, which is
    full-height with independently scrolling panes at xl and stacks below. */
-const EDITOR_TOOLS = ['grammar', 'headlines', 'rewriter', 'summarizer'];
+const EDITOR_TOOLS = ['optimize', 'grammar', 'headlines', 'rewriter', 'summarizer'];
 
 const MAX_WIDTHS = {
   dashboard: 'max-w-7xl',
+  optimize: 'max-w-[1600px]',
   grammar: 'max-w-[1600px]',
   headlines: 'max-w-[1600px]',
   rewriter: 'max-w-[1600px]',
@@ -131,6 +145,11 @@ function loadDefaultSettings() {
     category: 'General',
     headlineLength: 'medium',
     summaryView: 'paragraph',
+    // Optimize's two opt-in stages. Session state rather than a stored
+    // preference — they are per-article decisions, and SettingsPage does not
+    // offer them.
+    optimizeRestyle: false,
+    optimizeSummarize: false,
   };
 }
 
@@ -264,7 +283,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
                 Sign in to save this to your history.
               </span>
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/login', { state: { backgroundLocation: location } })}
                 className="text-[12.5px] font-semibold text-brand-700 hover:underline cursor-pointer"
               >
                 Sign in
@@ -295,17 +314,36 @@ function App() {
     count: settings.count ?? globalDefaults?.headline_count ?? 3,
   }), [settings, globalDefaults]);
 
-  const activeTool = PATH_TO_TOOL[location.pathname] || 'dashboard';
+  // The page a modal route renders over — see MODAL_PATHS above.
+  // Only overridden on a modal path itself — otherwise a non-modal route
+  // like /history would inherit whatever backgroundLocation state it was
+  // navigated with and skip rendering (and, for a protected route, skip its
+  // own auth check) in favor of that background page.
+  const backgroundLocation = MODAL_PATHS.includes(location.pathname)
+    ? (location.state?.backgroundLocation ?? { pathname: '/dashboard' })
+    : location;
+
+  const activeTool = PATH_TO_TOOL[backgroundLocation.pathname] || 'dashboard';
 
   const handleSelectTool = useCallback((toolId) => {
     const path = TOOL_TO_PATH[toolId] || `/${toolId}`;
-    navigate(path);
-  }, [navigate]);
+    // Carried forward unconditionally: harmless where nothing reads it, and
+    // it is what lets a protected route (history, settings, plans) hand a
+    // real backdrop to /login if ProtectedRoute ends up redirecting there.
+    navigate(path, { state: { backgroundLocation: location } });
+  }, [navigate, location]);
 
   const handleQuickStart = useCallback((toolId, text = '') => {
     const path = TOOL_TO_PATH[toolId] || `/${toolId}`;
     navigate(path, { state: { text } });
   }, [navigate]);
+
+  /* The dashboard is both its own route and the backdrop every modal route
+     renders over, so it is built once here rather than repeated seven times
+     in the route table. */
+  const dashboard = (
+    <Dashboard onSelectTool={handleSelectTool} onQuickStart={handleQuickStart} />
+  );
 
   /**
    * Store only the values the user actually changed.
@@ -341,20 +379,8 @@ function App() {
   /* Hiding a disabled tool in the sidebar still leaves its URL reachable, so
      the route itself has to bounce. The server enforces this too — this is
      purely so a user does not land on a 503. */
-  const toolForPath = PATH_TO_TOOL[location.pathname];
+  const toolForPath = PATH_TO_TOOL[backgroundLocation.pathname];
   const toolDisabled = toolForPath in features && features[toolForPath] === false;
-
-  if (AUTH_PATHS.includes(location.pathname)) {
-    return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-      </Routes>
-    );
-  }
 
   /* The admin dashboard has its own shell and token scope — it must not
      render inside the SinAi sidebar layout. */
@@ -428,14 +454,15 @@ function App() {
 
         <main className={`flex-1 min-h-0 overflow-y-auto ${isEditor ? 'xl:overflow-hidden xl:flex xl:flex-col' : ''}`}>
           <div
-            key={location.pathname}
+            key={backgroundLocation.pathname}
             className={`mx-auto w-full ${MAX_WIDTHS[activeTool] ?? 'max-w-5xl'} px-4 sm:px-6 lg:px-8 py-6 lg:py-8
               animate-in fade-in slide-in-from-bottom-2 duration-300
               ${isEditor ? 'xl:flex-1 xl:min-h-0 xl:flex xl:flex-col' : ''}`}
           >
-            <Routes>
+            <Routes location={backgroundLocation}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard onSelectTool={handleSelectTool} onQuickStart={handleQuickStart} />} />
+              <Route path="/dashboard" element={dashboard} />
+              <Route path="/optimize" element={<OptimizePage settings={effectiveSettings} setSettings={handleSettingsChange} />} />
               <Route path="/grammar" element={<ToolRunner activeTool="grammar" settings={effectiveSettings} setSettings={handleSettingsChange} />} />
               <Route path="/headlines" element={<ToolRunner activeTool="headlines" settings={effectiveSettings} setSettings={handleSettingsChange} />} />
               <Route path="/rewriter" element={<ToolRunner activeTool="rewriter" settings={effectiveSettings} setSettings={handleSettingsChange} />} />
@@ -444,8 +471,8 @@ function App() {
                   to anonymous visitors, who simply do not get results saved. */}
               <Route path="/history" element={<ProtectedRoute><HistoryPage onSelectTool={handleSelectTool} onRerun={handleQuickStart} onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage onBack={() => navigate('/dashboard')} onDefaultsChange={handleDefaultsChange} /></ProtectedRoute>} />
-              <Route path="/profile" element={<ProtectedRoute><ProfilePage onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
               <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
+
               {/* The research tools moved to /admin/research/*. Send old
                   bookmarks to the dashboard rather than the admin route —
                   a non-admin would be redirected straight back out. */}
@@ -457,6 +484,37 @@ function App() {
           </div>
         </main>
       </div>
+
+      {/* ── Modal routes ──
+          Auth and profile keep real URLs — they are linked from emails and
+          from several places in the app — but render as a dialog over
+          whatever page is behind them. Matched against the real location
+          (not backgroundLocation), so the dialog opens and closes as the URL
+          changes; the page underneath is whichever route backgroundLocation
+          resolved to above. Both dialogs are portalled to the body regardless
+          of where in the tree they render. */}
+      <Routes location={location}>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <RouteDialog
+                title="Profile"
+                description="Your account and how you use SinAi."
+                size="md"
+              >
+                <ProfilePage variant="dialog" />
+              </RouteDialog>
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={null} />
+      </Routes>
     </div>
   );
 }

@@ -17,7 +17,8 @@ import { useAuth } from '../auth/useAuth';
  */
 const LABEL_CLASS = 'block text-[12.5px] font-semibold text-ink-700 mb-1.5';
 
-export default function ProfilePage({ onBack }) {
+export default function ProfilePage({ onBack, variant = 'page' }) {
+  const asDialog = variant === 'dialog';
   const { user, profile: accountProfile, refreshAccount } = useAuth();
   const [categories, setCategories] = useState([]);
   const [categoryState, setCategoryState] = useState('idle'); // idle | saving | saved | error
@@ -69,20 +70,24 @@ export default function ProfilePage({ onBack }) {
 
   return (
     <div>
-      <PageHeader
-        icon={User}
-        title="Profile"
-        description="Your account and how you use SinAi."
-        actions={
-          <ActionButton id="profile-back" size="sm" variant="ghost" icon={ArrowLeft} onClick={onBack}>
-            Dashboard
-          </ActionButton>
-        }
-      />
+      {/* In a dialog the surrounding chrome already carries the title and a
+          close button, so the page header would be a second one. */}
+      {!asDialog && (
+        <PageHeader
+          icon={User}
+          title="Profile"
+          description="Your account and how you use SinAi."
+          actions={
+            <ActionButton id="profile-back" size="sm" variant="ghost" icon={ArrowLeft} onClick={onBack}>
+              Dashboard
+            </ActionButton>
+          }
+        />
+      )}
 
       <div className="space-y-4">
         {/* Account — read-only, from the session */}
-        <Card className="flex items-center gap-5 p-5 sm:p-6">
+        <Card className={`flex items-center gap-5 ${asDialog ? 'p-4' : 'p-5 sm:p-6'}`}>
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-800
             flex items-center justify-center text-white text-[20px] font-bold shadow-sm shadow-brand-600/25 shrink-0">
             {initials}
@@ -101,7 +106,7 @@ export default function ProfilePage({ onBack }) {
 
         {/* Category — the one field on this page that reaches the account */}
         {user && (
-          <Card className="p-5 sm:p-6">
+          <Card className={asDialog ? 'p-4' : 'p-5 sm:p-6'}>
             <div className="flex items-start gap-3 mb-4">
               <div className="w-8.5 h-8.5 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
                 <Tags size={15} className="text-brand-600" strokeWidth={2.25} />

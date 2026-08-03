@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import ActionButton from '../../components/ui/ActionButton';
 import AuthLayout from './AuthLayout';
@@ -8,6 +8,7 @@ import { ERROR, INPUT, LABEL } from './formStyles';
 export default function ResetPassword() {
   const { updatePassword } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [params] = useSearchParams();
   // The single-use token from the emailed link. Supabase used to put a
   // recovery session in the URL fragment and consume it automatically; the
@@ -29,7 +30,10 @@ export default function ResetPassword() {
     try {
       await updatePassword(token, password);
       // Not signed in by this — the new password has to be used once.
-      navigate('/login', { replace: true });
+      navigate('/login', {
+        replace: true,
+        state: { backgroundLocation: location.state?.backgroundLocation },
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -42,7 +46,11 @@ export default function ResetPassword() {
       <AuthLayout
         title="Reset link required"
         footer={
-          <Link to="/forgot-password" className="text-brand-600 font-semibold">
+          <Link
+            to="/forgot-password"
+            state={{ backgroundLocation: location.state?.backgroundLocation }}
+            className="text-brand-600 font-semibold"
+          >
             Request a reset link
           </Link>
         }

@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowRight, ArrowUpRight, Activity, Clock,
-  Sparkles, Newspaper, History as HistoryIcon,
+  History as HistoryIcon,
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import StatusBadge from './ui/StatusBadge';
 import ActionButton from './ui/ActionButton';
+import { ShinyButton } from './ui/shiny-button';
+import Auralis from './ui/auralis';
 import EmptyState from './ui/EmptyState';
-import { TOOL_LIST, TOOL_META } from '../lib/toolMeta';
+import { OPTIMIZE_META, TOOL_LIST, TOOL_META } from '../lib/toolMeta';
 import { useAuth } from '../auth/useAuth';
 import { getCategories, getUnifiedHistory } from '../services/api';
 
@@ -42,6 +44,14 @@ function greeting(now = new Date()) {
 
 /** How long each category sits before the next slides up. */
 const ROTATE_MS = 3200;
+
+/* Module-level, not inline: Auralis keys its WebGL setup on these, and a new
+   array literal on every render would rebuild the shader program each time.
+   The values are the brand ramp — brand-800 as the field, brand-600 and
+   brand-400 as the two moving layers — so the hero animates within the same
+   red the sidebar is painted in rather than introducing a second palette. */
+const HERO_SHADER_COLORS = ['#cd191a', '#e97371'];
+const HERO_SHADER_BASE = '#8d1213';
 
 /**
  * The name after the greeting.
@@ -96,6 +106,7 @@ function StatCard({ label, value, hint, small = false }) {
 
 export default function Dashboard({ onSelectTool, onQuickStart }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, profile } = useAuth();
   const [history, setHistory] = useState([]);
   const [categoryNames, setCategoryNames] = useState([]);
@@ -172,50 +183,58 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
   return (
     <div className="space-y-5">
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden rounded-2xl bg-ink-950 text-white px-6 py-8 sm:px-8 sm:py-9 shadow-pop">
-        {/* Red ambient glow + Sinhala glyph watermark */}
+      {/* surface-shell stays as the painted base. It is what the sidebar uses,
+          so the two still match if the shader never draws — no WebGL, a lost
+          context, a shader that fails to compile — and it is what shows for
+          the frame before the canvas paints. */}
+      <section className="surface-shell relative overflow-hidden rounded-2xl text-white px-6 py-8 sm:px-8 sm:py-9 shadow-pop">
+        <Auralis
+          className="absolute inset-0 z-0"
+          colors={HERO_SHADER_COLORS}
+          base={HERO_SHADER_BASE}
+          speed={0.25}
+          grain={0.32}
+        />
+
+        {/* Legibility scrim. The shader's light band drifts, so sooner or
+            later a bright pass runs under the heading; without this the white
+            text loses contrast for a few seconds every cycle. Weighted to the
+            left, where the copy is, so the open right side keeps the effect. */}
         <div
-          className="pointer-events-none absolute inset-0"
-          style={{ background: 'radial-gradient(42rem 18rem at 85% -20%, rgba(205,25,26,0.35), transparent 60%)' }}
+          className="pointer-events-none absolute inset-0 z-[1]"
+          style={{ background: 'linear-gradient(90deg, rgba(74,12,14,0.62) 0%, rgba(74,12,14,0.28) 42%, transparent 72%)' }}
           aria-hidden="true"
         />
+
         {/* Legacy-encoded glyph — "is" is ASCII that only reads as Sinhala
             in UBIN16S, so the face has to be applied explicitly. */}
         <span
-          className="font-legacy-sinhala pointer-events-none absolute -right-4 -bottom-14
-            text-[13rem] leading-none font-bold text-white/[0.045] select-none"
+          className="font-legacy-sinhala pointer-events-none absolute -right-13 -bottom-44 z-[2]
+            text-[29rem] leading-none font-regular text-white/[0.045] select-none"
           aria-hidden="true"
         >
           is
         </span>
 
         <div className="relative z-10 max-w-2xl">
-          <StatusBadge
-            status="brand"
-            label="Sin Ai · Ai tool for sinhala journalists"
-            className="!bg-white/10 !text-white/85 !border-white/15 mb-4"
-          />
           <h1 className="text-[1.75rem] sm:text-[2rem] font-bold tracking-tight leading-tight text-balance">
             {greeting()},{' '}
             {user ? signedInName : <RotatingName names={categoryNames.length ? categoryNames : ['Journalist']} />}
           </h1>
-          <p className="text-[13.5px] text-white/60 mt-2 max-w-lg leading-relaxed">
-            The first AI writing assistant built for Sinhala journalism — grammar,
-            headlines, style and summaries, from a language model trained on the
-            language itself rather than translated into it.
+          <p className="text-[13.5px] text-white/70 mt-2 max-w-lg leading-relaxed">
+            The first AI writing assistant built for Sinhala journalism
           </p>
-          <div className="flex flex-wrap items-center gap-2.5 mt-6">
-            <ActionButton variant="primary" size="lg" icon={Sparkles} onClick={() => onSelectTool('grammar')}>
-              Start a grammar check
-            </ActionButton>
-            <ActionButton
+          <div className="flex items-center mt-6">
+            {/* Replaces "Start a grammar check": grammar is the first step of
+                this run, so the shorter path is the better default. */}
+            <ShinyButton
+              id="dashboard-optimize"
               size="lg"
-              icon={Newspaper}
-              onClick={() => onSelectTool('headlines')}
-              className="!bg-white/10 !text-white !border-white/15 hover:!bg-white/15 hover:!border-white/25 !shadow-none"
+              icon={OPTIMIZE_META.icon}
+              onClick={() => onSelectTool('optimize')}
             >
-              Generate headlines
-            </ActionButton>
+              {OPTIMIZE_META.label}
+            </ShinyButton>
           </div>
         </div>
       </section>
@@ -241,7 +260,7 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
             All four writing tools are free to use without an account.
           </p>
           <button
-            onClick={() => navigate('/login')}
+            onClick={() => navigate('/login', { state: { backgroundLocation: location } })}
             className="text-[13px] font-semibold text-brand-700 hover:underline cursor-pointer"
           >
             Sign in to save your work →

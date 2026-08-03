@@ -50,6 +50,72 @@ async function request(endpoint, body = null, method = 'POST') {
   return res.json();
 }
 
+/**
+ * One API call whose body is a stream of NDJSON objects.
+ *
+ * Same auth and refresh behaviour as `request`, but the response is consumed
+ * line by line and handed to `onEvent` as each one arrives, rather than
+ * buffered and parsed at the end. Resolves once the stream closes.
+ *
+ * Written against fetch + a ReadableStream reader rather than EventSource:
+ * EventSource is GET-only and cannot carry the article in a request body.
+ */
+async function streamRequest(endpoint, body, onEvent, { signal } = {}) {
+  const send = (token) =>
+    fetch(`${getApiBase()}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+      body: JSON.stringify(body),
+      signal,
+    });
+
+  const token = getAccessToken();
+  let res = await send(token);
+
+  if (res.status === 401 && token) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) res = await send(refreshed);
+  }
+
+  // Errors are still ordinary JSON — the server does every check that can
+  // produce a status code before it starts writing the stream.
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Request failed (${res.status})`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  // A chunk boundary can land mid-line and even mid-UTF-8-sequence, which
+  // matters more here than usual: Sinhala is three bytes per character, so a
+  // naive decode would corrupt text rather than merely split it. `stream:
+  // true` holds partial sequences back, and the tail of `buffer` holds the
+  // partial line.
+  const drain = (flush = false) => {
+    const lines = buffer.split('\n');
+    buffer = flush ? '' : lines.pop();
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed) onEvent(JSON.parse(trimmed));
+    }
+  };
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      drain();
+    }
+    buffer += decoder.decode();
+    drain(true);
+  } finally {
+    reader.releaseLock();
+  }
+}
+
 // ── Grammar ──
 export function checkGrammar(text) {
   return request('/grammar/check', { text });
@@ -137,6 +203,45 @@ export function summarizeNews(text, length = 'medium') {
 
 export function getSummarizeHistory(page = 1, pageSize = 20) {
   return request(`/summarize/history?page=${page}&page_size=${pageSize}`, null, 'GET');
+}
+
+// ── Optimize Article ──
+/**
+ * Run the full pipeline over one article, streaming each stage as it lands.
+ *
+ * `onEvent` receives every NDJSON line: the opening `pipeline` plan, a
+ * running/done/skipped/failed event per stage, and the closing `pipeline`
+ * event whose `data` is the assembled result.
+ *
+ * Grammar and headlines always run server-side; `restyle` and `summarize`
+ * are the two opt-in stages.
+ */
+export function optimizeArticle(text, options = {}, onEvent, { signal } = {}) {
+  const {
+    restyle = false,
+    tone = 'formal',
+    summarize = false,
+    length = 'medium',
+    headlineCount = 3,
+    headlineCategory = 'General',
+    headlineLength = 'medium',
+  } = options;
+
+  return streamRequest(
+    '/optimize',
+    {
+      text,
+      restyle,
+      tone,
+      summarize,
+      length,
+      headline_count: headlineCount,
+      headline_category: headlineCategory,
+      headline_length: headlineLength,
+    },
+    onEvent,
+    { signal }
+  );
 }
 
 // ── SinLLaMA Playground ──

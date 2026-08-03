@@ -20,7 +20,7 @@ export default function Login() {
     setError(null);
     try {
       await signIn(email, password);
-      navigate(location.state?.from ?? '/dashboard', { replace: true });
+      navigate(location.state?.from ?? location.state?.backgroundLocation?.pathname ?? '/dashboard', { replace: true });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -35,7 +35,11 @@ export default function Login() {
       footer={
         <>
           No account?{' '}
-          <Link to="/signup" className="text-brand-600 font-semibold">
+          <Link
+            to="/signup"
+            state={{ backgroundLocation: location.state?.backgroundLocation }}
+            className="text-brand-600 font-semibold"
+          >
             Create one
           </Link>
         </>
@@ -84,6 +88,7 @@ export default function Login() {
 
         <Link
           to="/forgot-password"
+          state={{ backgroundLocation: location.state?.backgroundLocation }}
           className="block text-center text-[12.5px] text-ink-500 hover:text-brand-600"
         >
           Forgot your password?

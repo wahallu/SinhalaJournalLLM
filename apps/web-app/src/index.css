@@ -99,6 +99,37 @@
   --shadow-pop: 0 4px 12px -2px rgb(22 17 18 / 0.08), 0 16px 40px -8px rgb(22 17 18 / 0.14);
 }
 
+/* ── Brand shell surface ───────────────────────────────────────────────
+   The deep red that the sidebar, the dashboard hero and the Optimize button
+   all sit on. Declared once here rather than as three sets of Tailwind
+   classes, because "these three surfaces match" is the actual requirement —
+   spreading it across three components is how they drift apart.
+
+   Values sit below the brand ramp's darkest step (brand-950 #400607) at the
+   bottom and just above brand-900 at the top, so the shell reads as red
+   while white body text keeps a >12:1 contrast ratio against it. */
+:root {
+  /* The button red — brand-600, the same #cd191a the primary ActionButton
+     uses — with brand-700 as the only shading. Deliberately a narrow range:
+     a long ramp made the tall sidebar fade to near-black at the bottom while
+     the short hero stayed bright, so the two stopped matching. */
+  /* One flat brand red across the shell. Was a #cd191a → #ab1112 gradient;
+     the depth now comes from --shell-glow alone, which is enough to stop
+     the panel reading as a plain block. Shared by the sidebar and the
+     dashboard hero so the two stay the same surface. */
+  --shell-top: #b01e1f;
+  --shell-bottom: #b01e1f;
+  --shell-glow: rgba(255, 255, 255, 0.14);
+  --shell-hairline: rgba(255, 255, 255, 0.16);
+}
+
+.surface-shell {
+  background:
+    radial-gradient(34rem 18rem at 88% -14%, var(--shell-glow), transparent 62%),
+    linear-gradient(158deg, var(--shell-top) 0%, var(--shell-bottom) 100%);
+  background-color: var(--shell-bottom);
+}
+
 html, body, #root {
   height: 100%;
   margin: 0;

@@ -63,6 +63,10 @@ export const HEADLINE_CATEGORIES = [
  */
 export const TOOLBAR_CONTROLS = {
   grammar: [],
+  // Optimize's parameters are on its own pipeline bar, not the editor
+  // toolbar: two of them belong to stages that may not run, so they have to
+  // appear next to the toggle that enables them.
+  optimize: [],
   headlines: [
     { key: 'headlineLength', label: 'Length', options: HEADLINE_LENGTHS_OPTIONS },
     { key: 'count', label: 'Count', options: HEADLINE_COUNTS },
