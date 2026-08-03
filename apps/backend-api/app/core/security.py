@@ -38,6 +38,14 @@ class InvalidToken(Exception):
     """Token is malformed, expired, wrongly typed, or fails verification."""
 
 
+# Verified against when no such user exists, so a login attempt costs the
+# same bcrypt work either way. Without it, "unknown address" returns
+# noticeably faster than "wrong password" and the endpoint becomes a way to
+# discover which addresses are registered. The value is a real bcrypt hash
+# of a random string; nothing can match it.
+DUMMY_HASH = "$2b$12$C6UzMDM.H6dfI/f/IKcEe.7VXCkYJdgcCVQ0RTa1oGkV6mOaBsQ1u"
+
+
 def _secret() -> str:
     secret = get_settings().JWT_SECRET
     if not secret:

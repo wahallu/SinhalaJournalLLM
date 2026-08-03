@@ -6,10 +6,10 @@ already produced results should not lose access to them because an operator
 turned the generator off.
 """
 
-import time
 
-import jwt
 import pytest
+
+from app.core import security
 from httpx import ASGITransport, AsyncClient
 
 from app.core import runtime_settings
@@ -26,19 +26,9 @@ def _client() -> AsyncClient:
 
 
 def _auth() -> dict:
-    token = jwt.encode(
-        {"sub": USER_ID, "email": "user@sinai.lk", "aud": "authenticated",
-         "exp": int(time.time()) + 3600, "iat": int(time.time())},
-        TEST_SECRET, algorithm="HS256",
-    )
-    return {"Authorization": f"Bearer {token}"}
+    return {"Authorization": f"Bearer {security.create_access_token(USER_ID)}"}
 
 
-@pytest.fixture(autouse=True)
-def _secret(monkeypatch):
-    from app.core import auth as auth_module
-
-    monkeypatch.setattr(auth_module, "_jwt_secret", lambda: TEST_SECRET)
 
 
 @pytest.fixture(autouse=True)

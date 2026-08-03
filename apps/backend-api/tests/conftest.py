@@ -150,10 +150,16 @@ class _FakeQuery:
         rows = self._store.setdefault(self._table, [])
 
         if self._operation == "insert":
+            # An explicitly supplied id is honoured, the way Postgres honours
+            # one rather than overriding it with the column default. Signup
+            # depends on this: it inserts a profiles row keyed to the id of
+            # the app_users row it just created, and a fake that reassigned
+            # that id would leave the two tables silently unlinked while the
+            # insert still appeared to succeed.
             record = {
-                **self._payload,
                 "id": str(uuid.uuid4()),
                 "created_at": datetime.now(timezone.utc).isoformat(),
+                **self._payload,
             }
             rows.append(record)
             # A copy, like a real PostgREST response — returning the stored

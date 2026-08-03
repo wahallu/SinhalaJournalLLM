@@ -18,11 +18,6 @@ def _client() -> AsyncClient:
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
 
 
-@pytest.fixture(autouse=True)
-def _secret(monkeypatch):
-    from app.core import auth as auth_module
-
-    monkeypatch.setattr(auth_module, "_jwt_secret", lambda: TEST_SECRET)
 
 
 @pytest.fixture(autouse=True)

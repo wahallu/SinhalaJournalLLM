@@ -3,10 +3,10 @@ Auth dependency behaviour. Uses a throwaway FastAPI app so the tests
 describe the dependencies themselves, not any particular product route.
 """
 
-import time
 
-import jwt
 import pytest
+
+from app.core import security
 from fastapi import Depends, FastAPI
 from httpx import ASGITransport, AsyncClient
 
@@ -18,19 +18,14 @@ USER_ID = "11111111-1111-1111-1111-111111111111"
 ADMIN_ID = "22222222-2222-2222-2222-222222222222"
 
 
-def _token(sub=USER_ID, email="reporter@sinai.lk", **overrides) -> str:
-    claims = {
-        "sub": sub, "email": email, "aud": "authenticated",
-        "exp": int(time.time()) + 3600, "iat": int(time.time()),
-    }
-    claims.update(overrides)
-    return jwt.encode(claims, TEST_SECRET, algorithm="HS256")
+def _token(sub=USER_ID, **overrides) -> str:
+    """A real access token from the application's own issuer.
+
+    `email` is no longer a token claim — deps.py reads it from the profiles
+    row, so a token carries only the subject."""
+    return security.create_access_token(sub, **overrides)
 
 
-@pytest.fixture(autouse=True)
-def _secret(monkeypatch):
-    from app.core import auth as auth_module
-    monkeypatch.setattr(auth_module, "_jwt_secret", lambda: TEST_SECRET)
 
 
 @pytest.fixture

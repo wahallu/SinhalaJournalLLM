@@ -7,10 +7,10 @@ than hardcoded, so a route added later without `require_admin` fails here
 instead of shipping an authorization bypass.
 """
 
-import time
 
-import jwt
 import pytest
+
+from app.core import security
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
@@ -21,17 +21,7 @@ ADMIN_ID = "22222222-2222-2222-2222-222222222222"
 
 
 def _token(sub: str) -> str:
-    return jwt.encode(
-        {
-            "sub": sub,
-            "email": f"{sub[:4]}@sinai.lk",
-            "aud": "authenticated",
-            "exp": int(time.time()) + 3600,
-            "iat": int(time.time()),
-        },
-        TEST_SECRET,
-        algorithm="HS256",
-    )
+    return security.create_access_token(sub)
 
 
 def _auth(sub: str) -> dict:
@@ -42,11 +32,6 @@ def _client() -> AsyncClient:
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
 
 
-@pytest.fixture(autouse=True)
-def _secret(monkeypatch):
-    from app.core import auth as auth_module
-
-    monkeypatch.setattr(auth_module, "_jwt_secret", lambda: TEST_SECRET)
 
 
 @pytest.fixture(autouse=True)
