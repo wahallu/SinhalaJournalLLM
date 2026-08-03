@@ -18,13 +18,14 @@ export default function Login() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error: err } = await signIn(email, password);
-    setBusy(false);
-    if (err) {
+    try {
+      await signIn(email, password);
+      navigate(location.state?.from ?? '/dashboard', { replace: true });
+    } catch (err) {
       setError(err.message);
-      return;
+    } finally {
+      setBusy(false);
     }
-    navigate(location.state?.from ?? '/dashboard', { replace: true });
   };
 
   return (

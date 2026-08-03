@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import ActionButton from '../../components/ui/ActionButton';
 import AuthLayout from './AuthLayout';
@@ -8,6 +8,11 @@ import { ERROR, INPUT, LABEL } from './formStyles';
 export default function ResetPassword() {
   const { updatePassword } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  // The single-use token from the emailed link. Supabase used to put a
+  // recovery session in the URL fragment and consume it automatically; the
+  // token is now an explicit query parameter this page spends.
+  const token = params.get('token');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState(null);
@@ -21,19 +26,35 @@ export default function ResetPassword() {
     }
     setBusy(true);
     setError(null);
-    const { error: err } = await updatePassword(password);
-    setBusy(false);
-    if (err) {
+    try {
+      await updatePassword(token, password);
+      // Not signed in by this — the new password has to be used once.
+      navigate('/login', { replace: true });
+    } catch (err) {
       setError(err.message);
-      return;
+    } finally {
+      setBusy(false);
     }
-    navigate('/dashboard', { replace: true });
   };
 
+  if (!token) {
+    return (
+      <AuthLayout
+        title="Reset link required"
+        footer={
+          <Link to="/forgot-password" className="text-brand-600 font-semibold">
+            Request a reset link
+          </Link>
+        }
+      >
+        <p className="text-[13px] text-ink-600">
+          Open this page from the link in your reset email.
+        </p>
+      </AuthLayout>
+    );
+  }
+
   return (
-    // Supabase puts the recovery session in the URL fragment and
-    // detectSessionInUrl consumes it, so the visitor is already
-    // authenticated by the time this renders.
     <AuthLayout title="Choose a new password">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>

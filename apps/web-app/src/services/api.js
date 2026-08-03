@@ -3,45 +3,44 @@
  * Base URL defaults to the local FastAPI server on port 8000.
  */
 
-import supabase from '../auth/supabaseClient';
+import {
+  DEFAULT_API_BASE, getAccessToken, getApiBase, refreshAccessToken,
+} from '../auth/authClient';
 
-export const DEFAULT_API_BASE = 'https://sinhalajournalllm.onrender.com/api/v1';
+export { DEFAULT_API_BASE };
 
-/**
- * Bearer header for the current session, or nothing when signed out.
- *
- * getSession() refreshes an expired access token before returning it, so a
- * stale token is never sent. Signed-out callers get {} — the four writing
- * tools accept anonymous requests.
- */
-async function authHeaders() {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
+function authHeaders(token) {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-// A custom base URL can be set on the Settings page; falls back to the default.
-function getApiBase() {
-  try {
-    const settings = JSON.parse(localStorage.getItem('sinai_settings') || '{}');
-    const url = (settings.apiBaseUrl || '').trim();
-    return url ? url.replace(/\/+$/, '') : DEFAULT_API_BASE;
-  } catch {
-    return DEFAULT_API_BASE;
-  }
-}
-
+/**
+ * One API call, retried once behind a token refresh.
+ *
+ * The access token is deliberately short-lived, so meeting an expired one
+ * mid-session is routine rather than exceptional — a single transparent
+ * refresh keeps that invisible to callers. Signed-out callers send no
+ * Authorization header at all: the four writing tools accept anonymous
+ * requests, so a 401 here is a real failure, not a missing session.
+ */
 async function request(endpoint, body = null, method = 'POST') {
-  const options = {
-    method,
-    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+  const send = (token) => {
+    const options = {
+      method,
+      headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+    };
+    if (body !== null && method !== 'GET') {
+      options.body = JSON.stringify(body);
+    }
+    return fetch(`${getApiBase()}${endpoint}`, options);
   };
 
-  if (body !== null && method !== 'GET') {
-    options.body = JSON.stringify(body);
-  }
+  const token = getAccessToken();
+  let res = await send(token);
 
-  const res = await fetch(`${getApiBase()}${endpoint}`, options);
+  if (res.status === 401 && token) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) res = await send(refreshed);
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -174,6 +173,13 @@ export function runComparison(inputOrPayload, adapters, task = 'grammar', style 
 // Active categories only — what a user may pick from on their profile.
 export function getCategories() {
   return request('/categories', null, 'GET');
+}
+
+// Set the signed-in user's own category. This used to be written straight
+// to Supabase from the browser under RLS; with auth self-hosted the browser
+// has no database access and the backend scopes the update instead.
+export function setMyCategory(categoryId) {
+  return request('/categories/me', { category_id: categoryId || null }, 'PUT');
 }
 
 // ── Unified history ──

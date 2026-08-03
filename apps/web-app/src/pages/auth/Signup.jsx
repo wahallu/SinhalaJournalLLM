@@ -18,13 +18,16 @@ export default function Signup() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error: err } = await signUp(email, password, fullName);
-    setBusy(false);
-    if (err) {
+    try {
+      // Signup returns a session, so the new account is signed in already.
+      // The verification link is informational — nothing is gated on it.
+      await signUp(email, password, fullName);
+      navigate('/verify-email', { replace: true });
+    } catch (err) {
       setError(err.message);
-      return;
+    } finally {
+      setBusy(false);
     }
-    navigate('/verify-email', { replace: true });
   };
 
   return (

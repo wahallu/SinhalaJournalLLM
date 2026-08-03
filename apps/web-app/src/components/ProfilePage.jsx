@@ -4,9 +4,8 @@ import PageHeader from './ui/PageHeader';
 import ActionButton from './ui/ActionButton';
 import Dropdown from './ui/Dropdown';
 import { Card } from './ui/Card';
-import { getCategories } from '../services/api';
+import { getCategories, setMyCategory } from '../services/api';
 import { useAuth } from '../auth/useAuth';
-import supabase from '../auth/supabaseClient';
 
 /**
  * Account page.
@@ -19,7 +18,7 @@ import supabase from '../auth/supabaseClient';
 const LABEL_CLASS = 'block text-[12.5px] font-semibold text-ink-700 mb-1.5';
 
 export default function ProfilePage({ onBack }) {
-  const { user, profile: accountProfile } = useAuth();
+  const { user, profile: accountProfile, refreshAccount } = useAuth();
   const [categories, setCategories] = useState([]);
   const [categoryState, setCategoryState] = useState('idle'); // idle | saving | saved | error
   const [categoryError, setCategoryError] = useState(null);
@@ -49,21 +48,18 @@ export default function ProfilePage({ onBack }) {
     setPendingCategory(nextId);
     setCategoryState('saving');
     setCategoryError(null);
-    // Written straight to Supabase: RLS lets a user update their own row,
-    // and the guard_profile_privileges trigger blocks role/status changes
-    // through this same path.
-    const { error } = await supabase
-      .from('profiles')
-      .update({ category_id: nextId || null })
-      .eq('id', user.id);
-
-    if (error) {
+    // Goes through the backend, which scopes the update to the caller and
+    // writes only this column. It used to be a direct Supabase write from
+    // the browser relying on RLS; there is no browser database access now.
+    try {
+      await setMyCategory(nextId);
+      await refreshAccount();
+      setCategoryState('saved');
+      setTimeout(() => setCategoryState('idle'), 2000);
+    } catch (err) {
       setCategoryState('error');
-      setCategoryError(error.message);
-      return;
+      setCategoryError(err.message);
     }
-    setCategoryState('saved');
-    setTimeout(() => setCategoryState('idle'), 2000);
   };
 
   const categoryOptions = [
