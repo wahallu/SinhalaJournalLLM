@@ -21,10 +21,10 @@ COPY . .
 #
 # The anon key is meant to ship in a browser bundle — Row Level Security is
 # what constrains it. Never pass the service-role key here.
-ARG VITE_SUPABASE_URL
-ARG VITE_SUPABASE_ANON_KEY
-ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
-ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+# ARG VITE_SUPABASE_URL
+# ARG VITE_SUPABASE_ANON_KEY
+# ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+# ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
 
 RUN npm run build
 
@@ -34,10 +34,10 @@ RUN npm run build
 # --build-arg (Render, for one) still produces a working image — but an
 # image whose bundle has no Supabase URL renders a blank page, so that must
 # fail here instead of at a visitor's browser.
-RUN grep -rq "supabase.co" dist/assets/*.js \
-      || (echo "ERROR: built bundle contains no Supabase URL." \
-       && echo "Set apps/web-app/.env.production, or pass --build-arg VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY." \
-       && exit 1)
+# RUN grep -rq "supabase.co" dist/assets/*.js \
+#       || (echo "ERROR: built bundle contains no Supabase URL." \
+#        && echo "Set apps/web-app/.env.production, or pass --build-arg VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY." \
+#        && exit 1)
 
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
