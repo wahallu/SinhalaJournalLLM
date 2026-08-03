@@ -121,6 +121,12 @@ async def list_all_recent(limit: int = 100) -> list[dict[str, Any]]:
                 "input_preview": _preview(row.get(input_column)),
                 "output_preview": _preview(extract_output(row)),
                 "model_provider": row.get("model_provider"),
+                # Grammar-only column (schema.sql) — every other table's rows
+                # come back None here, same as a missing dict key would.
+                # Admin-only surface: this is list_all_recent, not
+                # list_recent, so it never reaches the user-facing /history
+                # endpoint or its HistoryItem schema.
+                "adapter": row.get("adapter"),
                 "latency_ms": row.get("latency_ms"),
                 # None when the provider reported nothing — only sinllama
                 # does. The UI shows that as "—", not 0.

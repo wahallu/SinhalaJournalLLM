@@ -4,7 +4,7 @@ Defines request/response shapes independently of ORM models.
 """
 
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 
 # ── Request ──
@@ -60,6 +60,16 @@ class GrammarCheckResponse(BaseModel):
         default=None,
         description="Generated tokens reported by the provider; null when it reports none",
     )
+
+    # Which adapter actually served this check — an admin-diagnostics value,
+    # never a user-facing one. A PrivateAttr rather than a Field: private
+    # attributes are invisible to .model_dump()/.model_dump_json() and to the
+    # generated OpenAPI schema (verified directly against this pydantic
+    # version), so there is no serialization path — response_model or
+    # otherwise — that can leak it to a caller by accident. Set by
+    # grammar_service.check_grammar(); read by the /check endpoint only, to
+    # forward into request_telemetry.
+    _adapter: str | None = PrivateAttr(default=None)
 
 class GrammarHistoryResponse(BaseModel):
     """Paginated list of past grammar corrections."""

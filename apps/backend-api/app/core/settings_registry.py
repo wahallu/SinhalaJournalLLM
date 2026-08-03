@@ -80,57 +80,80 @@ def build_registry() -> dict[str, SettingSpec]:
                 "Turning this off surfaces a 503 instead of degrading."
             ),
         ),
+        # ── Grammar Checker ──
+        # Split across two groups on purpose: "Grammar" is what the admin
+        # Settings UI shows on the tool's own page as its basic control,
+        # "Grammar Advanced" is the second section on that same page — the
+        # only tool with one today (see grammar_service.py: the self-
+        # consistency ensemble is a real generation-quality knob, unlike the
+        # other tools, which have nothing past their adapter override yet).
         "features.grammar": SettingSpec(
-            kind="bool", default=True, group="Tools",
+            kind="bool", default=True, group="Grammar",
             description="Grammar Checker is available to users.",
         ),
+        "adapters.grammar": SettingSpec(
+            kind="adapter", task="grammar", default="", group="Grammar Advanced",
+            description="Specific LoRA adapter for the Grammar Checker. "
+                        "Leave empty to use the newest one the model server resolved.",
+        ),
+        "grammar.ensemble_size": SettingSpec(
+            kind="int", default=1, minimum=1, maximum=5, group="Grammar Advanced",
+            description=(
+                "Self-consistency candidates sampled per check (one generate() "
+                "call, num_return_sequences). 1 disables the ensemble — a single "
+                "greedy generation, byte-identical to today's default. Above 1 "
+                "trades latency for a consensus pick across sampled candidates; "
+                "see grammar_service._pick_consensus()."
+            ),
+        ),
+
+        # ── Headline Generator ──
         "features.headlines": SettingSpec(
-            kind="bool", default=True, group="Tools",
+            kind="bool", default=True, group="Headline Generator",
             description="Headline Generator is available to users.",
         ),
-        "features.rewriter": SettingSpec(
-            kind="bool", default=True, group="Tools",
-            description="Style Rewriter is available to users.",
+        "defaults.headline_count": SettingSpec(
+            kind="int", default=5, minimum=1, maximum=10, group="Headline Generator",
+            description="How many headline candidates to generate by default.",
         ),
-        "features.summarizer": SettingSpec(
-            kind="bool", default=True, group="Tools",
-            description="News Summarizer is available to users.",
+        "adapters.headline": SettingSpec(
+            kind="adapter", task="headline", default="", group="Headline Generator",
+            description="Specific LoRA adapter for the Headline Generator. "
+                        "Leave empty to use the newest one the model server resolved.",
+        ),
+
+        # ── Style Rewriter ──
+        "features.rewriter": SettingSpec(
+            kind="bool", default=True, group="Style Rewriter",
+            description="Style Rewriter is available to users.",
         ),
         "defaults.tone": SettingSpec(
             kind="enum",
             choices=tuple(STYLE_INSTRUCTIONS.keys()),
             default="formal",
-            group="Defaults",
+            group="Style Rewriter",
             description="Starting style for the rewriter, before a user picks their own.",
+        ),
+        "adapters.style": SettingSpec(
+            kind="adapter", task="style", default="", group="Style Rewriter",
+            description="Specific LoRA adapter for the Style Rewriter. "
+                        "Leave empty to use the newest one the model server resolved.",
+        ),
+
+        # ── News Summarizer ──
+        "features.summarizer": SettingSpec(
+            kind="bool", default=True, group="News Summarizer",
+            description="News Summarizer is available to users.",
         ),
         "defaults.length": SettingSpec(
             kind="enum",
             choices=tuple(SUMMARY_LENGTHS.keys()),
             default="short",
-            group="Defaults",
+            group="News Summarizer",
             description="Starting summary length, before a user picks their own.",
         ),
-        "defaults.headline_count": SettingSpec(
-            kind="int", default=5, minimum=1, maximum=10, group="Defaults",
-            description="How many headline candidates to generate by default.",
-        ),
-        "adapters.grammar": SettingSpec(
-            kind="adapter", task="grammar", default="", group="Adapters",
-            description="Specific LoRA adapter for the Grammar Checker. "
-                        "Leave empty to use the newest one the model server resolved.",
-        ),
-        "adapters.headline": SettingSpec(
-            kind="adapter", task="headline", default="", group="Adapters",
-            description="Specific LoRA adapter for the Headline Generator. "
-                        "Leave empty to use the newest one the model server resolved.",
-        ),
-        "adapters.style": SettingSpec(
-            kind="adapter", task="style", default="", group="Adapters",
-            description="Specific LoRA adapter for the Style Rewriter. "
-                        "Leave empty to use the newest one the model server resolved.",
-        ),
         "adapters.summarizer": SettingSpec(
-            kind="adapter", task="summarizer", default="", group="Adapters",
+            kind="adapter", task="summarizer", default="", group="News Summarizer",
             description="Specific LoRA adapter for the News Summarizer. "
                         "Leave empty to use the newest one the model server resolved.",
         ),

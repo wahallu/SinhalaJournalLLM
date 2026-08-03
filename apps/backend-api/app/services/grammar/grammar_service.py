@@ -4,12 +4,25 @@ Grammar checking service.
 Sends text through the model gateway (SinLlama grammar adapter when
 available), derives word-level corrections by diffing the model output
 against the input, and persists the result.
+
+This used to also re-run correction on its own output once (MAX_PASSES=2),
+chasing a compound-error gap the v21 eval showed: a sentence with several
+simultaneous mistakes where one greedy pass fixed some but not all. Removed —
+it meant every changed request cost two full GPU round trips instead of one,
+and the finished text was "correct(correct(article))" rather than
+"correct(article)", which is a different generation from a single pass over
+the original text, not just a slower one. That made this path incomparable
+to a one-pass run over the same article (e.g. the admin Comparison tool) even
+with the same adapter. If the compound-error gap needs addressing again, do
+it as a genuine ensemble (below) or a training-time fix, not a second
+customer-facing pass.
 """
 
 import logging
 from difflib import SequenceMatcher
 
-from app.core.model_gateway import add_tokens, model_generate
+from app.core import runtime_settings
+from app.core.model_gateway import model_generate
 from app.repositories.base import persist_if_owned
 from app.repositories.grammar_repository import save_correction
 from app.schemas.grammar import CorrectionDetail, GrammarCheckResponse
@@ -17,22 +30,6 @@ from app.schemas.grammar import CorrectionDetail, GrammarCheckResponse
 logger = logging.getLogger(__name__)
 
 _PUNCTUATION = set(".,;:!?'\"()[]{}«»‘’“”-–—/؟।")
-
-# Self-consistency candidate count for the first correction pass. 1 disables
-# the ensemble (today's single greedy call, zero added cost) — bump once
-# validated on the GPU box against SinAI-Training's test_grammar.py stage2-5
-# sets. >1 forces sampling server-side (grammar's TaskSpec is greedy by
-# default) at ENSEMBLE_TEMPERATURE/ENSEMBLE_TOP_P from
-# SinAI-Training/work/tasks/grammar.py — every extra candidate is a full
-# extra generation.
-ENSEMBLE_SIZE = 1
-
-# Passes over the model's own output. 2 targets the compound-error gap the
-# v21 eval showed: a sentence with several simultaneous mistakes where one
-# greedy pass fixes some but not all. The second call re-runs correction on
-# the first pass's output; skipped entirely when a pass changes nothing, so
-# an already-correct sentence still costs exactly one round trip.
-MAX_PASSES = 2
 
 
 def _tokenize_with_offsets(text: str) -> tuple[list[str], list[int]]:
@@ -163,58 +160,51 @@ def _pick_consensus(candidates: list[str]) -> str:
 
 async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckResponse:
     """
-    Correct Sinhala text, derive per-word corrections, persist for a known
-    caller, and return.
+    Correct Sinhala text once, derive per-word corrections, persist for a
+    known caller, and return.
 
-    Runs up to MAX_PASSES over the model, feeding each pass's own output
-    back in as the next pass's input, and stops as soon as a pass changes
-    nothing. The first pass optionally samples ENSEMBLE_SIZE candidates and
-    picks the consensus; later passes are always single-shot.
+    One generate() call. `grammar.ensemble_size` (admin-controlled, default 1)
+    optionally samples that many candidates in the same call and picks the
+    most representative one — a real quality/latency tradeoff the admin can
+    dial in from the dashboard, unlike the removed second pass, which ran
+    unconditionally for every changed request.
     """
-    corrected_text = text
-    provider: str | None = None
-    total_latency = 0
-    input_tokens, output_tokens = None, None
+    ensemble_size = await runtime_settings.get("grammar.ensemble_size")
 
-    for pass_num in range(MAX_PASSES):
-        num_candidates = ENSEMBLE_SIZE if pass_num == 0 else 1
-        result = await model_generate(
-            "grammar", corrected_text, num_candidates=num_candidates
-        )
-        total_latency += result.latency_ms
-        provider = result.provider
-        input_tokens = add_tokens(input_tokens, result.meta.get("input_tokens"))
-        output_tokens = add_tokens(output_tokens, result.meta.get("output_tokens"))
+    result = await model_generate("grammar", text, num_candidates=ensemble_size)
 
-        candidates = result.meta.get("candidates") or [result.text]
-        raw = _pick_consensus(candidates)
-        next_text = _sanitize_correction(raw, fallback=corrected_text)
-
-        if next_text == corrected_text:
-            break
-        corrected_text = next_text
+    candidates = result.meta.get("candidates") or [result.text]
+    raw = _pick_consensus(candidates)
+    corrected_text = _sanitize_correction(raw, fallback=text)
 
     corrections = derive_corrections(text, corrected_text)
+    adapter = result.meta.get("adapter")
 
     record = {
         "original_text": text,
         "corrected_text": corrected_text,
         "corrections": [c.model_dump() for c in corrections],
         "correction_count": len(corrections),
-        "model_provider": provider,
-        "latency_ms": total_latency,
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
+        "model_provider": result.provider,
+        # Admin-diagnostics only — see GrammarCheckResponse._adapter for why
+        # this never reaches the API response, only this persisted row and
+        # (via the endpoint) request_telemetry.
+        "adapter": adapter,
+        "latency_ms": result.latency_ms,
+        "input_tokens": result.meta.get("input_tokens"),
+        "output_tokens": result.meta.get("output_tokens"),
     }
     saved = await persist_if_owned(save_correction, record, user_id)
 
-    return GrammarCheckResponse(
+    response = GrammarCheckResponse(
         id=str(saved["id"]),
         corrected=corrected_text,
         corrections=corrections,
         correction_count=len(corrections),
         created_at=saved.get("created_at"),
-        model_used=provider,
-        input_tokens=input_tokens,
-        output_tokens=output_tokens,
+        model_used=result.provider,
+        input_tokens=result.meta.get("input_tokens"),
+        output_tokens=result.meta.get("output_tokens"),
     )
+    response._adapter = adapter
+    return response

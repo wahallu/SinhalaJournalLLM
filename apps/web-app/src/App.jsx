@@ -35,6 +35,10 @@ import UserDetail from './admin/pages/UserDetail';
 import Chats from './admin/pages/Chats';
 import Categories from './admin/pages/Categories';
 import AdminSettings from './admin/pages/Settings';
+import GrammarSettings from './admin/pages/settings/GrammarSettings';
+import HeadlineSettings from './admin/pages/settings/HeadlineSettings';
+import RewriterSettings from './admin/pages/settings/RewriterSettings';
+import SummarizerSettings from './admin/pages/settings/SummarizerSettings';
 import Activity from './admin/pages/Activity';
 import SinLLamaPage from './admin/research/SinLLamaPage';
 import SummarizerPlayground from './admin/research/SummarizerPlayground';
@@ -401,6 +405,10 @@ function App() {
           <Route path="chats" element={<Chats />} />
           <Route path="categories" element={<Categories />} />
           <Route path="settings" element={<AdminSettings />} />
+          <Route path="settings/grammar" element={<GrammarSettings />} />
+          <Route path="settings/headlines" element={<HeadlineSettings />} />
+          <Route path="settings/rewriter" element={<RewriterSettings />} />
+          <Route path="settings/summarizer" element={<SummarizerSettings />} />
           <Route path="activity" element={<Activity />} />
           <Route path="research/playground" element={<SinLLamaPage />} />
           <Route path="research/summarizer-lab" element={<SummarizerPlayground />} />

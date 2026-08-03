@@ -34,7 +34,8 @@ def _seeded(fake_supabase):
         {
             "id": "g1", "user_id": _ALICE, "original_text": "වැරදි පෙළ",
             "corrected_text": "නිවැරදි පෙළ", "correction_count": 1,
-            "model_provider": "sinllama", "latency_ms": 120,
+            "model_provider": "sinllama", "adapter": "grammar_sinllama_v13",
+            "latency_ms": 120,
             "input_tokens": 12, "output_tokens": 5,
             "created_at": "2026-08-02T10:00:00Z",
         },
@@ -101,6 +102,24 @@ async def test_chats_include_content_previews(_seeded):
     items = {i["tool"]: i for i in response.json()["items"]}
     assert items["grammar"]["input_preview"] == "වැරදි පෙළ"
     assert items["grammar"]["output_preview"] == "නිවැරදි පෙළ"
+
+
+@pytest.mark.asyncio
+async def test_grammar_rows_carry_which_adapter_actually_served_them(_seeded):
+    """
+    Admin-only diagnostics: an admin can only tell whether adapters.grammar
+    (an admin setting, resolved lazily against the model server) actually
+    matches what a request used if the served adapter is visible somewhere.
+    This is that somewhere — the user-facing grammar API never returns it.
+    """
+    async with _client() as c:
+        response = await c.get("/api/v1/admin/activity/chats", headers=_auth(_ADMIN))
+
+    items = {i["tool"]: i for i in response.json()["items"]}
+    assert items["grammar"]["adapter"] == "grammar_sinllama_v13"
+    # summarizer's history table has no adapter column — must read as absent,
+    # not crash the merge across the four tool tables.
+    assert items["summarizer"]["adapter"] is None
 
 
 @pytest.mark.asyncio

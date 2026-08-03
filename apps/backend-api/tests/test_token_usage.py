@@ -52,11 +52,7 @@ def _with_tokens(text, input_tokens, output_tokens):
 
 
 def _idempotent_with_tokens(input_tokens, output_tokens):
-    """
-    Returns its input unchanged, so check_grammar's second pass is skipped
-    and exactly one gateway call happens. Use this when a test is about the
-    token value itself rather than about accumulation.
-    """
+    """Returns its input unchanged — a plain single-call fake."""
     async def _fake(task, value, **_kwargs):
         return GatewayResult(
             text=value,
@@ -88,20 +84,19 @@ async def test_grammar_persists_token_counts(monkeypatch, fake_supabase):
 
 
 @pytest.mark.asyncio
-async def test_grammar_sums_tokens_across_both_passes(monkeypatch, fake_supabase):
+async def test_grammar_reports_tokens_from_a_single_call_even_when_text_changes(monkeypatch, fake_supabase):
     """
-    check_grammar re-runs the model on its own output once when the first
-    pass changed something, so a corrected sentence costs two calls. Both
-    are the caller's usage and both must be counted — the stored total is
-    the sum, not the last call.
+    Regression guard for the removed second pass: a check that actually
+    changes the text must still cost exactly one call's worth of tokens, not
+    two.
     """
     monkeypatch.setattr(grammar_service, "model_generate", _with_tokens("නිවැරදි", 12, 5))
 
     await grammar_service.check_grammar("වැරදි", user_id=_USER)
 
     [row] = fake_supabase.store["grammar_corrections"]
-    assert row["input_tokens"] == 24   # 12 x 2 passes
-    assert row["output_tokens"] == 10  # 5 x 2 passes
+    assert row["input_tokens"] == 12
+    assert row["output_tokens"] == 5
 
 
 @pytest.mark.asyncio

@@ -181,42 +181,35 @@ def test_pick_consensus_ties_favor_first_candidate():
     assert _pick_consensus(candidates) == "aaaa"
 
 
-# ── Two-pass correction ──
-# check_grammar() re-runs the model on its own output once when the first
-# pass changed something, so a sentence with two simultaneous errors gets a
-# real chance at both being fixed even though a single greedy pass often only
-# catches one (the compound-error recall gap measured in the v21 eval).
+# ── Single-pass correction ──
+# check_grammar() used to re-run the model on its own output once when the
+# first pass changed something (MAX_PASSES=2). Removed: every changed request
+# cost two full GPU round trips, and the result was a correction of the
+# model's own first-pass output rather than of the original article — a
+# different generation from a single-pass run over the same text, not just a
+# slower one. These tests pin the replacement: exactly one call, always,
+# whatever the model returns.
 
 @pytest.mark.asyncio
-async def test_two_pass_fixes_a_residual_error_the_first_pass_missed(monkeypatch):
-    """Pass 1 fixes one error and leaves a second; pass 2 catches the rest."""
+async def test_check_grammar_calls_the_model_exactly_once(monkeypatch):
+    """Even when the output differs from the input, there is no second call."""
     calls: list[str] = []
 
     async def fake_model_generate(task, text, **_kwargs):
         calls.append(text)
-        if text == "input with two errors":
-            fixed = "input with one error"
-        elif text == "input with one error":
-            fixed = "fully fixed input"
-        else:
-            fixed = text
-        return GatewayResult(text=fixed, provider="mock", latency_ms=5)
+        return GatewayResult(text="fixed once", provider="mock", latency_ms=5)
 
     monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
 
-    result = await check_grammar("input with two errors")
+    result = await check_grammar("input with an error")
 
-    assert result.corrected == "fully fixed input"
-    assert calls == ["input with two errors", "input with one error"]
+    assert result.corrected == "fixed once"
+    assert calls == ["input with an error"]
 
 
 @pytest.mark.asyncio
-async def test_two_pass_skips_second_call_when_first_pass_made_no_change(monkeypatch):
-    """Already-correct input shouldn't cost a second GPU round trip."""
-    calls: list[str] = []
-
+async def test_check_grammar_returns_the_model_output_unchanged_when_correct(monkeypatch):
     async def fake_model_generate(task, text, **_kwargs):
-        calls.append(text)
         return GatewayResult(text=text, provider="mock", latency_ms=5)
 
     monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
@@ -224,32 +217,12 @@ async def test_two_pass_skips_second_call_when_first_pass_made_no_change(monkeyp
     result = await check_grammar("already correct sentence")
 
     assert result.corrected == "already correct sentence"
-    assert calls == ["already correct sentence"]
 
 
 @pytest.mark.asyncio
-async def test_two_pass_stops_after_two_rounds_even_if_still_changing(monkeypatch):
-    """A pathological model that never converges must not loop forever."""
-    calls: list[str] = []
-
+async def test_check_grammar_persists_the_single_call_latency(monkeypatch, fake_supabase):
     async def fake_model_generate(task, text, **_kwargs):
-        calls.append(text)
-        return GatewayResult(text=text + "!", provider="mock", latency_ms=5)
-
-    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
-
-    result = await check_grammar("start")
-
-    assert len(calls) == 2
-    assert result.corrected == "start!!"
-
-
-@pytest.mark.asyncio
-async def test_two_pass_sums_latency_across_both_calls(monkeypatch, fake_supabase):
-    async def fake_model_generate(task, text, **_kwargs):
-        if text == "needs fixing":
-            return GatewayResult(text="halfway fixed", provider="mock", latency_ms=30)
-        return GatewayResult(text=text, provider="mock", latency_ms=20)
+        return GatewayResult(text="halfway fixed", provider="mock", latency_ms=30)
 
     monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
 
@@ -257,4 +230,43 @@ async def test_two_pass_sums_latency_across_both_calls(monkeypatch, fake_supabas
 
     assert result.corrected == "halfway fixed"
     [record] = fake_supabase.store["grammar_corrections"]
-    assert record["latency_ms"] == 50  # 30 (pass 1) + 20 (pass 2)
+    assert record["latency_ms"] == 30
+
+
+# ── Adapter capture (admin-diagnostics only, never user-facing) ──
+
+@pytest.mark.asyncio
+async def test_adapter_is_persisted_but_not_returned_to_the_caller(monkeypatch, fake_supabase):
+    async def fake_model_generate(task, text, **_kwargs):
+        return GatewayResult(
+            text=text, provider="sinllama", latency_ms=5,
+            meta={"adapter": "grammar_sinllama_v13"},
+        )
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+
+    result = await check_grammar("text", user_id="55555555-5555-5555-5555-555555555555")
+
+    [record] = fake_supabase.store["grammar_corrections"]
+    assert record["adapter"] == "grammar_sinllama_v13"
+    assert "adapter" not in result.model_dump()
+    assert "adapter" not in result.model_dump_json()
+
+
+@pytest.mark.asyncio
+async def test_grammar_check_endpoint_response_never_contains_the_adapter(monkeypatch):
+    """End-to-end: the HTTP response body itself must not carry it."""
+    async def fake_model_generate(task, text, **_kwargs):
+        return GatewayResult(
+            text=text, provider="sinllama", latency_ms=5,
+            meta={"adapter": "grammar_sinllama_v13"},
+        )
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+
+    async with _client() as client:
+        response = await client.post("/api/v1/grammar/check", json={"text": "text"})
+
+    assert response.status_code == 200
+    assert "grammar_sinllama_v13" not in response.text
+    assert "adapter" not in response.json()

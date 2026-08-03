@@ -56,6 +56,15 @@ function Row({ chat }) {
           {chat.input_preview || '—'}
         </td>
         <td className="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{chat.model_provider ?? '—'}</td>
+        <td
+          className="px-3 py-2.5 text-muted-foreground font-mono text-[11.5px] whitespace-nowrap max-w-40 truncate"
+          title={chat.adapter ?? undefined}
+        >
+          {/* Only grammar rows carry this (schema.sql: adapter is a
+              grammar_corrections-only column) — every other tool shows "—",
+              same as a run with no override. */}
+          {chat.adapter ?? '—'}
+        </td>
         <td className="px-3 py-2.5 text-right text-muted-foreground"><Tokens value={chat.input_tokens} /></td>
         <td className="px-3 py-2.5 text-right text-muted-foreground"><Tokens value={chat.output_tokens} /></td>
         <td className="px-3 py-2.5 text-right font-medium text-card-foreground"><Tokens value={chat.total_tokens} /></td>
@@ -64,7 +73,7 @@ function Row({ chat }) {
       {open && (
         <tr className="border-t bg-muted/40" style={{ borderColor: 'var(--border)' }}>
           <td />
-          <td colSpan={8} className="px-3 py-3">
+          <td colSpan={9} className="px-3 py-3">
             <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <p className="text-[10.5px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Input</p>
@@ -204,6 +213,7 @@ export default function Chats() {
                 <th className="px-3 py-2.5 font-semibold">Tool</th>
                 <th className="px-3 py-2.5 font-semibold">Input</th>
                 <th className="px-3 py-2.5 font-semibold">Provider</th>
+                <th className="px-3 py-2.5 font-semibold">Adapter</th>
                 <th className="px-3 py-2.5 font-semibold text-right">In</th>
                 <th className="px-3 py-2.5 font-semibold text-right">Out</th>
                 <th className="px-3 py-2.5 font-semibold text-right">Total</th>
@@ -212,11 +222,11 @@ export default function Chats() {
             <tbody className="bg-card">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground">Loading…</td>
+                  <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground">Loading…</td>
                 </tr>
               ) : visible.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground">
                     No runs recorded yet. Only signed-in activity is stored — anonymous
                     runs are never persisted.
                   </td>

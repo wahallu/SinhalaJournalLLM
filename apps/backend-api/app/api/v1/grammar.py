@@ -70,6 +70,11 @@ async def grammar_check_endpoint(
         status_code=200,
         latency_ms=latency_ms,
         provider=result.model_used,
+        # Admin-diagnostics only, from the private attribute
+        # grammar_service.check_grammar() set on the response — never a field
+        # of GrammarCheckResponse, so it cannot appear in the JSON this
+        # endpoint returns to the caller.
+        adapter=result._adapter,
         input_tokens=result.input_tokens,
         output_tokens=result.output_tokens,
         ip_hash=hash_ip(client_ip(request)),

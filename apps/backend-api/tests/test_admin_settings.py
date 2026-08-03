@@ -54,6 +54,57 @@ async def test_list_includes_the_spec_the_ui_needs():
 
 
 @pytest.mark.asyncio
+async def test_settings_are_grouped_per_tool_for_the_admin_settings_pages():
+    """
+    The admin Settings UI is one common page (Model gateway, Limits) plus one
+    page per tool, each built by filtering this same list to its own
+    group(s) — see web-app's admin/pages/settings/*.jsx. Grammar is the only
+    tool with a second, "Advanced" group today.
+    """
+    async with _client() as c:
+        r = await c.get("/api/v1/admin/settings", headers=_auth(ADMIN_ID))
+
+    group_by_key = {row["key"]: row["group"] for row in r.json()}
+
+    assert group_by_key["features.grammar"] == "Grammar"
+    assert group_by_key["adapters.grammar"] == "Grammar Advanced"
+    assert group_by_key["grammar.ensemble_size"] == "Grammar Advanced"
+
+    assert group_by_key["features.headlines"] == "Headline Generator"
+    assert group_by_key["defaults.headline_count"] == "Headline Generator"
+    assert group_by_key["adapters.headline"] == "Headline Generator"
+
+    assert group_by_key["features.rewriter"] == "Style Rewriter"
+    assert group_by_key["defaults.tone"] == "Style Rewriter"
+    assert group_by_key["adapters.style"] == "Style Rewriter"
+
+    assert group_by_key["features.summarizer"] == "News Summarizer"
+    assert group_by_key["defaults.length"] == "News Summarizer"
+    assert group_by_key["adapters.summarizer"] == "News Summarizer"
+
+    # Common groups stay common — not claimed by any one tool's page.
+    assert group_by_key["model.provider"] == "Model gateway"
+    assert group_by_key["model.fallback_enabled"] == "Model gateway"
+    assert group_by_key["limits.anon_per_hour"] == "Limits"
+
+
+@pytest.mark.asyncio
+async def test_ensemble_size_int_bounds():
+    async with _client() as c:
+        too_low = await c.patch("/api/v1/admin/settings/grammar.ensemble_size",
+                                json={"value": 0}, headers=_auth(ADMIN_ID))
+        too_high = await c.patch("/api/v1/admin/settings/grammar.ensemble_size",
+                                 json={"value": 6}, headers=_auth(ADMIN_ID))
+        ok = await c.patch("/api/v1/admin/settings/grammar.ensemble_size",
+                           json={"value": 3}, headers=_auth(ADMIN_ID))
+
+    assert too_low.status_code == 400
+    assert too_high.status_code == 400
+    assert ok.status_code == 200
+    assert ok.json()["value"] == 3
+
+
+@pytest.mark.asyncio
 async def test_update_persists_and_takes_effect(fake_supabase):
     async with _client() as c:
         r = await c.patch("/api/v1/admin/settings/defaults.headline_count",
