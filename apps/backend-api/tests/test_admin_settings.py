@@ -69,6 +69,7 @@ async def test_settings_are_grouped_per_tool_for_the_admin_settings_pages():
     assert group_by_key["features.grammar"] == "Grammar"
     assert group_by_key["adapters.grammar"] == "Grammar Advanced"
     assert group_by_key["grammar.ensemble_size"] == "Grammar Advanced"
+    assert group_by_key["grammar.chunk_chars"] == "Grammar Advanced"
 
     assert group_by_key["features.headlines"] == "Headline Generator"
     assert group_by_key["defaults.headline_count"] == "Headline Generator"

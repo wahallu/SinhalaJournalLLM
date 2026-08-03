@@ -22,10 +22,11 @@ import logging
 from difflib import SequenceMatcher
 
 from app.core import runtime_settings
-from app.core.model_gateway import model_generate
+from app.core.model_gateway import add_tokens, model_generate
 from app.repositories.base import persist_if_owned
 from app.repositories.grammar_repository import save_correction
 from app.schemas.grammar import CorrectionDetail, GrammarCheckResponse
+from app.services.grammar.chunking import chunk_text
 
 logger = logging.getLogger(__name__)
 
@@ -160,39 +161,75 @@ def _pick_consensus(candidates: list[str]) -> str:
 
 async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckResponse:
     """
-    Correct Sinhala text once, derive per-word corrections, persist for a
-    known caller, and return.
+    Correct Sinhala text, derive per-word corrections, persist for a known
+    caller, and return.
 
-    One generate() call. `grammar.ensemble_size` (admin-controlled, default 1)
-    optionally samples that many candidates in the same call and picks the
-    most representative one — a real quality/latency tradeoff the admin can
-    dial in from the dashboard, unlike the removed second pass, which ran
-    unconditionally for every changed request.
+    Long input is split into sentence-sized chunks and corrected one chunk per
+    model call, then reassembled — see chunking.py for the measurements behind
+    that. Text already inside the budget produces exactly one chunk, so short
+    input follows the same single-call path it always did.
+
+    Chunks are corrected sequentially rather than concurrently on purpose: the
+    model server holds a global `_generation_lock` around set_adapter() +
+    generate(), so parallel requests would queue there anyway, gaining nothing
+    while making a timeout far likelier on a long article.
+
+    `grammar.ensemble_size` (admin-controlled, default 1) optionally samples
+    that many candidates per call and picks the most representative one.
     """
     ensemble_size = await runtime_settings.get("grammar.ensemble_size")
+    max_chars = await runtime_settings.get("grammar.chunk_chars")
 
-    result = await model_generate("grammar", text, num_candidates=ensemble_size)
+    chunks = chunk_text(text, max_chars)
+    if not chunks:
+        chunks = []
 
-    candidates = result.meta.get("candidates") or [result.text]
-    raw = _pick_consensus(candidates)
-    corrected_text = _sanitize_correction(raw, fallback=text)
+    pieces: list[str] = []
+    corrections: list[CorrectionDetail] = []
+    provider: str | None = None
+    adapter: str | None = None
+    total_latency = 0
+    input_tokens: int | None = None
+    output_tokens: int | None = None
 
-    corrections = derive_corrections(text, corrected_text)
-    adapter = result.meta.get("adapter")
+    for chunk in chunks:
+        result = await model_generate("grammar", chunk.text, num_candidates=ensemble_size)
+
+        candidates = result.meta.get("candidates") or [result.text]
+        raw = _pick_consensus(candidates)
+        corrected_chunk = _sanitize_correction(raw, fallback=chunk.text)
+
+        # Positions are rebased onto the original article, not the chunk, so
+        # the clients' underlining lands on the right characters.
+        for correction in derive_corrections(chunk.text, corrected_chunk):
+            corrections.append(
+                correction.model_copy(update={"position": correction.position + chunk.start})
+            )
+
+        pieces.append(chunk.rebuild(corrected_chunk))
+        provider = provider or result.provider
+        adapter = adapter or result.meta.get("adapter")
+        total_latency += result.latency_ms
+        input_tokens = add_tokens(input_tokens, result.meta.get("input_tokens"))
+        output_tokens = add_tokens(output_tokens, result.meta.get("output_tokens"))
+
+    # Whitespace-only input produces no chunks; return it untouched rather
+    # than calling the model with nothing.
+    corrected_text = "".join(pieces) if chunks else text
 
     record = {
         "original_text": text,
         "corrected_text": corrected_text,
         "corrections": [c.model_dump() for c in corrections],
         "correction_count": len(corrections),
-        "model_provider": result.provider,
+        "model_provider": provider,
         # Admin-diagnostics only — see GrammarCheckResponse._adapter for why
         # this never reaches the API response, only this persisted row and
         # (via the endpoint) request_telemetry.
         "adapter": adapter,
-        "latency_ms": result.latency_ms,
-        "input_tokens": result.meta.get("input_tokens"),
-        "output_tokens": result.meta.get("output_tokens"),
+        "latency_ms": total_latency,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
     }
     saved = await persist_if_owned(save_correction, record, user_id)
 
@@ -202,9 +239,9 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
         corrections=corrections,
         correction_count=len(corrections),
         created_at=saved.get("created_at"),
-        model_used=result.provider,
-        input_tokens=result.meta.get("input_tokens"),
-        output_tokens=result.meta.get("output_tokens"),
+        model_used=provider,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
     )
     response._adapter = adapter
     return response

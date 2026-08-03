@@ -30,6 +30,18 @@ def _client() -> AsyncClient:
 
 
 
+def _set_chunk_chars(fake_supabase, value: int) -> None:
+    """Override the chunk budget, keeping the offline provider seed intact."""
+    from app.core import runtime_settings
+
+    fake_supabase.store["app_settings"] = [
+        {"key": "model.provider", "value": "mock", "updated_at": "2026-01-01T00:00:00Z"},
+        {"key": "model.fallback_enabled", "value": False, "updated_at": "2026-01-01T00:00:00Z"},
+        {"key": "grammar.chunk_chars", "value": value, "updated_at": "2026-01-01T00:00:00Z"},
+    ]
+    runtime_settings.invalidate()
+
+
 @pytest.fixture
 def _history_profile(fake_supabase):
     """A profile row for _HISTORY_USER, so require_user resolves it instead of 401ing."""
@@ -231,6 +243,146 @@ async def test_check_grammar_persists_the_single_call_latency(monkeypatch, fake_
     assert result.corrected == "halfway fixed"
     [record] = fake_supabase.store["grammar_corrections"]
     assert record["latency_ms"] == 30
+
+
+# ── Article-length input is chunked ──
+# The adapter tops out around 330 characters (paragraph.jsonl / stage2-5,
+# MAX_SEQ_LENGTH=512) while the product accepts 10,000. Long input is split on
+# sentence boundaries, corrected chunk by chunk, and reassembled.
+
+_A = "පළමු වාක්‍යය වැරදියි."
+_B = "දෙවන වාක්‍යය වැරදියි."
+_C = "තෙවන වාක්‍යය වැරදියි."
+
+
+@pytest.mark.asyncio
+async def test_long_input_is_split_into_several_model_calls(monkeypatch, fake_supabase):
+    seen: list[str] = []
+
+    async def fake_model_generate(task, text, **_kwargs):
+        seen.append(text)
+        return GatewayResult(text=text, provider="mock", latency_ms=5)
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+    _set_chunk_chars(fake_supabase, 30)
+
+    await check_grammar(f"{_A} {_B} {_C}")
+
+    assert len(seen) > 1
+    # Every call stays inside the adapter's trained size.
+    assert all(len(chunk) <= 40 for chunk in seen)
+
+
+@pytest.mark.asyncio
+async def test_every_paragraph_survives_not_just_the_first(monkeypatch, fake_supabase):
+    """
+    The bug this pins: _sanitize_correction keeps only the first line, so
+    before chunking an article collapsed to its opening sentence.
+    """
+    async def fake_model_generate(task, text, **_kwargs):
+        return GatewayResult(text=text.replace("වැරදියි", "නිවැරදියි"), provider="mock", latency_ms=5)
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+    _set_chunk_chars(fake_supabase, 300)
+
+    article = f"{_A}\n\n{_B}\n\n{_C}"
+    result = await check_grammar(article)
+
+    assert result.corrected.count("නිවැරදියි") == 3
+    assert "\n\n" in result.corrected
+
+
+@pytest.mark.asyncio
+async def test_unchanged_text_is_reassembled_byte_for_byte(monkeypatch, fake_supabase):
+    """Whitespace and paragraph breaks the user typed must not be edited."""
+    async def fake_model_generate(task, text, **_kwargs):
+        return GatewayResult(text=text, provider="mock", latency_ms=5)
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+    _set_chunk_chars(fake_supabase, 30)
+
+    article = f"  {_A}\n\n{_B} {_C}\n"
+    result = await check_grammar(article)
+
+    assert result.corrected == article
+    assert result.correction_count == 0
+
+
+@pytest.mark.asyncio
+async def test_correction_positions_are_offsets_into_the_whole_article(monkeypatch, fake_supabase):
+    """
+    Positions drive the red underlining in the UI. Derived per chunk, they
+    must be rebased onto the full article or every mark after the first chunk
+    lands on the wrong characters.
+    """
+    async def fake_model_generate(task, text, **_kwargs):
+        return GatewayResult(text=text.replace("වැරදියි", "නිවැරදියි"), provider="mock", latency_ms=5)
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+    _set_chunk_chars(fake_supabase, 30)
+
+    article = f"{_A} {_B} {_C}"
+    result = await check_grammar(article)
+
+    assert len(result.corrections) == 3
+    for correction in result.corrections:
+        at = correction.position
+        assert article[at : at + len(correction.original)] == correction.original
+
+
+@pytest.mark.asyncio
+async def test_latency_and_tokens_are_summed_across_chunks(monkeypatch, fake_supabase):
+    async def fake_model_generate(task, text, **_kwargs):
+        return GatewayResult(
+            text=text, provider="sinllama", latency_ms=10,
+            meta={"input_tokens": 7, "output_tokens": 3},
+        )
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+    _set_chunk_chars(fake_supabase, 30)
+
+    await check_grammar(f"{_A} {_B} {_C}", user_id="55555555-5555-5555-5555-555555555555")
+
+    [record] = fake_supabase.store["grammar_corrections"]
+    calls = record["input_tokens"] // 7
+    assert calls == 3
+    assert record["latency_ms"] == 10 * calls
+    assert record["output_tokens"] == 3 * calls
+
+
+@pytest.mark.asyncio
+async def test_short_input_still_takes_exactly_one_call(monkeypatch, fake_supabase):
+    """Chunking must not change behaviour for text that already fits."""
+    seen: list[str] = []
+
+    async def fake_model_generate(task, text, **_kwargs):
+        seen.append(text)
+        return GatewayResult(text=text, provider="mock", latency_ms=5)
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+    _set_chunk_chars(fake_supabase, 300)
+
+    await check_grammar(_A)
+
+    assert seen == [_A]
+
+
+@pytest.mark.asyncio
+async def test_blank_input_never_reaches_the_model(monkeypatch, fake_supabase):
+    called = False
+
+    async def fake_model_generate(task, text, **_kwargs):
+        nonlocal called
+        called = True
+        return GatewayResult(text=text, provider="mock", latency_ms=5)
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+    _set_chunk_chars(fake_supabase, 300)
+
+    result = await check_grammar("   \n\n  ")
+
+    assert called is False
+    assert result.corrected == "   \n\n  "
 
 
 # ── Adapter capture (admin-diagnostics only, never user-facing) ──

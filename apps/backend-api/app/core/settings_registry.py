@@ -96,6 +96,20 @@ def build_registry() -> dict[str, SettingSpec]:
             description="Specific LoRA adapter for the Grammar Checker. "
                         "Leave empty to use the newest one the model server resolved.",
         ),
+        "grammar.chunk_chars": SettingSpec(
+            kind="int", default=200, minimum=120, maximum=10000, group="Grammar Advanced",
+            description=(
+                "Longest piece of text sent to the grammar model in one call. "
+                "Longer input is split on sentence boundaries and reassembled. "
+                "200 keeps each call near the shape the adapter was trained on: "
+                "cleaned_v8_full.jsonl is 82% one-to-two sentences, median 110 "
+                "characters, and the training data stops at 332. Raising it "
+                "means fewer, slower calls on text longer than most training "
+                "examples — and fix-density is a measured failure mode, where "
+                "the model catches some errors in a long passage but not all. "
+                "10000 effectively disables chunking."
+            ),
+        ),
         "grammar.ensemble_size": SettingSpec(
             kind="int", default=1, minimum=1, maximum=5, group="Grammar Advanced",
             description=(
