@@ -293,6 +293,11 @@ def offline_model_provider(monkeypatch, fake_supabase):
 
     monkeypatch.setenv("MODEL_PROVIDER", "mock")
     monkeypatch.setenv("MODEL_FALLBACK", "false")
+    # Self-hosted auth refuses to sign or verify without a key, by design.
+    # A fixed test key keeps token tests deterministic; it is never a real one.
+    monkeypatch.setenv("JWT_SECRET", "test-only-signing-key-not-used-anywhere-real")
+    # No SMTP in tests — the mailer logs instead of dialling out.
+    monkeypatch.setenv("SMTP_HOST", "")
 
     # Since Phase 3 the gateway reads the provider from runtime settings, not
     # env. The registry's default is captured from env at import time, which
