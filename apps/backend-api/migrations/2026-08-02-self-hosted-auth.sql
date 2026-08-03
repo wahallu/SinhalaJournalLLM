@@ -145,6 +145,10 @@ drop policy if exists read_categories on user_categories;
 
 alter table app_users enable row level security;
 
+-- Give service_role explicit permissions on the new tables since they are queried directly
+grant all privileges on public.app_users to service_role;
+grant all privileges on public.auth_email_tokens to service_role;
+
 commit;
 
 -- ── After committing ─────────────────────────────────────────────────────

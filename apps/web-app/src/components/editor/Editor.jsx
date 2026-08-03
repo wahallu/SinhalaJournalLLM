@@ -3,6 +3,7 @@ import { Eraser, Play } from 'lucide-react';
 import ActionButton from '../ui/ActionButton';
 import CopyButton from '../ui/CopyButton';
 import EditorToolbar from './EditorToolbar';
+import ConfirmModal from '../ui/ConfirmModal';
 
 // Matches max_length on every tool request schema in apps/backend-api
 // (grammar.py, style.py, summarizer.py, headline.py). The client used to
@@ -16,6 +17,7 @@ export default function Editor({
   settings, onSettingsChange,
 }) {
   const [focused, setFocused] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const charCount = value?.length ?? 0;
   const isNearLimit = charCount > MAX_CHARS * 0.85;
@@ -72,7 +74,7 @@ export default function Editor({
         )}
         <div className="ml-auto flex items-center gap-1.5">
           <CopyButton text={value} label="Copy" className={!value ? 'opacity-40 pointer-events-none' : ''} />
-          <ActionButton id="btn-clear" size="sm" variant="ghost" icon={Eraser} onClick={onClear} disabled={loading || !value}>
+          <ActionButton id="btn-clear" size="sm" variant="ghost" icon={Eraser} onClick={() => setShowClearConfirm(true)} disabled={loading || !value}>
             Clear
           </ActionButton>
           <ActionButton
@@ -89,6 +91,19 @@ export default function Editor({
           </ActionButton>
         </div>
       </div>
+      
+      <ConfirmModal
+        open={showClearConfirm}
+        onOpenChange={setShowClearConfirm}
+        title="Clear text"
+        description="Are you sure you want to clear the editor? This cannot be undone."
+        confirmLabel="Clear"
+        destructive
+        onConfirm={() => {
+          setShowClearConfirm(false);
+          onClear?.();
+        }}
+      />
     </div>
   );
 }

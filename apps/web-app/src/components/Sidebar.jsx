@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import DotField from './DotField';
 import { useAuth } from '../auth/useAuth';
+import ConfirmModal from './ui/ConfirmModal';
 
 const TOOL_PATHS = {
   dashboard: '/dashboard',
@@ -47,6 +48,7 @@ const BOTTOM_NAV = [
 
 export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpen, onToggle, collapsed, onCollapse }) {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
@@ -283,8 +285,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
                         onClick={async () => {
                           setProfileOpen(false);
                           if (action === 'signout') {
-                            await signOut();
-                            navigate('/login');
+                            setShowSignOutConfirm(true);
                           } else {
                             select(tool);
                           }
@@ -317,6 +318,19 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
           )}
         </div>
       </aside>
+
+      <ConfirmModal
+        open={showSignOutConfirm}
+        onOpenChange={setShowSignOutConfirm}
+        title="Sign out"
+        description="Are you sure you want to sign out?"
+        confirmLabel="Sign out"
+        onConfirm={async () => {
+          setShowSignOutConfirm(false);
+          await signOut();
+          navigate('/login');
+        }}
+      />
     </>
   );
 }

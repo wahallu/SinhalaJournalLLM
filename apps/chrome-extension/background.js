@@ -129,6 +129,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false; // Sync message channel close
   }
 
+  if (message.action === "updateBadge") {
+    chrome.action.setBadgeText({ text: message.text || "", tabId: sender.tab.id });
+    if (message.text) {
+      chrome.action.setBadgeBackgroundColor({ color: "#CD191A", tabId: sender.tab.id });
+    }
+    return false;
+  }
+
   if (message.action === "callApi") {
     const { endpoint, body, method } = message;
     
