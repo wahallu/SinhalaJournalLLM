@@ -21,6 +21,42 @@
   font-display: swap;
 }
 
+/* ── Legacy Sinhala (FM/UBIN-style) ───────────────────────────────────────
+   ubin16s maps Sinhala glyphs onto Latin code points, the way Sri Lankan
+   newsroom fonts did before Unicode. Text written for it — "fuys Tnf.a
+   isxy," and the like — is stored as ASCII and only reads as Sinhala when
+   rendered in this face. It is therefore NOT interchangeable with the
+   Unicode Sinhala used everywhere else in the app, and must be applied
+   explicitly with .font-legacy-sinhala rather than added to any font stack.
+
+   font-display: block (not swap) on purpose: a fallback face would render
+   the raw ASCII as visible gibberish for the swap period. Better a brief
+   blank than a flash of nonsense.
+
+   Served from public/ rather than bundled, so the file can be replaced
+   without a rebuild. */
+@font-face {
+  font-family: 'UBIN16S';
+  src: url('/ubin16s.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+.font-legacy-sinhala {
+  font-family: 'UBIN16S', sans-serif;
+}
+
+/* Placeholder only. The editor's placeholders are written in the legacy
+   encoding, but whatever the user types is real Unicode Sinhala — so the
+   face is scoped to ::placeholder and the typed value keeps the normal
+   stack. Nudged up slightly because UBIN16S runs small against Satoshi at
+   the same px. */
+.placeholder-legacy-sinhala::placeholder {
+  font-family: 'UBIN16S', sans-serif;
+  font-size: 1.08em;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /* ─────────────────────────────────────────────────────────────
@@ -101,6 +137,22 @@ textarea { resize: vertical; }
 }
 .animate-subtle-pulse {
   animation: subtle-pulse 1.5s ease-in-out infinite;
+}
+
+/* Each rotating word rises into place from below its clipped window.
+   Deliberately unhurried — this sits in the dashboard heading and a quick
+   snap there reads as a glitch rather than a flourish. */
+@keyframes swipe-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.animate-swipe-up {
+  animation: swipe-up 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Respect a reduced-motion preference: show the word, skip the travel. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-swipe-up { animation: none; }
 }
 
 /* ── Tool workspace: editor left, results right.

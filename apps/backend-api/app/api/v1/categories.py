@@ -18,8 +18,16 @@ router = APIRouter(prefix="/categories", tags=["Categories"])
 
 
 @router.get("", response_model=list[Category])
-async def list_active_categories(_user: AuthUser = Depends(require_user)) -> list[Category]:
-    """Active categories, in display order — what a user may pick from."""
+async def list_active_categories() -> list[Category]:
+    """
+    Active categories, in display order — what a user may pick from.
+
+    Public: the signed-out dashboard cycles these names through its
+    greeting, so the list has to be readable without a session. They are
+    display labels ("Journalist", "Student", "Editor"), carrying nothing
+    about any user. Choosing one still requires an account — see
+    PUT /categories/me below.
+    """
     return [Category(**c) for c in await category_repository.list_all(active_only=True)]
 
 

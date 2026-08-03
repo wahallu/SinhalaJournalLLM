@@ -150,7 +150,14 @@ async def test_user_category_list_excludes_inactive(fake_supabase):
 
 
 @pytest.mark.asyncio
-async def test_user_category_list_requires_auth():
+async def test_user_category_list_is_public_but_setting_one_is_not():
+    """
+    Reading the list needs no session — the signed-out dashboard cycles
+    these names through its greeting, and they are display labels rather
+    than user data. Writing a user's own category still requires one.
+    """
     async with _client() as c:
-        r = await c.get("/api/v1/categories")
-    assert r.status_code == 401
+        listing = await c.get("/api/v1/categories")
+        setting = await c.put("/api/v1/categories/me", json={"category_id": None})
+    assert listing.status_code == 200
+    assert setting.status_code == 401

@@ -93,3 +93,25 @@ async def test_image_generation_requires_an_account(fake_supabase):
     async with _client() as c:
         assert (await c.post("/api/v1/image/generate",
                              json={"prompt": "x"})).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_category_list_is_public(fake_supabase):
+    """
+    The signed-out dashboard cycles these names in its greeting, so the
+    list has to be readable without a session. They are display labels
+    (Journalist, Student, Editor…), not user data.
+
+    Setting one — PUT /categories/me — stays behind require_user.
+    """
+    fake_supabase.store["user_categories"] = [
+        {"id": "c1", "name": "Journalist", "slug": "journalist",
+         "is_active": True, "sort_order": 1, "created_at": "2026-01-01T00:00:00Z"},
+    ]
+    async with _client() as c:
+        response = await c.get("/api/v1/categories")
+        setting = await c.put("/api/v1/categories/me", json={"category_id": "c1"})
+
+    assert response.status_code == 200
+    assert [c["name"] for c in response.json()] == ["Journalist"]
+    assert setting.status_code == 401

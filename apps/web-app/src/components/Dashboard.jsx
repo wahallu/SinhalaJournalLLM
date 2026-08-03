@@ -10,14 +10,68 @@ import ActionButton from './ui/ActionButton';
 import EmptyState from './ui/EmptyState';
 import { TOOL_LIST, TOOL_META } from '../lib/toolMeta';
 import { useAuth } from '../auth/useAuth';
-import { getUnifiedHistory } from '../services/api';
+import { getCategories, getUnifiedHistory } from '../services/api';
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 5)  return 'Working late';
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
+/**
+ * Greeting for the current hour in Sri Lanka, not in the reader's browser.
+ *
+ * The newsroom this serves works to Colombo time, so someone checking in
+ * from another timezone should still see the greeting their desk would.
+ * Asia/Colombo is UTC+5:30 year-round with no daylight saving, but the
+ * offset is left to Intl rather than hardcoded.
+ */
+function greeting(now = new Date()) {
+  let hour;
+  try {
+    hour = Number(
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Colombo',
+        hour: 'numeric',
+        hour12: false,
+      }).format(now)
+    );
+  } catch {
+    // Intl without full tz data (very old engines) — fall back to local.
+    hour = now.getHours();
+  }
+  if (hour < 5) return 'Working late';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
   return 'Good evening';
+}
+
+/** How long each category sits before the next slides up. */
+const ROTATE_MS = 3200;
+
+/**
+ * The name after the greeting.
+ *
+ * Signed in, it is the person. Signed out there is no name to show, so the
+ * admin-defined categories take the slot one at a time — "Good morning,
+ * Journalist" then "Student" and so on — which doubles as a hint about who
+ * the product is for. Falls back to a single neutral word if the category
+ * list cannot be read, so the sentence is never left dangling.
+ */
+function RotatingName({ names }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (names.length < 2) return undefined;
+    const id = setInterval(() => setIndex((i) => (i + 1) % names.length), ROTATE_MS);
+    return () => clearInterval(id);
+  }, [names.length]);
+
+  const current = names[index % names.length] ?? '';
+
+  return (
+    // Fixed height and clipped, so each word slides up out of a window
+    // rather than nudging the heading's baseline as it changes.
+    <span className="inline-block overflow-hidden align-bottom h-[1.15em]">
+      <span key={current} className="inline-block animate-swipe-up">
+        {current}
+      </span>
+    </span>
+  );
 }
 
 function timeAgo(iso) {
@@ -42,8 +96,32 @@ function StatCard({ label, value, hint, small = false }) {
 
 export default function Dashboard({ onSelectTool, onQuickStart }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [history, setHistory] = useState([]);
+  const [categoryNames, setCategoryNames] = useState([]);
+
+  // Only needed signed out, where they stand in for a name. The endpoint is
+  // public for exactly this; a failure just leaves the fallback word.
+  useEffect(() => {
+    if (user) return undefined;
+    let active = true;
+    getCategories()
+      .then((rows) => {
+        if (active) setCategoryNames((rows ?? []).map((c) => c.name).filter(Boolean));
+      })
+      .catch(() => {
+        if (active) setCategoryNames([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  // Prefer a real name, then the local part of the email, and only then a
+  // generic word — "Good morning, nisal" beats "Good morning, Journalist"
+  // for someone who has told us who they are.
+  const signedInName =
+    profile?.full_name?.trim() || user?.email?.split('@')[0] || 'Journalist';
 
   // Activity stats come from the server now. Signed-out visitors get a 401
   // here — the dashboard stays usable and simply shows an empty feed, since
@@ -101,26 +179,30 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
           style={{ background: 'radial-gradient(42rem 18rem at 85% -20%, rgba(205,25,26,0.35), transparent 60%)' }}
           aria-hidden="true"
         />
+        {/* Legacy-encoded glyph — "is" is ASCII that only reads as Sinhala
+            in UBIN16S, so the face has to be applied explicitly. */}
         <span
-          className="pointer-events-none absolute -right-4 -bottom-14 text-[13rem] leading-none font-bold text-white/[0.045] select-none"
-          style={{ fontFamily: "'Noto Sans Sinhala', sans-serif" }}
+          className="font-legacy-sinhala pointer-events-none absolute -right-4 -bottom-14
+            text-[13rem] leading-none font-bold text-white/[0.045] select-none"
           aria-hidden="true"
         >
-          සි
+          is
         </span>
 
         <div className="relative z-10 max-w-2xl">
           <StatusBadge
             status="brand"
-            label="SinLLaMA · fine-tuned for Sinhala journalism"
+            label="Sin Ai · Ai tool for sinhala journalists"
             className="!bg-white/10 !text-white/85 !border-white/15 mb-4"
           />
           <h1 className="text-[1.75rem] sm:text-[2rem] font-bold tracking-tight leading-tight text-balance">
-            {greeting()}, Journalist
+            {greeting()},{' '}
+            {user ? signedInName : <RotatingName names={categoryNames.length ? categoryNames : ['Journalist']} />}
           </h1>
           <p className="text-[13.5px] text-white/60 mt-2 max-w-lg leading-relaxed">
-            Draft, refine, and publish Sinhala news faster — grammar, headlines,
-            style, and summaries backed by a research-grade language model.
+            The first AI writing assistant built for Sinhala journalism — grammar,
+            headlines, style and summaries, from a language model trained on the
+            language itself rather than translated into it.
           </p>
           <div className="flex flex-wrap items-center gap-2.5 mt-6">
             <ActionButton variant="primary" size="lg" icon={Sparkles} onClick={() => onSelectTool('grammar')}>

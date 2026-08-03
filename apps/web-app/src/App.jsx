@@ -44,7 +44,7 @@ const AUTH_PATHS = ['/login', '/signup', '/forgot-password', '/reset-password', 
 const TOOL_CONFIG = {
   grammar: {
     title: TOOL_META.grammar.label,
-    placeholder: 'මෙහි ඔබගේ සිංහල වාක්‍යය ඇතුළත් කරන්න…',
+    placeholder: 'fuys Tnf.a isxy, jdlHh we;=<;a lrkak¡¡¡',
     actionLabel: 'Correct',
     outputType: 'text',
     icon: TOOL_META.grammar.icon,
@@ -52,7 +52,7 @@ const TOOL_CONFIG = {
   },
   headlines: {
     title: TOOL_META.headlines.label,
-    placeholder: 'මෙහි ප්‍රවෘත්ති ලිපිය ඇතුළත් කරන්න…',
+    placeholder: 'fuys m%jD;a;s ,smsh we;=<;a lrkak¡¡¡',
     actionLabel: 'Generate',
     outputType: 'headlines',
     icon: TOOL_META.headlines.icon,
@@ -60,7 +60,7 @@ const TOOL_CONFIG = {
   },
   rewriter: {
     title: TOOL_META.rewriter.label,
-    placeholder: 'නැවත ලිවීමට අවශ්‍ය පෙළ ඇතුළත් කරන්න…',
+    placeholder: 'kej; ,sùug wjYH ,smsh we;=<;a lrkak¡¡¡',
     actionLabel: 'Rewrite',
     outputType: 'text',
     icon: TOOL_META.rewriter.icon,
@@ -68,7 +68,7 @@ const TOOL_CONFIG = {
   },
   summarizer: {
     title: TOOL_META.summarizer.label,
-    placeholder: 'සාරාංශ කිරීමට ලිපිය ඇතුළත් කරන්න…',
+    placeholder: 'idrdxY lsÍug wjYH ,smsh we;=<;a lrkak¡¡¡',
     actionLabel: 'Summarize',
     outputType: 'text',
     icon: TOOL_META.summarizer.icon,

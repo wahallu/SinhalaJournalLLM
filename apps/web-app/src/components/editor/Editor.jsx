@@ -60,10 +60,10 @@ export default function Editor({
         disabled={loading}
         maxLength={MAX_CHARS + 50}
         aria-label={`${title} input`}
-        className="flex-1 min-h-[18rem] xl:min-h-[20rem] w-full px-4 py-3.5 text-[15px]
-          text-ink-800 placeholder:text-ink-400 bg-transparent border-none
-          focus:outline-none focus:ring-0 resize-none leading-[1.8] font-sans
-          disabled:cursor-not-allowed"
+        className="placeholder-legacy-sinhala flex-1 min-h-[18rem] xl:min-h-[20rem] w-full
+          px-4 py-3.5 text-[15px] text-ink-800 placeholder:text-ink-400
+          bg-transparent border-none focus:outline-none focus:ring-0 resize-none
+          leading-[1.8] font-sans disabled:cursor-not-allowed"
       />
 
       <div className="flex items-center gap-2 px-3 py-2.5 border-t border-ink-100 shrink-0">
