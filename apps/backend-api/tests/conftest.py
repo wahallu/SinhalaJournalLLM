@@ -150,10 +150,16 @@ class _FakeQuery:
         rows = self._store.setdefault(self._table, [])
 
         if self._operation == "insert":
+            # An explicitly supplied id is honoured, the way Postgres honours
+            # one rather than overriding it with the column default. Signup
+            # depends on this: it inserts a profiles row keyed to the id of
+            # the app_users row it just created, and a fake that reassigned
+            # that id would leave the two tables silently unlinked while the
+            # insert still appeared to succeed.
             record = {
-                **self._payload,
                 "id": str(uuid.uuid4()),
                 "created_at": datetime.now(timezone.utc).isoformat(),
+                **self._payload,
             }
             rows.append(record)
             # A copy, like a real PostgREST response — returning the stored
@@ -293,6 +299,11 @@ def offline_model_provider(monkeypatch, fake_supabase):
 
     monkeypatch.setenv("MODEL_PROVIDER", "mock")
     monkeypatch.setenv("MODEL_FALLBACK", "false")
+    # Self-hosted auth refuses to sign or verify without a key, by design.
+    # A fixed test key keeps token tests deterministic; it is never a real one.
+    monkeypatch.setenv("JWT_SECRET", "test-only-signing-key-not-used-anywhere-real")
+    # No SMTP in tests — the mailer logs instead of dialling out.
+    monkeypatch.setenv("SMTP_HOST", "")
 
     # Since Phase 3 the gateway reads the provider from runtime settings, not
     # env. The registry's default is captured from env at import time, which

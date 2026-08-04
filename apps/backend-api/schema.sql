@@ -20,6 +20,14 @@ create table if not exists grammar_corrections (
 alter table grammar_corrections add column if not exists model_provider text;
 alter table grammar_corrections add column if not exists latency_ms integer;
 
+-- Which LoRA adapter actually served the request (server-resolved: an admin
+-- override, or whatever the model server picked as newest at its own last
+-- restart — the two can silently diverge, see adapters.grammar). Admin-only:
+-- surfaced in the Chats view so a mismatch between what an admin *thinks* is
+-- live and what a request actually used is diagnosable after the fact,
+-- rather than invisible. Never returned by the grammar API to a caller.
+alter table grammar_corrections add column if not exists adapter text;
+
 -- ── Headline generator ──
 create table if not exists headline_generations (
     id uuid primary key default gen_random_uuid(),
@@ -158,8 +166,13 @@ create table if not exists request_telemetry (
     output_tokens integer,
     error_code    text,
     ip_hash       text,
+    adapter       text,
     created_at    timestamptz not null default now()
 );
+
+-- Added after the first deploy (no-op on fresh databases) — same field as
+-- grammar_corrections.adapter above, for the per-request telemetry row.
+alter table request_telemetry add column if not exists adapter text;
 
 create index if not exists idx_telemetry_created  on request_telemetry (created_at desc);
 create index if not exists idx_telemetry_user     on request_telemetry (user_id, created_at desc);
@@ -174,6 +187,26 @@ create index if not exists idx_grammar_user   on grammar_corrections  (user_id, 
 create index if not exists idx_headline_user  on headline_generations (user_id, created_at desc);
 create index if not exists idx_style_user     on style_rewrites       (user_id, created_at desc);
 create index if not exists idx_summaries_user on summaries            (user_id, created_at desc);
+
+-- Token counts alongside the run they belong to.
+--
+-- request_telemetry already had these columns but nothing ever wrote them;
+-- they are populated now too. They are duplicated onto the history tables
+-- because the admin "Chats" view needs tokens next to the text of the run,
+-- and there is no key joining a telemetry row to the history row it
+-- describes — both are independent inserts from the same request.
+--
+-- Only the sinllama provider reports token counts. openrouter returns just
+-- the model name and mock returns nothing, so rows produced by those
+-- providers keep NULL here rather than a misleading zero.
+alter table grammar_corrections  add column if not exists input_tokens  integer;
+alter table grammar_corrections  add column if not exists output_tokens integer;
+alter table headline_generations add column if not exists input_tokens  integer;
+alter table headline_generations add column if not exists output_tokens integer;
+alter table style_rewrites       add column if not exists input_tokens  integer;
+alter table style_rewrites       add column if not exists output_tokens integer;
+alter table summaries            add column if not exists input_tokens  integer;
+alter table summaries            add column if not exists output_tokens integer;
 
 alter table grammar_corrections  enable row level security;
 alter table headline_generations enable row level security;

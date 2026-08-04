@@ -8,6 +8,7 @@
 
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './useAuth';
+import { ShimmerDot } from '../components/ui/Skeleton';
 
 export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -16,17 +17,19 @@ export default function ProtectedRoute({ children }) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div
-          className="w-6 h-6 rounded-full border-2 border-ink-200 border-t-brand-600 animate-spin"
-          role="status"
-          aria-label="Checking your session"
-        />
+        <ShimmerDot size={24} />
       </div>
     );
   }
 
   if (!user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: location.pathname, backgroundLocation: location.state?.backgroundLocation }}
+      />
+    );
   }
 
   return children;

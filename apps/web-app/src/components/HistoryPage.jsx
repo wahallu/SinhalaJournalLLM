@@ -5,6 +5,7 @@ import ActionButton from './ui/ActionButton';
 import EmptyState from './ui/EmptyState';
 import CopyButton from './ui/CopyButton';
 import { Card } from './ui/Card';
+import { Skeleton, SkeletonLines } from './ui/Skeleton';
 import { TOOL_META } from '../lib/toolMeta';
 import { getUnifiedHistory } from '../services/api';
 
@@ -136,12 +137,17 @@ export default function HistoryPage({ onRerun, onBack }) {
 
       {/* Feed */}
       {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div
-            className="w-6 h-6 rounded-full border-2 border-ink-200 border-t-brand-600 animate-spin"
-            role="status"
-            aria-label="Loading history"
-          />
+        <div className="space-y-2" role="status" aria-label="Loading history">
+          {[0, 1, 2, 3].map((i) => (
+            <Card key={i} className="px-4 py-3.5">
+              <div className="flex items-start gap-3.5">
+                <Skeleton className="w-9 h-9 rounded-xl shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <SkeletonLines widths={[30, 90, 55]} lineClassName="h-3" className="space-y-2" />
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
       ) : error ? (
         <p role="alert" className="text-[13px] text-brand-700 bg-brand-50 rounded-xl px-4 py-3">

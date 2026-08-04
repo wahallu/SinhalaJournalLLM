@@ -20,6 +20,8 @@ async def summarize_text(
     resolved = resolve_length(length)
     result = await model_generate("summarizer", text, length=resolved)
     summary = result.text or text
+    input_tokens = result.meta.get("input_tokens")
+    output_tokens = result.meta.get("output_tokens")
 
     record = {
         "original_text": text,
@@ -27,6 +29,8 @@ async def summarize_text(
         "length": resolved,
         "model_provider": result.provider,
         "latency_ms": result.latency_ms,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
     }
     saved = await persist_if_owned(save_summary, record, user_id)
 
@@ -37,4 +41,6 @@ async def summarize_text(
         length=resolved,
         model_used=result.provider,
         created_at=saved.get("created_at"),
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
     )

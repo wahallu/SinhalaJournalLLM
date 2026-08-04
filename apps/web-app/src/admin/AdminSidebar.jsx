@@ -1,15 +1,30 @@
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Tags, SlidersHorizontal, ScrollText,
-  Bot, Layers, Scale, ArrowLeft, Moon, Sun,
+  MessagesSquare, Bot, Layers, Scale, ArrowLeft, Moon, Sun,
+  SpellCheck, Newspaper, PenLine, FileText,
 } from 'lucide-react';
 
 const NAV = [
   { to: '/admin', end: true, label: 'Overview', icon: LayoutDashboard },
   { to: '/admin/users', end: false, label: 'Users', icon: Users },
+  { to: '/admin/chats', end: false, label: 'Chats', icon: MessagesSquare },
   { to: '/admin/categories', end: false, label: 'Categories', icon: Tags },
   { to: '/admin/activity', end: false, label: 'Activity', icon: ScrollText },
-  { to: '/admin/settings', end: false, label: 'Settings', icon: SlidersHorizontal },
+  // Common only — Model gateway and the anonymous-usage limit. Everything
+  // tool-specific lives on that tool's own page, listed separately below.
+  { to: '/admin/settings', end: true, label: 'Settings', icon: SlidersHorizontal },
+];
+
+/* Each tool's own settings page — feature toggle, adapter override, and
+   whatever defaults it has. `end: true` on the parent Settings link above
+   keeps these from also lighting it up (NavLink's default prefix match
+   would otherwise mark both active on e.g. /admin/settings/grammar). */
+const TOOL_SETTINGS = [
+  { to: '/admin/settings/grammar', label: 'Grammar Checker', icon: SpellCheck },
+  { to: '/admin/settings/headlines', label: 'Headline Generator', icon: Newspaper },
+  { to: '/admin/settings/rewriter', label: 'Style Rewriter', icon: PenLine },
+  { to: '/admin/settings/summarizer', label: 'News Summarizer', icon: FileText },
 ];
 
 /* Research instruments, admin-only since Phase 4. Their endpoints reach the
@@ -39,6 +54,26 @@ export default function AdminSidebar({ dark, onToggleDark }) {
             key={to}
             to={to}
             end={end}
+            className={({ isActive }) =>
+              `flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors ${
+                isActive
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+              }`
+            }
+          >
+            <Icon size={16} strokeWidth={2} />
+            {label}
+          </NavLink>
+        ))}
+
+        <p className="px-3 pt-4 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+          Tool Settings
+        </p>
+        {TOOL_SETTINGS.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
             className={({ isActive }) =>
               `flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors ${
                 isActive

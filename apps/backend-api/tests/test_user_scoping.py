@@ -8,15 +8,18 @@ Two guarantees are asserted here:
      to everyone else.
 """
 
-import time
-
-import jwt
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+from app.core import security
 from app.main import app
 
-TEST_SECRET = "test-jwt-secret-not-a-real-one-but-long-enough-to-avoid-warnings"
+# Kept as a module-level name because most other test modules import it, but
+# it no longer configures anything: tokens are minted by the application's
+# own issuer now (core/security), signed with the JWT_SECRET that
+# conftest sets for the whole suite. Before self-hosted auth this file hand-
+# rolled Supabase-shaped JWTs and monkeypatched auth._jwt_secret to match.
+TEST_SECRET = "test-only-signing-key-not-used-anywhere-real"
 USER_A = "11111111-1111-1111-1111-111111111111"
 USER_B = "22222222-2222-2222-2222-222222222222"
 
@@ -27,11 +30,9 @@ _ARTICLE = (
 
 
 def _token(sub: str) -> str:
-    return jwt.encode(
-        {"sub": sub, "email": f"{sub[:4]}@sinai.lk", "aud": "authenticated",
-         "exp": int(time.time()) + 3600, "iat": int(time.time())},
-        TEST_SECRET, algorithm="HS256",
-    )
+    """A real access token from the application's own issuer, so these
+    tests exercise the same verification path production does."""
+    return security.create_access_token(sub)
 
 
 def _auth(sub: str) -> dict:
@@ -40,12 +41,6 @@ def _auth(sub: str) -> dict:
 
 def _client() -> AsyncClient:
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
-
-
-@pytest.fixture(autouse=True)
-def _secret(monkeypatch):
-    from app.core import auth as auth_module
-    monkeypatch.setattr(auth_module, "_jwt_secret", lambda: TEST_SECRET)
 
 
 @pytest.fixture(autouse=True)

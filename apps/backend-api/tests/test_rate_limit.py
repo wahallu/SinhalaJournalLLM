@@ -1,9 +1,9 @@
 """Anonymous IP rate limiting. Authenticated callers are never limited here."""
 
-import time
 
-import jwt
 import pytest
+
+from app.core import security
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
@@ -17,10 +17,6 @@ def _client() -> AsyncClient:
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
 
 
-@pytest.fixture(autouse=True)
-def _secret(monkeypatch):
-    from app.core import auth as auth_module
-    monkeypatch.setattr(auth_module, "_jwt_secret", lambda: TEST_SECRET)
 
 
 @pytest.fixture(autouse=True)
@@ -72,10 +68,7 @@ async def test_limit_is_per_ip(fake_supabase):
 
 @pytest.mark.asyncio
 async def test_authenticated_callers_are_not_limited(fake_supabase):
-    token = jwt.encode(
-        {"sub": USER_A, "email": "a@sinai.lk", "aud": "authenticated",
-         "exp": int(time.time()) + 3600, "iat": int(time.time())},
-        TEST_SECRET, algorithm="HS256")
+    token = security.create_access_token(USER_A)
     headers = {"X-Forwarded-For": "203.0.113.7", "Authorization": f"Bearer {token}"}
     async with _client() as c:
         for _ in range(4):

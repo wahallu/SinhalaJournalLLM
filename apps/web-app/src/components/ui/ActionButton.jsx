@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { ShimmerDot } from './Skeleton';
 
 const VARIANTS = {
   primary:
@@ -46,7 +46,7 @@ export default function ActionButton({
       {...rest}
     >
       {loading
-        ? <Loader2 size={iconSize} className="animate-spin shrink-0" />
+        ? <ShimmerDot size={iconSize} />
         : Icon && <Icon size={iconSize} className="shrink-0" strokeWidth={2.25} />}
       {children}
     </button>

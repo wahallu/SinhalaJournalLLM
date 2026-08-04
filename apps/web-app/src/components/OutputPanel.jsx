@@ -2,43 +2,20 @@ import { AlertTriangle, CheckCircle2, FileSearch, ArrowRight } from 'lucide-reac
 import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
 import { SkeletonLines } from './ui/Skeleton';
+import { CorrectedText, CorrectionsList } from './CorrectionsView';
 
 /**
  * Generic output panel for grammar, style rewriter, and summarizer tools.
  *
  * Handles the following response shapes from the backend:
- *   - Grammar:    { corrected, corrections: [{original, corrected, rule}], correction_count }
+ *   - Grammar:    { corrected, corrections: [{original, corrected, rule, type}], correction_count }
  *   - Style:      { rewritten, original, tone }
  *   - Summarizer: { summary, length }
+ *
+ * The corrections rendering it used to own now lives in CorrectionsView, so
+ * the Optimize Article pane shows the same marked-up text and category
+ * breakdown from one implementation.
  */
-
-/* Wrap each applied correction in a subtle highlight so edits are scannable */
-function renderCorrectedText(text, corrections) {
-  if (!text || !corrections?.length) return text;
-  const found = [];
-  corrections.forEach((c) => {
-    if (!c.corrected) return;
-    const i = text.indexOf(c.corrected);
-    if (i !== -1) found.push([i, c.corrected]);
-  });
-  if (!found.length) return text;
-  found.sort((a, b) => a[0] - b[0]);
-
-  const nodes = [];
-  let cursor = 0;
-  found.forEach(([i, term], k) => {
-    if (i < cursor) return;
-    if (i > cursor) nodes.push(text.slice(cursor, i));
-    nodes.push(
-      <mark key={k} className="bg-emerald-100/90 text-emerald-900 rounded-[3px] px-0.5">
-        {term}
-      </mark>
-    );
-    cursor = i + term.length;
-  });
-  nodes.push(text.slice(cursor));
-  return nodes;
-}
 
 function splitSentences(text) {
   return text
@@ -56,14 +33,14 @@ function ResultLabel({ children }) {
 function TextCard({ children, muted = false, className = '' }) {
   return (
     <Card className={`px-5 py-4 ${muted ? 'bg-ink-50/60' : ''} ${className}`}>
-      <p className={`text-[15px] leading-[1.85] whitespace-pre-wrap ${muted ? 'text-ink-500' : 'text-ink-800'}`}>
+      <p className={`font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap ${muted ? 'text-ink-500' : 'text-ink-800'}`}>
         {children}
       </p>
     </Card>
   );
 }
 
-export default function OutputPanel({ output, loading, error, type, input, summaryView = 'paragraph' }) {
+export default function OutputPanel({ output, loading, error, type, input, summaryView = 'paragraph', showCorrections = false }) {
   if (loading) {
     return (
       <div id="output-loading" className="space-y-3">
@@ -158,8 +135,34 @@ export default function OutputPanel({ output, loading, error, type, input, summa
         </div>
       )}
 
-      {/* ── Before / after (grammar + rewriter) ── */}
-      {(isGrammar && !isPerfect) || isRewrite ? (
+      {/* ── Corrected text (grammar) ──
+           Corrected only, not a before/after pair. The original is already on
+           screen in the editor immediately to the left, so showing it again
+           halved the width available to the result — the text people actually
+           came to read — for a column they were already looking at. The
+           rewriter keeps its pair below, where the whole point is comparing
+           two phrasings of the same sentence. */}
+      {isGrammar && !isPerfect ? (
+        <div>
+          <div className="flex items-center justify-between mb-2 h-7">
+            <ResultLabel>Corrected</ResultLabel>
+            <CopyButton id="copy-output" text={displayText} />
+          </div>
+          <Card className="px-5 py-4 border-emerald-200/60">
+            <p className="font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
+              <CorrectedText text={displayText} corrections={corrections} />
+            </p>
+            {corrections.length > 0 && (
+              <p className="text-[11px] text-ink-400 mt-3 pt-2.5 border-t border-ink-100">
+                <mark className="bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px] border border-yellow-300/70">
+                  Highlighted
+                </mark>{' '}
+                words were changed — hover one to see the original.
+              </p>
+            )}
+          </Card>
+        </div>
+      ) : isRewrite ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="min-w-0">
             <div className="flex items-center justify-between mb-2 h-7">
@@ -171,8 +174,8 @@ export default function OutputPanel({ output, loading, error, type, input, summa
             <div className="flex items-center justify-between mb-2 h-7">
               <span className="inline-flex items-center gap-1.5">
                 <ArrowRight size={12} className="text-ink-400 md:hidden" />
-                <ResultLabel>{isGrammar ? 'Corrected' : 'Rewritten'}</ResultLabel>
-                {isRewrite && output.tone && (
+                <ResultLabel>Rewritten</ResultLabel>
+                {output.tone && (
                   <span className="text-[10px] font-bold uppercase tracking-wider text-brand-700 bg-brand-50 border border-brand-200/70 rounded-full px-2 py-0.5">
                     {output.tone}
                   </span>
@@ -181,8 +184,8 @@ export default function OutputPanel({ output, loading, error, type, input, summa
               <CopyButton id="copy-output" text={displayText} />
             </div>
             <Card className="px-5 py-4 border-emerald-200/60 h-[calc(100%-2.25rem)]">
-              <p className="text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
-                {isGrammar ? renderCorrectedText(displayText, corrections) : displayText}
+              <p className="font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
+                {displayText}
               </p>
             </Card>
           </div>
@@ -206,14 +209,14 @@ export default function OutputPanel({ output, loading, error, type, input, summa
             {isSummary && summaryView === 'bullets' ? (
               <ul className="space-y-2.5">
                 {splitSentences(displayText).map((s, i) => (
-                  <li key={i} className="flex items-start gap-2.5 text-[15px] leading-[1.7] text-ink-800">
+                  <li key={i} className="font-sinhala flex items-start gap-2.5 text-[15px] leading-[1.7] text-ink-800">
                     <span className="mt-[0.65em] w-1.5 h-1.5 rounded-full bg-brand-400 shrink-0" aria-hidden="true" />
                     <span>{s}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-[15px] text-ink-800 leading-[1.85] whitespace-pre-wrap">{displayText}</p>
+              <p className="font-sinhala text-[15px] text-ink-800 leading-[1.85] whitespace-pre-wrap">{displayText}</p>
             )}
           </Card>
 
@@ -226,6 +229,8 @@ export default function OutputPanel({ output, loading, error, type, input, summa
           )}
         </div>
       )}
+
+      {showCorrections && <CorrectionsList corrections={corrections} />}
 
       <p className="text-center text-[11px] text-ink-400 pt-1">
         SinAi can make mistakes. Please double-check responses.

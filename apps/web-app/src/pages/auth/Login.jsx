@@ -18,13 +18,14 @@ export default function Login() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error: err } = await signIn(email, password);
-    setBusy(false);
-    if (err) {
+    try {
+      await signIn(email, password);
+      navigate(location.state?.from ?? location.state?.backgroundLocation?.pathname ?? '/dashboard', { replace: true });
+    } catch (err) {
       setError(err.message);
-      return;
+    } finally {
+      setBusy(false);
     }
-    navigate(location.state?.from ?? '/dashboard', { replace: true });
   };
 
   return (
@@ -34,7 +35,11 @@ export default function Login() {
       footer={
         <>
           No account?{' '}
-          <Link to="/signup" className="text-brand-600 font-semibold">
+          <Link
+            to="/signup"
+            state={{ backgroundLocation: location.state?.backgroundLocation }}
+            className="text-brand-600 font-semibold"
+          >
             Create one
           </Link>
         </>
@@ -83,6 +88,7 @@ export default function Login() {
 
         <Link
           to="/forgot-password"
+          state={{ backgroundLocation: location.state?.backgroundLocation }}
           className="block text-center text-[12.5px] text-ink-500 hover:text-brand-600"
         >
           Forgot your password?

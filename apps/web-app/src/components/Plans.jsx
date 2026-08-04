@@ -1,15 +1,20 @@
 import { Check, Sparkles, Zap, Shield } from 'lucide-react';
 import { Card } from './ui/Card';
 
+/**
+ * Roadmap page.
+ *
+ * Prices and working upgrade buttons were removed: there is no billing
+ * integration behind them, so quoting a monthly figure and offering an
+ * "Upgrade" action that does nothing misrepresented the product. The tier
+ * structure is kept because it still communicates where this is going.
+ */
 const PLANS = [
   {
     id: 'free',
     name: 'Free',
-    price: 'Rs. 0',
-    period: '/month',
     description: 'For individuals exploring AI writing tools.',
     icon: Shield,
-    buttonClass: 'bg-white text-ink-800 border border-ink-200 hover:bg-ink-50 hover:border-ink-300',
     features: [
       'Basic grammar checking',
       'Standard tone rewriting',
@@ -21,12 +26,9 @@ const PLANS = [
   {
     id: 'plus',
     name: 'Plus',
-    price: 'Rs. 2,990',
-    period: '/month',
     description: 'For professionals needing advanced capabilities.',
     icon: Zap,
-    badge: 'Most used',
-    buttonClass: 'bg-brand-600 text-white hover:bg-brand-700 shadow-sm shadow-brand-600/25',
+    badge: 'Planned',
     features: [
       'Everything in Free',
       'Advanced grammar & style',
@@ -39,11 +41,8 @@ const PLANS = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 'Rs. 7,490',
-    period: '/month',
     description: 'For newsrooms and power users requiring max performance.',
     icon: Sparkles,
-    buttonClass: 'bg-ink-900 text-white hover:bg-ink-950 shadow-sm',
     features: [
       'Everything in Plus',
       'Custom style tones',
@@ -63,7 +62,10 @@ export default function Plans({ currentPlan = 'free' }) {
           Upgrade your workflow
         </h1>
         <p className="text-[13.5px] text-ink-500 leading-relaxed">
-          Choose the plan that fits how your newsroom writes, edits, and publishes in Sinhala.
+          Where SinAi is heading for newsrooms writing, editing, and publishing in Sinhala.
+        </p>
+        <p className="text-[12.5px] text-ink-400 mt-3">
+          Paid plans are not available yet — every tool is currently free to use.
         </p>
       </div>
 
@@ -96,20 +98,14 @@ export default function Plans({ currentPlan = 'free' }) {
                 <p className="text-[12.5px] text-ink-500 leading-relaxed min-h-10">{plan.description}</p>
               </div>
 
-              <div className="mb-5 flex items-baseline gap-1">
-                <span className="text-[1.9rem] font-bold text-ink-900 tracking-tight tabular-nums">{plan.price}</span>
-                <span className="text-[12.5px] font-medium text-ink-500">{plan.period}</span>
-              </div>
-
               <button
-                className={`w-full py-2.5 px-5 rounded-xl font-semibold text-[13.5px] cursor-pointer
-                  transition-all duration-150 active:scale-[0.98] mb-6
+                className={`w-full py-2.5 px-5 rounded-xl font-semibold text-[13.5px] mb-6 cursor-not-allowed
                   ${isCurrentPlan
-                    ? 'bg-ink-100 text-ink-500 cursor-not-allowed border-0 active:scale-100'
-                    : plan.buttonClass}`}
-                disabled={isCurrentPlan}
+                    ? 'bg-ink-100 text-ink-500'
+                    : 'bg-ink-50 text-ink-400 border border-ink-200'}`}
+                disabled
               >
-                {isCurrentPlan ? 'Current plan' : 'Upgrade'}
+                {isCurrentPlan ? 'Current plan' : 'Coming soon'}
               </button>
 
               <div className="flex-1">

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { getUser, getUserHistory, listCategories, updateUser } from '../adminApi';
 import ConfirmDialog from '../ConfirmDialog';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 const SELECT = `px-3 py-1.5 text-[13px] rounded-md border bg-background text-foreground
   cursor-pointer focus:outline-none focus:ring-2`;
@@ -79,13 +80,31 @@ export default function UserDetail() {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div role="status" aria-label="Loading user">
+        <Skeleton className="h-3.5 w-24 mb-4" />
+        <div className="mb-6 space-y-2">
+          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-3.5 w-56" />
+        </div>
         <div
-          className="w-6 h-6 rounded-full border-2 animate-spin"
-          style={{ borderColor: 'var(--border)', borderTopColor: 'var(--primary)' }}
-          role="status"
-          aria-label="Loading user"
-        />
+          className="rounded-lg border bg-card p-5 mb-6 grid gap-5 sm:grid-cols-3"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-2.5 w-12" />
+              <Skeleton className="h-7 w-full" />
+            </div>
+          ))}
+        </div>
+        <div className="rounded-lg border bg-card p-5" style={{ borderColor: 'var(--border)' }}>
+          <Skeleton className="h-4 w-32 mb-3" />
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="h-11 w-full" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

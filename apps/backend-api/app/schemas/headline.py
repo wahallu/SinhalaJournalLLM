@@ -58,7 +58,14 @@ class HeadlineResponse(BaseModel):
         description="Inference provider that produced this result",
     )
     created_at: datetime | None = Field(default=None)
-
+    input_tokens: int | None = Field(
+        default=None,
+        description="Prompt tokens reported by the provider; null when it reports none",
+    )
+    output_tokens: int | None = Field(
+        default=None,
+        description="Generated tokens reported by the provider; null when it reports none",
+    )
 
 class HeadlineHistoryItem(BaseModel):
     """One stored headline generation."""

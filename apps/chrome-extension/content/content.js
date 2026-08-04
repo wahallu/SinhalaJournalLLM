@@ -529,4 +529,55 @@
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   }
+
+  // ── Auto-Extraction for Supported News Sites ──
+  const SITE_EXTRACTORS = {
+    "adaderana.lk": ".news-content, .story-text",
+    "hirunews.lk": ".article-content, #article-content, .news-text, .news-content",
+    "lankadeepa.lk": ".post-content, .entry-content",
+    "divaina.lk": ".entry-content, .post-content",
+    "dinamina.lk": ".entry-content",
+    "silumina.lk": ".entry-content",
+    "mawbima.lk": ".post-content"
+  };
+
+  function autoProcessArticle() {
+    const hostname = window.location.hostname;
+    let articleSelector = null;
+
+    for (const [domain, selector] of Object.entries(SITE_EXTRACTORS)) {
+      if (hostname.includes(domain)) {
+        articleSelector = selector;
+        break;
+      }
+    }
+
+    if (articleSelector) {
+      // Find the article element on the page
+      const articleElement = document.querySelector(articleSelector);
+      
+      if (articleElement && articleElement.innerText.trim().length > 100) {
+        // Automatically set the text as if the user selected it
+        activeSelectionText = articleElement.innerText.trim();
+        
+        // Show number in extension icon
+        chrome.runtime.sendMessage({ action: "updateBadge", text: "1" }).catch(() => {});
+
+        // Show the SinAI floating badge fixed at the bottom right corner
+        const badgeWidth = 32;
+        const badgeHeight = 32;
+        const left = window.innerWidth - badgeWidth - 30 + window.scrollX;
+        const top = window.innerHeight - badgeHeight - 30 + window.scrollY;
+
+        badge.style.left = `${left}px`;
+        badge.style.top = `${top}px`;
+        badge.style.position = "fixed"; // Keep it fixed on screen
+        badge.classList.remove("hidden");
+      }
+    }
+  }
+
+  window.addEventListener('load', () => {
+    setTimeout(autoProcessArticle, 1000);
+  });
 })();

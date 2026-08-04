@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import ActionButton from '../../components/ui/ActionButton';
 import AuthLayout from './AuthLayout';
@@ -8,6 +8,7 @@ import { ERROR, INPUT, LABEL } from './formStyles';
 export default function Signup() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,13 +19,19 @@ export default function Signup() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error: err } = await signUp(email, password, fullName);
-    setBusy(false);
-    if (err) {
+    try {
+      // Signup returns a session, so the new account is signed in already.
+      // The verification link is informational — nothing is gated on it.
+      await signUp(email, password, fullName);
+      navigate('/verify-email', {
+        replace: true,
+        state: { backgroundLocation: location.state?.backgroundLocation },
+      });
+    } catch (err) {
       setError(err.message);
-      return;
+    } finally {
+      setBusy(false);
     }
-    navigate('/verify-email', { replace: true });
   };
 
   return (
@@ -34,7 +41,11 @@ export default function Signup() {
       footer={
         <>
           Already registered?{' '}
-          <Link to="/login" className="text-brand-600 font-semibold">
+          <Link
+            to="/login"
+            state={{ backgroundLocation: location.state?.backgroundLocation }}
+            className="text-brand-600 font-semibold"
+          >
             Sign in
           </Link>
         </>

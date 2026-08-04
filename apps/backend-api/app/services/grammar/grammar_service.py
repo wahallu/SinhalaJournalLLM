@@ -4,35 +4,33 @@ Grammar checking service.
 Sends text through the model gateway (SinLlama grammar adapter when
 available), derives word-level corrections by diffing the model output
 against the input, and persists the result.
+
+This used to also re-run correction on its own output once (MAX_PASSES=2),
+chasing a compound-error gap the v21 eval showed: a sentence with several
+simultaneous mistakes where one greedy pass fixed some but not all. Removed —
+it meant every changed request cost two full GPU round trips instead of one,
+and the finished text was "correct(correct(article))" rather than
+"correct(article)", which is a different generation from a single pass over
+the original text, not just a slower one. That made this path incomparable
+to a one-pass run over the same article (e.g. the admin Comparison tool) even
+with the same adapter. If the compound-error gap needs addressing again, do
+it as a genuine ensemble (below) or a training-time fix, not a second
+customer-facing pass.
 """
 
 import logging
 from difflib import SequenceMatcher
 
-from app.core.model_gateway import model_generate
+from app.core import runtime_settings
+from app.core.model_gateway import add_tokens, model_generate
 from app.repositories.base import persist_if_owned
 from app.repositories.grammar_repository import save_correction
 from app.schemas.grammar import CorrectionDetail, GrammarCheckResponse
+from app.services.grammar.chunking import chunk_text
 
 logger = logging.getLogger(__name__)
 
 _PUNCTUATION = set(".,;:!?'\"()[]{}«»‘’“”-–—/؟।")
-
-# Self-consistency candidate count for the first correction pass. 1 disables
-# the ensemble (today's single greedy call, zero added cost) — bump once
-# validated on the GPU box against SinAI-Training's test_grammar.py stage2-5
-# sets. >1 forces sampling server-side (grammar's TaskSpec is greedy by
-# default) at ENSEMBLE_TEMPERATURE/ENSEMBLE_TOP_P from
-# SinAI-Training/work/tasks/grammar.py — every extra candidate is a full
-# extra generation.
-ENSEMBLE_SIZE = 1
-
-# Passes over the model's own output. 2 targets the compound-error gap the
-# v21 eval showed: a sentence with several simultaneous mistakes where one
-# greedy pass fixes some but not all. The second call re-runs correction on
-# the first pass's output; skipped entirely when a pass changes nothing, so
-# an already-correct sentence still costs exactly one round trip.
-MAX_PASSES = 2
 
 
 def _tokenize_with_offsets(text: str) -> tuple[list[str], list[int]]:
@@ -166,32 +164,58 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
     Correct Sinhala text, derive per-word corrections, persist for a known
     caller, and return.
 
-    Runs up to MAX_PASSES over the model, feeding each pass's own output
-    back in as the next pass's input, and stops as soon as a pass changes
-    nothing. The first pass optionally samples ENSEMBLE_SIZE candidates and
-    picks the consensus; later passes are always single-shot.
-    """
-    corrected_text = text
-    provider: str | None = None
-    total_latency = 0
+    Long input is split into sentence-sized chunks and corrected one chunk per
+    model call, then reassembled — see chunking.py for the measurements behind
+    that. Text already inside the budget produces exactly one chunk, so short
+    input follows the same single-call path it always did.
 
-    for pass_num in range(MAX_PASSES):
-        num_candidates = ENSEMBLE_SIZE if pass_num == 0 else 1
-        result = await model_generate(
-            "grammar", corrected_text, num_candidates=num_candidates
-        )
-        total_latency += result.latency_ms
-        provider = result.provider
+    Chunks are corrected sequentially rather than concurrently on purpose: the
+    model server holds a global `_generation_lock` around set_adapter() +
+    generate(), so parallel requests would queue there anyway, gaining nothing
+    while making a timeout far likelier on a long article.
+
+    `grammar.ensemble_size` (admin-controlled, default 1) optionally samples
+    that many candidates per call and picks the most representative one.
+    """
+    ensemble_size = await runtime_settings.get("grammar.ensemble_size")
+    max_chars = await runtime_settings.get("grammar.chunk_chars")
+
+    chunks = chunk_text(text, max_chars)
+    if not chunks:
+        chunks = []
+
+    pieces: list[str] = []
+    corrections: list[CorrectionDetail] = []
+    provider: str | None = None
+    adapter: str | None = None
+    total_latency = 0
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+
+    for chunk in chunks:
+        result = await model_generate("grammar", chunk.text, num_candidates=ensemble_size)
 
         candidates = result.meta.get("candidates") or [result.text]
         raw = _pick_consensus(candidates)
-        next_text = _sanitize_correction(raw, fallback=corrected_text)
+        corrected_chunk = _sanitize_correction(raw, fallback=chunk.text)
 
-        if next_text == corrected_text:
-            break
-        corrected_text = next_text
+        # Positions are rebased onto the original article, not the chunk, so
+        # the clients' underlining lands on the right characters.
+        for correction in derive_corrections(chunk.text, corrected_chunk):
+            corrections.append(
+                correction.model_copy(update={"position": correction.position + chunk.start})
+            )
 
-    corrections = derive_corrections(text, corrected_text)
+        pieces.append(chunk.rebuild(corrected_chunk))
+        provider = provider or result.provider
+        adapter = adapter or result.meta.get("adapter")
+        total_latency += result.latency_ms
+        input_tokens = add_tokens(input_tokens, result.meta.get("input_tokens"))
+        output_tokens = add_tokens(output_tokens, result.meta.get("output_tokens"))
+
+    # Whitespace-only input produces no chunks; return it untouched rather
+    # than calling the model with nothing.
+    corrected_text = "".join(pieces) if chunks else text
 
     record = {
         "original_text": text,
@@ -199,15 +223,25 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
         "corrections": [c.model_dump() for c in corrections],
         "correction_count": len(corrections),
         "model_provider": provider,
+        # Admin-diagnostics only — see GrammarCheckResponse._adapter for why
+        # this never reaches the API response, only this persisted row and
+        # (via the endpoint) request_telemetry.
+        "adapter": adapter,
         "latency_ms": total_latency,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
     }
     saved = await persist_if_owned(save_correction, record, user_id)
 
-    return GrammarCheckResponse(
+    response = GrammarCheckResponse(
         id=str(saved["id"]),
         corrected=corrected_text,
         corrections=corrections,
         correction_count=len(corrections),
         created_at=saved.get("created_at"),
         model_used=provider,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
     )
+    response._adapter = adapter
+    return response

@@ -23,14 +23,35 @@ class Settings(BaseSettings):
     # client app (web-app, chrome-extension, etc.).
     SUPABASE_SERVICE_ROLE_KEY: str
 
-    # Shared secret used to verify Supabase-issued JWTs (HS256 projects).
-    # Newer projects sign asymmetrically; those use SUPABASE_JWKS_URL instead.
-    SUPABASE_JWT_SECRET: str = ""
-    SUPABASE_JWKS_URL: str = ""
-    # Anon (publishable) key — safe to expose; used by the user-scoped client.
-    SUPABASE_ANON_KEY: str = ""
     # Salt for hashing client IPs. Raw IPs are never stored.
     IP_HASH_SALT: str = ""
+
+    # ── Authentication (self-hosted; replaced Supabase Auth) ──
+    # Signing key for our own access/refresh tokens. No default: an empty
+    # value makes security._secret() refuse to issue or verify anything
+    # rather than silently signing with a guessable key.
+    #   python -c "import secrets; print(secrets.token_urlsafe(64))"
+    JWT_SECRET: str = ""
+    # Short, because an access token cannot be revoked before it expires.
+    ACCESS_TOKEN_TTL_MINUTES: int = 30
+    REFRESH_TOKEN_TTL_DAYS: int = 30
+    # How long an emailed password-reset or verification link stays valid.
+    EMAIL_TOKEN_TTL_MINUTES: int = 60
+
+    # ── Outbound email (Gmail SMTP) ──
+    # Gmail requires an App Password (16 characters, account must have 2FA
+    # enabled) — a normal account password will not authenticate. Free Gmail
+    # allows roughly 500 messages a day.
+    # Leave SMTP_HOST empty to disable sending: signup still works, but
+    # verification and password-reset links are logged instead of mailed,
+    # which is what local development wants.
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    # Base URL of the web app, used to build links in those emails.
+    APP_BASE_URL: str = "http://localhost:5173"
 
     # Anonymous requests allowed per hour per client IP. Anonymous use means
     # unauthenticated GPU inference, so this is a cost control, not a nicety.

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/useAuth';
 import ActionButton from '../../components/ui/ActionButton';
 import AuthLayout from './AuthLayout';
@@ -7,6 +7,7 @@ import { INPUT, LABEL } from './formStyles';
 
 export default function ForgotPassword() {
   const { resetPassword } = useAuth();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -26,7 +27,11 @@ export default function ForgotPassword() {
       title="Reset your password"
       subtitle={sent ? undefined : 'We will email you a reset link.'}
       footer={
-        <Link to="/login" className="text-brand-600 font-semibold">
+        <Link
+          to="/login"
+          state={{ backgroundLocation: location.state?.backgroundLocation }}
+          className="text-brand-600 font-semibold"
+        >
           Back to sign in
         </Link>
       }

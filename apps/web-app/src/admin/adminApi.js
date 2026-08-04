@@ -6,31 +6,28 @@
  * its own, so a non-admin calling it simply gets 403.
  */
 
-import supabase from '../auth/supabaseClient';
-import { DEFAULT_API_BASE } from '../services/api';
-
-function getApiBase() {
-  try {
-    const settings = JSON.parse(localStorage.getItem('sinai_settings') || '{}');
-    const url = (settings.apiBaseUrl || '').trim();
-    return url ? url.replace(/\/+$/, '') : DEFAULT_API_BASE;
-  } catch {
-    return DEFAULT_API_BASE;
-  }
-}
+import { getAccessToken, getApiBase, refreshAccessToken } from '../auth/authClient';
 
 async function request(endpoint, { method = 'GET', body = null } = {}) {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
+  const send = (token) =>
+    fetch(`${getApiBase()}${endpoint}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      ...(body !== null ? { body: JSON.stringify(body) } : {}),
+    });
 
-  const response = await fetch(`${getApiBase()}${endpoint}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    ...(body !== null ? { body: JSON.stringify(body) } : {}),
-  });
+  const token = getAccessToken();
+  let response = await send(token);
+
+  // Same single transparent refresh as services/api.js — an admin sitting on
+  // a dashboard for longer than the access-token lifetime is normal.
+  if (response.status === 401 && token) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) response = await send(refreshed);
+  }
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -106,6 +103,13 @@ export function getTelemetry({ page = 1, pageSize = 50, tool = '' } = {}) {
   const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
   if (tool) params.set('tool', tool);
   return request(`/admin/activity/telemetry?${params}`);
+}
+
+// Every user's tool runs with content previews and token usage. Sourced from
+// the four history tables, not telemetry — telemetry has the token columns
+// but none of the text.
+export function getChats({ limit = 100 } = {}) {
+  return request(`/admin/activity/chats?limit=${limit}`);
 }
 
 // ── Adapters ──

@@ -32,11 +32,6 @@ def _client() -> AsyncClient:
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
 
 
-@pytest.fixture(autouse=True)
-def _secret(monkeypatch):
-    """Point the verifier at the same test secret test_user_scoping's tokens are signed with."""
-    from app.core import auth as auth_module
-    monkeypatch.setattr(auth_module, "_jwt_secret", lambda: TEST_SECRET)
 
 
 @pytest.fixture

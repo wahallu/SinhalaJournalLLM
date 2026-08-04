@@ -3,45 +3,44 @@
  * Base URL defaults to the local FastAPI server on port 8000.
  */
 
-import supabase from '../auth/supabaseClient';
+import {
+  DEFAULT_API_BASE, getAccessToken, getApiBase, refreshAccessToken,
+} from '../auth/authClient';
 
-export const DEFAULT_API_BASE = 'https://sinhalajournalllm.onrender.com/api/v1';
+export { DEFAULT_API_BASE };
 
-/**
- * Bearer header for the current session, or nothing when signed out.
- *
- * getSession() refreshes an expired access token before returning it, so a
- * stale token is never sent. Signed-out callers get {} — the four writing
- * tools accept anonymous requests.
- */
-async function authHeaders() {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
+function authHeaders(token) {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-// A custom base URL can be set on the Settings page; falls back to the default.
-function getApiBase() {
-  try {
-    const settings = JSON.parse(localStorage.getItem('sinai_settings') || '{}');
-    const url = (settings.apiBaseUrl || '').trim();
-    return url ? url.replace(/\/+$/, '') : DEFAULT_API_BASE;
-  } catch {
-    return DEFAULT_API_BASE;
-  }
-}
-
+/**
+ * One API call, retried once behind a token refresh.
+ *
+ * The access token is deliberately short-lived, so meeting an expired one
+ * mid-session is routine rather than exceptional — a single transparent
+ * refresh keeps that invisible to callers. Signed-out callers send no
+ * Authorization header at all: the four writing tools accept anonymous
+ * requests, so a 401 here is a real failure, not a missing session.
+ */
 async function request(endpoint, body = null, method = 'POST') {
-  const options = {
-    method,
-    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+  const send = (token) => {
+    const options = {
+      method,
+      headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+    };
+    if (body !== null && method !== 'GET') {
+      options.body = JSON.stringify(body);
+    }
+    return fetch(`${getApiBase()}${endpoint}`, options);
   };
 
-  if (body !== null && method !== 'GET') {
-    options.body = JSON.stringify(body);
-  }
+  const token = getAccessToken();
+  let res = await send(token);
 
-  const res = await fetch(`${getApiBase()}${endpoint}`, options);
+  if (res.status === 401 && token) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) res = await send(refreshed);
+  }
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -49,6 +48,72 @@ async function request(endpoint, body = null, method = 'POST') {
   }
 
   return res.json();
+}
+
+/**
+ * One API call whose body is a stream of NDJSON objects.
+ *
+ * Same auth and refresh behaviour as `request`, but the response is consumed
+ * line by line and handed to `onEvent` as each one arrives, rather than
+ * buffered and parsed at the end. Resolves once the stream closes.
+ *
+ * Written against fetch + a ReadableStream reader rather than EventSource:
+ * EventSource is GET-only and cannot carry the article in a request body.
+ */
+async function streamRequest(endpoint, body, onEvent, { signal } = {}) {
+  const send = (token) =>
+    fetch(`${getApiBase()}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+      body: JSON.stringify(body),
+      signal,
+    });
+
+  const token = getAccessToken();
+  let res = await send(token);
+
+  if (res.status === 401 && token) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) res = await send(refreshed);
+  }
+
+  // Errors are still ordinary JSON — the server does every check that can
+  // produce a status code before it starts writing the stream.
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Request failed (${res.status})`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  // A chunk boundary can land mid-line and even mid-UTF-8-sequence, which
+  // matters more here than usual: Sinhala is three bytes per character, so a
+  // naive decode would corrupt text rather than merely split it. `stream:
+  // true` holds partial sequences back, and the tail of `buffer` holds the
+  // partial line.
+  const drain = (flush = false) => {
+    const lines = buffer.split('\n');
+    buffer = flush ? '' : lines.pop();
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed) onEvent(JSON.parse(trimmed));
+    }
+  };
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      drain();
+    }
+    buffer += decoder.decode();
+    drain(true);
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 // ── Grammar ──
@@ -91,25 +156,19 @@ export async function generateHeadlines(text, options = {}) {
 
   const band = raw.length || HEADLINE_LENGTH_BANDS[length] || HEADLINE_LENGTH_BANDS.medium;
 
-  // Transform flat { headlines: string[] } → rich output shape for HeadlineOutputPanel
+  // Only two derived values, both computed from text the backend actually
+  // returned: the word count and whether it landed in the requested band.
+  // Everything else this function used to synthesize — validation flags,
+  // ROUGE/BLEU/semantic scores, entities, themes, a pipeline log — was
+  // invented client-side and rendered as if the model had produced it.
   const headlines = raw.headlines || [];
   const candidates = headlines.map((headline, i) => {
     const words = headline.trim().split(/\s+/).length;
     return {
       headline,
       rank: i + 1,
-      passed_validation: true,
-      metrics: {
-        rouge_1: 0,
-        rouge_2: 0,
-        rouge_l: 0,
-        bleu: 0,
-        semantic_similarity: 0,
-        entity_coverage: 0,
-        grammar_pass: true,
-        word_count: words,
-        length_ok: words >= band.min_words && words <= band.max_words,
-      },
+      word_count: words,
+      length_ok: words >= band.min_words && words <= band.max_words,
     };
   });
 
@@ -117,10 +176,6 @@ export async function generateHeadlines(text, options = {}) {
     ...raw,
     best_headline: headlines[0] || null,
     candidates,
-    source_entities: [],
-    semantic_extraction: {},
-    pipeline_log: [],
-    regeneration_count: 0,
   };
 }
 
@@ -148,6 +203,45 @@ export function summarizeNews(text, length = 'medium') {
 
 export function getSummarizeHistory(page = 1, pageSize = 20) {
   return request(`/summarize/history?page=${page}&page_size=${pageSize}`, null, 'GET');
+}
+
+// ── Optimize Article ──
+/**
+ * Run the full pipeline over one article, streaming each stage as it lands.
+ *
+ * `onEvent` receives every NDJSON line: the opening `pipeline` plan, a
+ * running/done/skipped/failed event per stage, and the closing `pipeline`
+ * event whose `data` is the assembled result.
+ *
+ * Grammar and headlines always run server-side; `restyle` and `summarize`
+ * are the two opt-in stages.
+ */
+export function optimizeArticle(text, options = {}, onEvent, { signal } = {}) {
+  const {
+    restyle = false,
+    tone = 'formal',
+    summarize = false,
+    length = 'medium',
+    headlineCount = 3,
+    headlineCategory = 'General',
+    headlineLength = 'medium',
+  } = options;
+
+  return streamRequest(
+    '/optimize',
+    {
+      text,
+      restyle,
+      tone,
+      summarize,
+      length,
+      headline_count: headlineCount,
+      headline_category: headlineCategory,
+      headline_length: headlineLength,
+    },
+    onEvent,
+    { signal }
+  );
 }
 
 // ── SinLLaMA Playground ──
@@ -184,6 +278,13 @@ export function runComparison(inputOrPayload, adapters, task = 'grammar', style 
 // Active categories only — what a user may pick from on their profile.
 export function getCategories() {
   return request('/categories', null, 'GET');
+}
+
+// Set the signed-in user's own category. This used to be written straight
+// to Supabase from the browser under RLS; with auth self-hosted the browser
+// has no database access and the backend scopes the update instead.
+export function setMyCategory(categoryId) {
+  return request('/categories/me', { category_id: categoryId || null }, 'PUT');
 }
 
 // ── Unified history ──

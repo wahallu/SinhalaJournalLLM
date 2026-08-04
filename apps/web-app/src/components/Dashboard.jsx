@@ -1,22 +1,87 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  ArrowRight, ArrowUpRight, Activity, Bot, Clock, Cpu, RefreshCw,
-  Scale, Sparkles, Zap, History as HistoryIcon,
+  ArrowRight, ArrowUpRight, Activity, Clock,
+  History as HistoryIcon,
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import StatusBadge from './ui/StatusBadge';
 import ActionButton from './ui/ActionButton';
+import { ShinyButton } from './ui/shiny-button';
+import Auralis from './ui/auralis';
 import EmptyState from './ui/EmptyState';
-import { TOOL_LIST, TOOL_META } from '../lib/toolMeta';
-import { getSinLlamaHealth, getComparisonAdapters } from '../services/api';
-import { getUnifiedHistory } from '../services/api';
+import { OPTIMIZE_META, TOOL_LIST, TOOL_META } from '../lib/toolMeta';
+import { useAuth } from '../auth/useAuth';
+import { getCategories, getUnifiedHistory } from '../services/api';
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 5)  return 'Working late';
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
+/**
+ * Greeting for the current hour in Sri Lanka, not in the reader's browser.
+ *
+ * The newsroom this serves works to Colombo time, so someone checking in
+ * from another timezone should still see the greeting their desk would.
+ * Asia/Colombo is UTC+5:30 year-round with no daylight saving, but the
+ * offset is left to Intl rather than hardcoded.
+ */
+function greeting(now = new Date()) {
+  let hour;
+  try {
+    hour = Number(
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Colombo',
+        hour: 'numeric',
+        hour12: false,
+      }).format(now)
+    );
+  } catch {
+    // Intl without full tz data (very old engines) — fall back to local.
+    hour = now.getHours();
+  }
+  if (hour < 5) return 'Working late';
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
   return 'Good evening';
+}
+
+/** How long each category sits before the next slides up. */
+const ROTATE_MS = 3200;
+
+/* Module-level, not inline: Auralis keys its WebGL setup on these, and a new
+   array literal on every render would rebuild the shader program each time.
+   The values are the brand ramp — brand-800 as the field, brand-600 and
+   brand-400 as the two moving layers — so the hero animates within the same
+   red the sidebar is painted in rather than introducing a second palette. */
+const HERO_SHADER_COLORS = ['#cd191a', '#e97371'];
+const HERO_SHADER_BASE = '#8d1213';
+
+/**
+ * The name after the greeting.
+ *
+ * Signed in, it is the person. Signed out there is no name to show, so the
+ * admin-defined categories take the slot one at a time — "Good morning,
+ * Journalist" then "Student" and so on — which doubles as a hint about who
+ * the product is for. Falls back to a single neutral word if the category
+ * list cannot be read, so the sentence is never left dangling.
+ */
+function RotatingName({ names }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (names.length < 2) return undefined;
+    const id = setInterval(() => setIndex((i) => (i + 1) % names.length), ROTATE_MS);
+    return () => clearInterval(id);
+  }, [names.length]);
+
+  const current = names[index % names.length] ?? '';
+
+  return (
+    // Fixed height and clipped, so each word slides up out of a window
+    // rather than nudging the heading's baseline as it changes.
+    <span className="inline-block overflow-hidden align-bottom h-[1.15em]">
+      <span key={current} className="inline-block animate-swipe-up">
+        {current}
+      </span>
+    </span>
+  );
 }
 
 function timeAgo(iso) {
@@ -39,24 +104,35 @@ function StatCard({ label, value, hint, small = false }) {
   );
 }
 
-function StatusRow({ label, badge, detail }) {
-  return (
-    <div className="flex items-center justify-between gap-3 py-2.5 border-b border-ink-100 last:border-0 last:pb-0 first:pt-0">
-      <div className="min-w-0">
-        <p className="text-[12.5px] font-semibold text-ink-700">{label}</p>
-        {detail && <p className="text-[11px] text-ink-500 mt-0.5 truncate">{detail}</p>}
-      </div>
-      {badge}
-    </div>
-  );
-}
-
 export default function Dashboard({ onSelectTool, onQuickStart }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, profile } = useAuth();
   const [history, setHistory] = useState([]);
-  const [llamaStatus, setLlamaStatus] = useState('checking');   // online | offline | checking
-  const [gatewayStatus, setGatewayStatus] = useState('checking');
-  const [adapterInfo, setAdapterInfo] = useState({ mode: null, count: null });
-  const [refreshing, setRefreshing] = useState(false);
+  const [categoryNames, setCategoryNames] = useState([]);
+
+  // Only needed signed out, where they stand in for a name. The endpoint is
+  // public for exactly this; a failure just leaves the fallback word.
+  useEffect(() => {
+    if (user) return undefined;
+    let active = true;
+    getCategories()
+      .then((rows) => {
+        if (active) setCategoryNames((rows ?? []).map((c) => c.name).filter(Boolean));
+      })
+      .catch(() => {
+        if (active) setCategoryNames([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  // Prefer a real name, then the local part of the email, and only then a
+  // generic word — "Good morning, nisal" beats "Good morning, Journalist"
+  // for someone who has told us who they are.
+  const signedInName =
+    profile?.full_name?.trim() || user?.email?.split('@')[0] || 'Journalist';
 
   // Activity stats come from the server now. Signed-out visitors get a 401
   // here — the dashboard stays usable and simply shows an empty feed, since
@@ -84,43 +160,6 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
     };
   }, []);
 
-  const runChecks = () => Promise.allSettled([getSinLlamaHealth(), getComparisonAdapters()]);
-
-  const applyResults = ([health, adapters]) => {
-    if (health.status === 'fulfilled') {
-      setLlamaStatus(health.value?.available ? 'online' : 'offline');
-    } else {
-      setLlamaStatus('offline');
-    }
-
-    if (adapters.status === 'fulfilled') {
-      setGatewayStatus('online');
-      const groups = adapters.value?.adapters || {};
-      const count = Object.values(groups).reduce((n, list) => n + (list?.length || 0), 0);
-      setAdapterInfo({ mode: adapters.value?.mode || 'gpu', count });
-    } else if (health.status === 'fulfilled') {
-      setGatewayStatus('online');
-      setAdapterInfo({ mode: null, count: null });
-    } else {
-      setGatewayStatus('offline');
-      setAdapterInfo({ mode: null, count: null });
-    }
-    setRefreshing(false);
-  };
-
-  const checkStatus = async () => {
-    setRefreshing(true);
-    setLlamaStatus('checking');
-    setGatewayStatus('checking');
-    applyResults(await runChecks());
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    runChecks().then((results) => { if (!cancelled) applyResults(results); });
-    return () => { cancelled = true; };
-  }, []);
-
   const stats = useMemo(() => {
     const now = new Date();
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
@@ -144,66 +183,92 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
   return (
     <div className="space-y-5">
       {/* ── Hero ── */}
-      <section className="relative overflow-hidden rounded-2xl bg-ink-950 text-white px-6 py-8 sm:px-8 sm:py-9 shadow-pop">
-        {/* Red ambient glow + Sinhala glyph watermark */}
+      {/* surface-shell stays as the painted base. It is what the sidebar uses,
+          so the two still match if the shader never draws — no WebGL, a lost
+          context, a shader that fails to compile — and it is what shows for
+          the frame before the canvas paints. */}
+      <section className="surface-shell relative overflow-hidden rounded-2xl text-white px-6 py-8 sm:px-8 sm:py-9 shadow-pop">
+        <Auralis
+          className="absolute inset-0 z-0"
+          colors={HERO_SHADER_COLORS}
+          base={HERO_SHADER_BASE}
+          speed={0.25}
+          grain={0.32}
+        />
+
+        {/* Legibility scrim. The shader's light band drifts, so sooner or
+            later a bright pass runs under the heading; without this the white
+            text loses contrast for a few seconds every cycle. Weighted to the
+            left, where the copy is, so the open right side keeps the effect. */}
         <div
-          className="pointer-events-none absolute inset-0"
-          style={{ background: 'radial-gradient(42rem 18rem at 85% -20%, rgba(205,25,26,0.35), transparent 60%)' }}
+          className="pointer-events-none absolute inset-0 z-[1]"
+          style={{ background: 'linear-gradient(90deg, rgba(74,12,14,0.62) 0%, rgba(74,12,14,0.28) 42%, transparent 72%)' }}
           aria-hidden="true"
         />
+
+        {/* Legacy-encoded glyph — "is" is ASCII that only reads as Sinhala
+            in UBIN16S, so the face has to be applied explicitly. */}
         <span
-          className="pointer-events-none absolute -right-4 -bottom-14 text-[13rem] leading-none font-bold text-white/[0.045] select-none"
-          style={{ fontFamily: "'Noto Sans Sinhala', sans-serif" }}
+          className="font-legacy-sinhala pointer-events-none absolute -right-13 -bottom-44 z-[2]
+            text-[29rem] leading-none font-regular text-white/[0.045] select-none"
           aria-hidden="true"
         >
-          සි
+          is
         </span>
 
         <div className="relative z-10 max-w-2xl">
-          <StatusBadge
-            status="brand"
-            label="SinLLaMA · fine-tuned for Sinhala journalism"
-            className="!bg-white/10 !text-white/85 !border-white/15 mb-4"
-          />
           <h1 className="text-[1.75rem] sm:text-[2rem] font-bold tracking-tight leading-tight text-balance">
-            {greeting()}, Journalist
+            {greeting()},{' '}
+            {user ? signedInName : <RotatingName names={categoryNames.length ? categoryNames : ['Journalist']} />}
           </h1>
-          <p className="text-[13.5px] text-white/60 mt-2 max-w-lg leading-relaxed">
-            Draft, refine, and publish Sinhala news faster — grammar, headlines,
-            style, and summaries backed by a research-grade language model.
+          <p className="text-[13.5px] text-white/70 mt-2 max-w-lg leading-relaxed">
+            The first AI writing assistant built for Sinhala journalism
           </p>
-          <div className="flex flex-wrap items-center gap-2.5 mt-6">
-            <ActionButton variant="primary" size="lg" icon={Sparkles} onClick={() => onSelectTool('grammar')}>
-              Start a grammar check
-            </ActionButton>
-            <ActionButton
+          <div className="flex items-center mt-6">
+            {/* Replaces "Start a grammar check": grammar is the first step of
+                this run, so the shorter path is the better default. */}
+            <ShinyButton
+              id="dashboard-optimize"
               size="lg"
-              icon={Bot}
-              onClick={() => onSelectTool('sinllama')}
-              className="!bg-white/10 !text-white !border-white/15 hover:!bg-white/15 hover:!border-white/25 !shadow-none"
+              icon={OPTIMIZE_META.icon}
+              onClick={() => onSelectTool('optimize')}
             >
-              Open playground
-            </ActionButton>
+              {OPTIMIZE_META.label}
+            </ShinyButton>
           </div>
         </div>
       </section>
 
-      {/* ── Metrics ── */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5" aria-label="Usage metrics">
-        <StatCard label="Total runs" value={stats.total} hint="Across all tools" />
-        <StatCard label="Today" value={stats.today} hint="Runs since midnight" />
-        <StatCard label="This week" value={stats.week} hint="Last 7 days" />
-        <StatCard
-          label="Most used"
-          small={stats.topTool !== '—'}
-          value={stats.topTool}
-          hint={stats.topTool === '—' ? 'No runs yet' : 'Your go-to tool'}
-        />
-      </section>
+      {/* ── Metrics ──
+           Signed out, /history 401s and every tile can only ever read 0, so
+           show an introduction instead of four zeroes. */}
+      {user ? (
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5" aria-label="Usage metrics">
+          <StatCard label="Total runs" value={stats.total} hint="Across all tools" />
+          <StatCard label="Today" value={stats.today} hint="Runs since midnight" />
+          <StatCard label="This week" value={stats.week} hint="Last 7 days" />
+          <StatCard
+            label="Most used"
+            small={stats.topTool !== '—'}
+            value={stats.topTool}
+            hint={stats.topTool === '—' ? 'No runs yet' : 'Your go-to tool'}
+          />
+        </section>
+      ) : (
+        <Card className="px-5 py-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <p className="text-[13px] text-ink-700 font-medium">
+            All four writing tools are free to use without an account.
+          </p>
+          <button
+            onClick={() => navigate('/login', { state: { backgroundLocation: location } })}
+            className="text-[13px] font-semibold text-brand-700 hover:underline cursor-pointer"
+          >
+            Sign in to save your work →
+          </button>
+        </Card>
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-        {/* ── Left: tools + activity ── */}
-        <div className="lg:col-span-2 space-y-5 min-w-0">
+      <div className="space-y-5">
           <section aria-label="Writing tools">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-[15px] font-bold text-ink-900 tracking-tight">Writing tools</h2>
@@ -302,115 +367,6 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
               )}
             </Card>
           </section>
-        </div>
-
-        {/* ── Right: status + quick start ── */}
-        <div className="space-y-5 min-w-0">
-          <Card className="overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-ink-100">
-              <div className="flex items-center gap-2">
-                <Cpu size={14} className="text-brand-600" />
-                <h2 className="text-[13px] font-bold text-ink-900">System status</h2>
-              </div>
-              <button
-                onClick={checkStatus}
-                disabled={refreshing}
-                className="flex items-center justify-center w-7 h-7 rounded-lg text-ink-400 hover:text-ink-700 hover:bg-ink-100
-                  cursor-pointer transition-colors disabled:opacity-50"
-                title="Refresh status"
-                aria-label="Refresh system status"
-              >
-                <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
-              </button>
-            </div>
-            <div className="px-5 py-2">
-              <StatusRow
-                label="API gateway"
-                detail="Task endpoints for all writing tools"
-                badge={
-                  gatewayStatus === 'checking'
-                    ? <StatusBadge status="checking" label="Checking" pulse />
-                    : <StatusBadge status={gatewayStatus} label={gatewayStatus === 'online' ? 'Operational' : 'Unreachable'} />
-                }
-              />
-              <StatusRow
-                label="SinLLaMA inference"
-                detail="Base model server, no adapter"
-                badge={
-                  llamaStatus === 'checking'
-                    ? <StatusBadge status="checking" label="Checking" pulse />
-                    : <StatusBadge status={llamaStatus} label={llamaStatus === 'online' ? 'Online' : 'Offline'} />
-                }
-              />
-              <StatusRow
-                label="Adapter registry"
-                detail={
-                  adapterInfo.count != null
-                    ? `${adapterInfo.count} LoRA adapter${adapterInfo.count !== 1 ? 's' : ''} available`
-                    : 'Fine-tuned task adapters'
-                }
-                badge={
-                  gatewayStatus === 'checking'
-                    ? <StatusBadge status="checking" label="Checking" pulse />
-                    : adapterInfo.mode
-                      ? <StatusBadge
-                          status={adapterInfo.mode === 'gpu' ? 'online' : 'warning'}
-                          label={adapterInfo.mode === 'gpu' ? 'GPU backend' : 'Mock mode'}
-                        />
-                      : <StatusBadge status="neutral" label="Unknown" />
-                }
-              />
-            </div>
-          </Card>
-
-          <Card className="overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-ink-100">
-              <Zap size={14} className="text-brand-600" />
-              <h2 className="text-[13px] font-bold text-ink-900">Quick actions</h2>
-            </div>
-            <div className="p-2">
-              {[
-                { label: 'Compare model adapters', icon: Scale, action: () => onSelectTool('comparison') },
-                { label: 'Chat with the base model', icon: Bot, action: () => onSelectTool('sinllama') },
-                { label: 'Review your history', icon: HistoryIcon, action: () => onSelectTool('history') },
-              ].map(({ label, icon: Icon, action }) => (
-                <button
-                  key={label}
-                  onClick={action}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left cursor-pointer
-                    text-[13px] font-medium text-ink-700 hover:bg-ink-50 hover:text-ink-900
-                    transition-colors duration-150 group"
-                >
-                  <Icon size={15} className="text-ink-400 group-hover:text-brand-600 transition-colors" />
-                  <span className="flex-1">{label}</span>
-                  <ArrowRight size={13} className="text-ink-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
-              ))}
-            </div>
-          </Card>
-
-          <Card className="overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-ink-100">
-              <Sparkles size={14} className="text-brand-600" />
-              <h2 className="text-[13px] font-bold text-ink-900">Try a sample</h2>
-            </div>
-            <div className="p-3 space-y-1">
-              {TOOL_LIST.map(({ id, sampleLabel, sample }) => (
-                <button
-                  key={id}
-                  onClick={() => onQuickStart(id, sample)}
-                  className="w-full text-left px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-150
-                    hover:bg-brand-50 group"
-                >
-                  <p className="text-[12.5px] font-semibold text-ink-700 group-hover:text-brand-800">{sampleLabel}</p>
-                  <p className="text-[11px] text-ink-500 mt-0.5">
-                    {TOOL_META[id].label} · sample loaded for you
-                  </p>
-                </button>
-              ))}
-            </div>
-          </Card>
-        </div>
       </div>
     </div>
   );
