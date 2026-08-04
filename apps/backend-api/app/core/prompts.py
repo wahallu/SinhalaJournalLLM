@@ -9,6 +9,8 @@ either raw text (it wraps it itself) or a fully-formed prompt containing
 when we need knobs the server doesn't expose — e.g. summary length.
 """
 
+from app.core.text_cleaning import strip_article_media_tags
+
 # ── Style rewriter ──
 # The five styles the style adapter (style_sinllama_v07) was trained on.
 # Keys are the API contract; every client (web app, extension, docs add-on)
@@ -154,6 +156,13 @@ def prompt_headline(
     diverge from the trained "4 and 7" for the short and long bands, which is
     the whole point of the knob and also why the model only partly obeys it
     today.
+
+    `text` is passed through strip_article_media_tags() first: scraped
+    articles often carry inline scraper markers ("(Video)", "[Photo]") right
+    next to the content that becomes the headline, and the model will copy
+    one into the generated headline if it's sitting in context — no amount of
+    training-label cleanliness fixes that, since the tag is in the *input*,
+    not the label. See app/core/text_cleaning.py.
     """
     band = HEADLINE_LENGTHS[resolve_headline_length(length)]
     hint = f"\n- {variation_hint}" if variation_hint else ""
@@ -168,7 +177,7 @@ def prompt_headline(
         f"- Output ONLY the headline, nothing else{hint}\n\n"
         "### Input:\n"
         f"Category: {category}\n"
-        f"Article: {text}\n\n"
+        f"Article: {strip_article_media_tags(text)}\n\n"
         "### Response:\n"
     )
 

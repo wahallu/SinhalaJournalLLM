@@ -6,14 +6,22 @@ candidates come from N prompt variations — each variation appends one extra
 constraint line while staying inside the training format.
 
 Length control is a two-layer affair. The requested band (short 3-5, medium
-6-7, long 8-10 words) goes into the prompt, but no headline adapter is
+6-7, long 8-10 words) goes into the prompt, but no headline adapter is fully
 length-conditioned yet — v17 saw the same fixed "4 to 7 words" line on all
-48K training examples — so the prompt alone lands in-band only some of the
-time. This module is the layer that closes the gap: out-of-band candidates
-are regenerated with an explicit corrective hint, and anything still over the
-ceiling is trimmed to it. Under-length candidates can't be repaired that way,
-so after the retries they're returned as-is rather than dropped — a slightly
-short real headline beats an empty result.
+48K training examples, and even v19 (length-conditioned + artifact-cleaned,
+see SinAI-Training/CLAUDE.md) lands in-band ~80% of the time, not 100% — so
+the prompt alone isn't a contract. This module is the layer that closes the
+gap: out-of-band candidates are regenerated with an explicit corrective hint,
+and anything still over the ceiling is trimmed to it. Under-length candidates
+can't be repaired that way, so after the retries they're returned as-is
+rather than dropped — a slightly short real headline beats an empty result.
+
+Every candidate also passes through strip_headline_artifacts() before any of
+that length logic runs. Scraper tags ("(වීඩියෝ)", "[Video]") still show up
+occasionally even from the cleaned adapter and even with the article-side
+cleanup in prompts.py's prompt_headline() — training-data cleanliness and
+input cleanliness both reduce the rate, neither is a hard guarantee, so this
+is the actual guarantee: no tag reaches a caller, full stop.
 """
 
 import asyncio
@@ -25,6 +33,7 @@ from app.core.prompts import (
     HEADLINE_VARIATION_HINTS,
     resolve_headline_length,
 )
+from app.core.text_cleaning import strip_headline_artifacts
 from app.repositories.base import persist_if_owned
 from app.repositories.headline_repository import save_generation
 from app.schemas.headline import HeadlineLengthInfo, HeadlineResponse
@@ -134,7 +143,7 @@ async def generate_headlines(
             logger.warning("Headline candidate failed: %s", outcome)
             candidates.append(None)
             continue
-        candidates.append(outcome.text)
+        candidates.append(strip_headline_artifacts(outcome.text))
         provider = provider or outcome.provider
         total_latency += outcome.latency_ms
 
@@ -166,12 +175,13 @@ async def generate_headlines(
                 logger.warning("Headline length retry failed: %s", outcome)
                 continue
             total_latency += outcome.latency_ms
+            retried_text = strip_headline_artifacts(outcome.text)
             # Sampling can hand back something worse than what it replaces,
             # so a retry only wins when it's actually closer to the band.
-            if _band_distance(outcome.text, band) < _band_distance(
+            if _band_distance(retried_text, band) < _band_distance(
                 candidates[slot], band
             ):
-                candidates[slot] = outcome.text
+                candidates[slot] = retried_text
 
     headlines = _dedupe([_trim_to_band(c, band) for c in candidates if c])[:count]
     if not headlines:
