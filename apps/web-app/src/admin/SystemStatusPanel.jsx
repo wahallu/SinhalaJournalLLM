@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { getSinLlamaHealth, getComparisonAdapters } from '../services/api';
+import { ShimmerDot } from '../components/ui/Skeleton';
 
 /**
  * Inference-stack health, on the admin console.
@@ -88,7 +89,7 @@ export default function SystemStatusPanel() {
           className="flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground
             hover:text-foreground hover:bg-muted cursor-pointer transition-colors disabled:opacity-50"
         >
-          <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
+          {refreshing ? <ShimmerDot size={13} /> : <RefreshCw size={13} />}
         </button>
       </div>
 

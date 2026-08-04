@@ -13,6 +13,7 @@ import {
   FileText, Play, RotateCcw, Copy, Check, Sparkles, Zap, Trophy,
   Sliders, Activity, CheckCircle2, ShieldCheck, ChevronRight, Layers, Eye
 } from 'lucide-react';
+import { ShimmerDot } from '../../components/ui/Skeleton';
 import { getComparisonAdapters, runComparison } from '../../services/api';
 
 const SAMPLE_ARTICLES = [
@@ -232,7 +233,7 @@ export default function SummarizerPlayground() {
           >
             {loading ? (
               <>
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <ShimmerDot size={16} className="border border-white/30" />
                 <span>Benchmarking ({selectedAdapters.length} models)...</span>
               </>
             ) : (

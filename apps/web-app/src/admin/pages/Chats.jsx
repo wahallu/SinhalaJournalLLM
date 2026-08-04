@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { getChats } from '../adminApi';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 /**
  * Every user's tool runs in one feed, with token usage.
@@ -221,9 +222,20 @@ export default function Chats() {
             </thead>
             <tbody className="bg-card">
               {loading ? (
-                <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground">Loading…</td>
-                </tr>
+                Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i} className="border-t" style={{ borderColor: 'var(--border)' }}>
+                    <td className="px-3 py-2.5" />
+                    <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-24" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-32" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-16" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-full max-w-56" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-16" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-16" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-10 ml-auto" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-10 ml-auto" /></td>
+                    <td className="px-3 py-2.5"><Skeleton className="h-3.5 w-12 ml-auto" /></td>
+                  </tr>
+                ))
               ) : visible.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground">

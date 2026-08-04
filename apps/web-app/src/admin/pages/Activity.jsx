@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAuditLog, getTelemetry } from '../adminApi';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 const TABS = [
   { id: 'audit', label: 'Audit log' },
@@ -147,7 +148,15 @@ export default function Activity() {
             </thead>
             <tbody className="bg-card">
               {loading ? (
-                <Empty>Loading…</Empty>
+                Array.from({ length: 7 }).map((_, i) => (
+                  <tr key={i} className="border-t" style={{ borderColor: 'var(--border)' }}>
+                    <td className="px-4 py-2.5"><Skeleton className="h-3.5 w-28" /></td>
+                    <td className="px-4 py-2.5"><Skeleton className="h-3.5 w-32" /></td>
+                    <td className="px-4 py-2.5"><Skeleton className="h-3.5 w-20" /></td>
+                    <td className="px-4 py-2.5"><Skeleton className="h-3.5 w-24" /></td>
+                    <td className="px-4 py-2.5"><Skeleton className="h-3.5 w-32" /></td>
+                  </tr>
+                ))
               ) : rows.length === 0 ? (
                 <Empty>
                   {tab === 'audit'

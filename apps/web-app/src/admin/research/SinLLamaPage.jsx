@@ -9,7 +9,8 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Trash2, Bot, User, Loader2, Cpu, WifiOff } from 'lucide-react';
+import { Send, Trash2, Bot, User, Cpu, WifiOff } from 'lucide-react';
+import { ShimmerDot } from '../../components/ui/Skeleton';
 import { chatSinLlama, getSinLlamaHealth } from '../../services/api';
 import PageHeader from '../../components/ui/PageHeader';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -268,7 +269,7 @@ export default function SinLLamaPage() {
                 hover:bg-brand-700 active:scale-95
                 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
             >
-              {loading ? <Loader2 size={17} className="animate-spin" /> : <Send size={17} />}
+              {loading ? <ShimmerDot size={17} /> : <Send size={17} />}
             </button>
           </div>
           <p className="text-[10.5px] text-ink-400 mt-2 pl-1">

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { getAdapters, getSettings, updateSetting } from '../../adminApi';
 import ConfirmDialog from '../../ConfirmDialog';
+import { Skeleton } from '../../../components/ui/Skeleton';
 
 const CONTROL = `px-3 py-1.5 text-[13px] rounded-md border bg-background text-foreground
   cursor-pointer focus:outline-none focus:ring-2`;
@@ -136,7 +137,26 @@ export default function SettingsPanel({ title, description, groups }) {
       </header>
 
       {owned.length === 0 && !error ? (
-        <p className="text-[13px] text-muted-foreground">Loading…</p>
+        <div className="space-y-5" role="status" aria-label="Loading settings">
+          {[0, 1].map((section) => (
+            <div key={section} className="rounded-lg border bg-card" style={{ borderColor: 'var(--border)' }}>
+              <div className="px-5 pt-4 pb-2">
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <div className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                {[0, 1, 2].map((row) => (
+                  <div key={row} className="px-5 py-3.5 flex items-start justify-between gap-6">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Skeleton className="h-3.5 w-40" />
+                      <Skeleton className="h-3 w-64" />
+                    </div>
+                    <Skeleton className="h-7 w-28 shrink-0" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="space-y-5">
           {groups

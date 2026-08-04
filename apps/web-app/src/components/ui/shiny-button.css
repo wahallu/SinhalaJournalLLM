@@ -142,7 +142,7 @@
 
 /* Inner shimmer */
 .shiny-cta::after {
-  --animation: shimmer linear infinite;
+  --animation: shiny-cta-spin linear infinite;
   width: 100%;
   aspect-ratio: 1;
   background: linear-gradient(
@@ -239,7 +239,7 @@
   }
 }
 
-@keyframes shimmer {
+@keyframes shiny-cta-spin {
   to {
     rotate: 360deg;
   }

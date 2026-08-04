@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import {
   AlertTriangle, ArrowDownToLine, Check, ChevronDown, FileText,
-  Loader2, MinusCircle, Newspaper, PenLine, Sparkles, SpellCheck,
+  MinusCircle, Newspaper, PenLine, Sparkles, SpellCheck,
 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import CopyButton from '../ui/CopyButton';
 import ActionButton from '../ui/ActionButton';
-import { SkeletonLines } from '../ui/Skeleton';
+import { ShimmerDot, SkeletonLines } from '../ui/Skeleton';
 import { CorrectedText, CorrectionsList } from '../CorrectionsView';
 import { STAGE_ORDER } from '../../hooks/useOptimize';
 
@@ -28,7 +28,7 @@ function StageStatus({ status }) {
   if (status === 'running') {
     return (
       <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-brand-700">
-        <Loader2 size={12} className="animate-spin" />
+        <ShimmerDot size={12} />
         Running
       </span>
     );

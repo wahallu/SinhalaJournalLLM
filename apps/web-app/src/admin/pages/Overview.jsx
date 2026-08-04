@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import { getAnalytics, getOverview } from '../adminApi';
 import SystemStatusPanel from '../SystemStatusPanel';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 const CHART_COLORS = [
   'var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)',
@@ -51,15 +52,45 @@ function Panel({ title, note, children, empty }) {
   );
 }
 
-function Spinner({ label }) {
+function OverviewSkeleton() {
   return (
-    <div className="flex items-center justify-center py-20">
-      <div
-        className="w-6 h-6 rounded-full border-2 animate-spin"
-        style={{ borderColor: 'var(--border)', borderTopColor: 'var(--primary)' }}
-        role="status"
-        aria-label={label}
-      />
+    <div role="status" aria-label="Loading overview">
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-28" />
+          <Skeleton className="h-3.5 w-56" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="rounded-lg border bg-card p-4" style={{ borderColor: 'var(--border)' }}>
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-6 w-12 mt-2" />
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-5">
+        <div className="rounded-lg border bg-card p-5" style={{ borderColor: 'var(--border)' }}>
+          <Skeleton className="h-4 w-32 mb-4" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+
+        <div className="rounded-lg border bg-card p-5" style={{ borderColor: 'var(--border)' }}>
+          <Skeleton className="h-4 w-40 mb-4" />
+          <Skeleton className="h-56 w-full" />
+        </div>
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          {[0, 1].map((i) => (
+            <div key={i} className="rounded-lg border bg-card p-5" style={{ borderColor: 'var(--border)' }}>
+              <Skeleton className="h-4 w-24 mb-4" />
+              <Skeleton className="h-56 w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -96,7 +127,7 @@ export default function Overview() {
     );
   }
 
-  if (!counts || !analytics) return <Spinner label="Loading overview" />;
+  if (!counts || !analytics) return <OverviewSkeleton />;
 
   const toolData = Object.entries(analytics.by_tool ?? {}).map(([tool, count]) => ({ tool, count }));
   const providerData = Object.entries(analytics.by_provider ?? {})

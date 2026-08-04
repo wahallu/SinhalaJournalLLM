@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { listUsers } from '../adminApi';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 const INPUT = `w-full px-3 py-2 text-[13px] rounded-md border bg-background text-foreground
   placeholder:text-muted-foreground focus:outline-none focus:ring-2`;
@@ -121,7 +122,17 @@ export default function Users() {
               </tr>
             </thead>
             <tbody className="bg-card">
-              {rows.length === 0 && !loading ? (
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="border-t" style={{ borderColor: 'var(--border)' }}>
+                    <td className="px-4 py-2.5"><Skeleton className="h-3.5 w-28" /></td>
+                    <td className="px-4 py-2.5"><Skeleton className="h-3.5 w-40" /></td>
+                    <td className="px-4 py-2.5"><Skeleton className="h-3.5 w-12" /></td>
+                    <td className="px-4 py-2.5"><Skeleton className="h-3.5 w-14" /></td>
+                    <td className="px-4 py-2.5"><Skeleton className="h-3.5 w-20" /></td>
+                  </tr>
+                ))
+              ) : rows.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
                     No users match these filters.
