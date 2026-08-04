@@ -1,4 +1,4 @@
-import { Layers } from 'lucide-react';
+import { Layers, SpellCheck } from 'lucide-react';
 import { Card } from './ui/Card';
 
 /**
@@ -79,29 +79,101 @@ function locate(text, corrections) {
  * underline sat too close to the Sinhala glyphs' own descenders and vowel
  * signs — the mark and the script competed; a background fill does not.
  */
-export function CorrectedText({ text, corrections = [], className = '' }) {
+export function CorrectedText({ text, corrections = [], suggestions = [], className = '' }) {
   if (!text) return null;
-  const spans = locate(text, corrections);
+
+  const applied = locate(text, corrections).map((s) => ({ ...s, kind: 'applied' }));
+
+  /* Suggestions carry an exact offset from the backend rather than needing to
+     be searched for, but it is verified before use: the offset is into the
+     text the server checked, and a client showing anything else would mark the
+     wrong word. An applied edit wins any overlap — the text there has already
+     changed, so a suggestion about the old spelling is stale. */
+  const flagged = suggestions
+    .filter((s) => text.slice(s.position, s.position + s.original.length) === s.original)
+    .map((s) => ({ at: s.position, term: s.original, suggestion: s, kind: 'suggested' }))
+    .filter((s) => !applied.some((a) => s.at < a.at + a.term.length && a.at < s.at + s.term.length));
+
+  const spans = [...applied, ...flagged].sort((a, b) => a.at - b.at);
   if (!spans.length) return <>{text}</>;
 
   const nodes = [];
   let cursor = 0;
-  spans.forEach(({ at, term, correction }, i) => {
+  spans.forEach(({ at, term, correction, suggestion, kind }, i) => {
     if (at > cursor) nodes.push(text.slice(cursor, at));
     nodes.push(
-      <mark
-        key={i}
-        title={`${correction.original || '—'} → ${term}`}
-        className={`bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px]
-          border border-yellow-300/70 ${className}`}
-      >
-        {term}
-      </mark>
+      kind === 'applied' ? (
+        <mark
+          key={i}
+          title={`${correction.original || '—'} → ${term}`}
+          className={`bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px]
+            border border-yellow-300/70 ${className}`}
+        >
+          {term}
+        </mark>
+      ) : (
+        /* Deliberately not a fill. Nothing was changed here, so it must not
+           read like the yellow marks above it — a dotted underline says "worth
+           a look" where a highlight would say "done". */
+        <span
+          key={i}
+          title={`Possible misspelling — did you mean ${suggestion.suggestion}?`}
+          className={`underline decoration-dotted decoration-2 decoration-sky-500/80
+            underline-offset-[5px] cursor-help ${className}`}
+        >
+          {term}
+        </span>
+      )
     );
     cursor = at + term.length;
   });
   nodes.push(text.slice(cursor));
   return <>{nodes}</>;
+}
+
+/**
+ * Words the dictionary thinks are misspelled but nothing changed.
+ *
+ * Kept visually and structurally apart from CorrectionsList because the
+ * epistemic status is different: those are edits the model already made, these
+ * are guesses a human has to rule on. The model memorises word forms and so
+ * misses words it was never trained on; this layer catches about 23% of that
+ * residue by asking whether a near-identical spelling is far commoner in 106k
+ * news articles — which is evidence, not proof, hence the corpus counts on
+ * every row rather than a bare assertion.
+ */
+export function SuggestionsList({ suggestions = [], className = '' }) {
+  if (!suggestions.length) return null;
+
+  return (
+    <Card className={`px-4 py-4 ${className}`}>
+      <p className="text-[10px] font-bold text-ink-500 uppercase tracking-[0.12em] mb-1 flex items-center gap-1.5">
+        <SpellCheck size={10} /> Possible misspellings
+      </p>
+      <p className="text-[10.5px] text-ink-400 mb-2.5 leading-snug">
+        Not changed — these are rare spellings the checker noticed. Your call.
+      </p>
+      <div className="space-y-1.5">
+        {suggestions.map((s, i) => (
+          <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 bg-sky-50/60 border border-sky-100 rounded-xl">
+            <div className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 bg-sky-400" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-sinhala text-[12px] text-ink-500 underline decoration-dotted decoration-sky-400 underline-offset-[3px]">
+                  {s.original}
+                </span>
+                <span className="text-ink-300 text-[10px]">→</span>
+                <span className="font-sinhala text-[12px] font-semibold text-ink-800">{s.suggestion}</span>
+              </div>
+              <p className="text-[10px] text-ink-500 mt-0.5 tabular-nums">
+                seen {s.seen.toLocaleString()}× vs {s.suggestion_seen.toLocaleString()}× in the news corpus
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
 }
 
 /**

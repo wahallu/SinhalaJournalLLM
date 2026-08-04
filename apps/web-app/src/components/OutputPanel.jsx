@@ -2,7 +2,7 @@ import { AlertTriangle, CheckCircle2, FileSearch, ArrowRight } from 'lucide-reac
 import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
 import { SkeletonLines } from './ui/Skeleton';
-import { CorrectedText, CorrectionsList } from './CorrectionsView';
+import { CorrectedText, CorrectionsList, SuggestionsList } from './CorrectionsView';
 
 /**
  * Generic output panel for grammar, style rewriter, and summarizer tools.
@@ -101,10 +101,14 @@ export default function OutputPanel({ output, loading, error, type, input, summa
 
   const corrections = output.corrections ?? [];
   const correctionCount = output.correction_count ?? corrections.length;
+  const suggestions = output.suggestions ?? [];
   const isGrammar = type === 'text' && (output.corrected !== undefined || output.corrections !== undefined);
   const isRewrite = output.rewritten !== undefined;
   const isSummary = output.summary !== undefined;
-  const isPerfect = isGrammar && correctionCount === 0;
+  /* Nothing changed AND nothing queried. A clean run that still has dictionary
+     flags is not "perfect": the text needs showing so the flagged words can be
+     seen in context, and the banner must not declare it correct. */
+  const isPerfect = isGrammar && correctionCount === 0 && suggestions.length === 0;
   const originalText = output.original ?? input ?? '';
 
   return (
@@ -127,8 +131,28 @@ export default function OutputPanel({ output, loading, error, type, input, summa
           ) : (
             <>
               <AlertTriangle size={15} className="shrink-0 text-amber-500" />
+              {/* Three cases, because "0 corrections applied" reads as a
+                  failure when the real message is that the checker changed
+                  nothing but still spotted something. */}
               <span>
-                <strong>{correctionCount}</strong> correction{correctionCount !== 1 ? 's' : ''} applied to your text.
+                {correctionCount === 0 ? (
+                  <>
+                    Nothing changed, but <strong>{suggestions.length}</strong> word
+                    {suggestions.length !== 1 ? 's' : ''} may be misspelled.
+                  </>
+                ) : (
+                  <>
+                    <strong>{correctionCount}</strong> correction
+                    {correctionCount !== 1 ? 's' : ''} applied to your text
+                    {suggestions.length > 0 && (
+                      <>
+                        , and <strong>{suggestions.length}</strong> word
+                        {suggestions.length !== 1 ? 's' : ''} worth checking
+                      </>
+                    )}
+                    .
+                  </>
+                )}
               </span>
             </>
           )}
@@ -150,14 +174,26 @@ export default function OutputPanel({ output, loading, error, type, input, summa
           </div>
           <Card className="px-5 py-4 border-emerald-200/60">
             <p className="font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
-              <CorrectedText text={displayText} corrections={corrections} />
+              <CorrectedText text={displayText} corrections={corrections} suggestions={suggestions} />
             </p>
-            {corrections.length > 0 && (
-              <p className="text-[11px] text-ink-400 mt-3 pt-2.5 border-t border-ink-100">
-                <mark className="bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px] border border-yellow-300/70">
-                  Highlighted
-                </mark>{' '}
-                words were changed — hover one to see the original.
+            {(corrections.length > 0 || suggestions.length > 0) && (
+              <p className="text-[11px] text-ink-400 mt-3 pt-2.5 border-t border-ink-100 space-x-1">
+                {corrections.length > 0 && (
+                  <span>
+                    <mark className="bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px] border border-yellow-300/70">
+                      Highlighted
+                    </mark>{' '}
+                    words were changed — hover one to see the original.
+                  </span>
+                )}
+                {suggestions.length > 0 && (
+                  <span>
+                    <span className="underline decoration-dotted decoration-2 decoration-sky-500/80 underline-offset-[3px]">
+                      Dotted
+                    </span>{' '}
+                    words were left as written — hover for a suggestion.
+                  </span>
+                )}
               </p>
             )}
           </Card>
@@ -231,6 +267,7 @@ export default function OutputPanel({ output, loading, error, type, input, summa
       )}
 
       {showCorrections && <CorrectionsList corrections={corrections} />}
+      {showCorrections && <SuggestionsList suggestions={suggestions} />}
 
       <p className="text-center text-[11px] text-ink-400 pt-1">
         SinAi can make mistakes. Please double-check responses.

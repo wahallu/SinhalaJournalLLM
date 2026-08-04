@@ -3,27 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SinAI Assistant — Settings</title>
+  <title>SinAi Assistant — Settings</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    @font-face {
+      font-family: 'Gwen';
+      src: url('../fonts/Gwen-Trial-Bold.woff2') format('woff2');
+      font-weight: bold;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Gwen';
+      src: url('../fonts/Gwen-Trial-Regular.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
     :root {
-      --bg: #080C14;
-      --bg-gradient: linear-gradient(135deg, #080C14 0%, #101726 100%);
-      --accent: #C1121F;
-      --accent-hover: #9E0F19;
-      --accent-glow: rgba(193, 18, 31, 0.35);
-      
-      --card-bg: rgba(20, 30, 50, 0.4);
-      --card-border: rgba(255, 255, 255, 0.06);
-      
-      --text: #F1F5F9;
-      --text-muted: #94A3B8;
-      --text-dark: #64748B;
-      --border: rgba(255, 255, 255, 0.08);
-      
-      --font-sans: 'Outfit', sans-serif;
+      /* Same brand ramp + ink neutrals as the web app and the popup. */
+      --bg: #ffffff;
+      --bg-gradient: linear-gradient(135deg, #ffffff 0%, #f8f7f7 100%);
+      --accent: #cd191a;
+      --accent-hover: #ab1112;
+      --accent-glow: rgba(205, 25, 26, 0.14);
+      --accent-tint: #fdf3f2;
+      --accent-tint-border: #f9cecd;
+
+      --card-bg: #ffffff;
+      --card-border: #f0efef;
+
+      --text: #1d1819;
+      --text-muted: #7b7676;
+      --text-dark: #a6a2a2;
+      --border: #f0efef;
+      --input-border: #e4e2e2;
+
+      --font-sans: 'Satoshi', 'Noto Sans Sinhala', ui-sans-serif, system-ui, sans-serif;
+      --font-display: 'Gwen', 'Satoshi', ui-sans-serif, sans-serif;
       --font-sinhala: 'Noto Sans Sinhala', sans-serif;
     }
 
@@ -61,15 +81,15 @@
     .logo {
       width: 48px;
       height: 48px;
-      filter: drop-shadow(0 2px 8px var(--accent-glow));
+      border-radius: 12px;
+      filter: drop-shadow(0 2px 6px rgba(22, 17, 18, 0.14));
     }
 
     .brand h1 {
+      font-family: var(--font-display);
       font-size: 1.6rem;
       font-weight: 700;
-      background: linear-gradient(135deg, #FFFFFF 50%, #FFE3E5 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: var(--accent);
     }
 
     .brand p {
@@ -89,14 +109,14 @@
       border: 1px solid var(--card-border);
       border-radius: 16px;
       padding: 24px;
-      backdrop-filter: blur(10px);
+      box-shadow: 0 1px 4px rgba(22, 17, 18, 0.06);
     }
 
     h2 {
       font-family: var(--font-sinhala), var(--font-sans);
       font-size: 1.15rem;
       font-weight: 600;
-      color: #FFFFFF;
+      color: var(--text);
       margin-bottom: 18px;
       display: flex;
       align-items: center;
@@ -123,7 +143,7 @@
     input[type="text"], input[type="number"], select {
       width: 100%;
       padding: 10px 14px;
-      background: rgba(10, 15, 30, 0.5);
+      background: #ffffff;
       border: 1px solid var(--input-border);
       border-radius: 8px;
       color: var(--text);
@@ -160,23 +180,24 @@
       background: var(--accent);
       color: #FFFFFF;
       border: none;
-      box-shadow: 0 4px 12px rgba(193, 18, 31, 0.2);
+      box-shadow: 0 4px 12px rgba(205, 25, 26, 0.18);
     }
 
     .btn-primary:hover {
       background: var(--accent-hover);
-      box-shadow: 0 4px 16px rgba(193, 18, 31, 0.4);
+      box-shadow: 0 4px 16px rgba(205, 25, 26, 0.28);
       transform: translateY(-1px);
     }
 
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.05);
+      background: #ffffff;
       color: var(--text);
-      border: 1px solid var(--border);
+      border: 1px solid var(--input-border);
     }
 
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: #f8f7f7;
+      border-color: #d2cfcf;
     }
 
     .help-text {
@@ -190,7 +211,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: rgba(255, 255, 255, 0.015);
+      background: #f8f7f7;
       border: 1px solid var(--border);
       padding: 14px 18px;
       border-radius: 12px;
@@ -200,7 +221,7 @@
     .switch-label h3 {
       font-size: 0.95rem;
       font-weight: 600;
-      color: #FFFFFF;
+      color: var(--text);
     }
 
     .switch-label p {
@@ -216,6 +237,7 @@
       display: inline-block;
       width: 44px;
       height: 24px;
+      flex-shrink: 0;
     }
 
     .toggle-switch input {
@@ -231,7 +253,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: rgba(255, 255, 255, 0.1);
+      background-color: #e4e2e2;
       transition: .2s ease;
       border-radius: 24px;
       border: 1px solid var(--border);
@@ -247,10 +269,12 @@
       background-color: #FFFFFF;
       transition: .2s ease;
       border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(22, 17, 18, 0.25);
     }
 
     input:checked + .slider {
       background-color: var(--accent);
+      border-color: var(--accent-hover);
     }
 
     input:checked + .slider:before {
@@ -265,7 +289,7 @@
       font-size: 0.8rem;
       padding: 4px 12px;
       border-radius: 20px;
-      background: rgba(255, 255, 255, 0.03);
+      background: #f8f7f7;
       border: 1px solid var(--border);
     }
 
@@ -274,9 +298,9 @@
       height: 8px;
       border-radius: 50%;
     }
-    .status-dot.success { background: #10B981; box-shadow: 0 0 8px #10B981; }
-    .status-dot.error { background: #EF4444; box-shadow: 0 0 8px #EF4444; }
-    .status-dot.checking { background: #F59E0B; box-shadow: 0 0 8px #F59E0B; }
+    .status-dot.success { background: #10B981; box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); }
+    .status-dot.error { background: #EF4444; box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
+    .status-dot.checking { background: #F59E0B; box-shadow: 0 0 6px rgba(245, 158, 11, 0.5); }
 
     /* Shortcuts list */
     .shortcut-list {
@@ -287,7 +311,7 @@
       justify-content: space-between;
       align-items: center;
       padding: 12px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid var(--border);
     }
     .shortcut-item:last-child {
       border-bottom: none;
@@ -299,23 +323,23 @@
       color: var(--text-muted);
     }
     kbd {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: #f0efef;
+      border: 1px solid #e4e2e2;
       border-radius: 4px;
       padding: 2px 6px;
       font-size: 0.75rem;
       font-family: monospace;
-      color: #FFFFFF;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      color: var(--text);
+      box-shadow: 0 1px 2px rgba(22, 17, 18, 0.08);
     }
   </style>
 </head>
 <body>
   <div class="container">
     <header>
-      <img src="../icons/icon.svg" alt="SinAI Logo" class="logo">
+      <img src="../icons/icon128.png" alt="SinAi Logo" class="logo">
       <div class="brand">
-        <h1>SinAI Assistant Settings</h1>
+        <h1>SinAi Assistant Settings</h1>
         <p>SinhalaJournal LLM Chrome Extension configuration panel</p>
       </div>
     </header>
@@ -323,13 +347,13 @@
     <div class="grid">
       <!-- Settings Panel -->
       <section class="card">
-        <h2>සැකසුම් (General Settings)</h2>
+        <h2>General Settings</h2>
 
         <!-- Switch Card -->
         <div class="switch-row">
           <div class="switch-label">
             <h3>Inline Helper Badge</h3>
-            <p>පෙළ තෝරාගත් විට floating badge එක පෙන්වන්න (Show badge near selection)</p>
+            <p>Show a floating badge near the selected text</p>
           </div>
           <label class="toggle-switch">
             <input type="checkbox" id="options-inline-enabled" checked>
@@ -344,7 +368,7 @@
             <button id="options-btn-test" class="btn btn-secondary">Test Connection</button>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-            <span class="help-text">දේශීයව ක්‍රියාත්මක වන SinAI backend ලිපිනය (Python FastAPI base API URL)</span>
+            <span class="help-text">Address of your SinAi backend (Python FastAPI base API URL)</span>
             <div class="status-badge" id="options-status-badge">
               <span class="status-dot checking"></span>
               <span class="status-text" style="color: var(--text-muted); font-size: 0.72rem;">Checking...</span>
@@ -353,57 +377,53 @@
         </div>
 
         <div class="form-group">
-          <label for="options-default-tone">පෙරනිමි ශෛලිය (Default Style Tone)</label>
+          <label for="options-default-tone">Default Style Tone</label>
           <select id="options-default-tone">
-            <option value="formal">Formal (නිල ස්වරූපය)</option>
-            <option value="sports">Sports (ක්‍රීඩා ශෛලිය)</option>
-            <option value="youth">Youth (තරුණ ශෛලිය)</option>
-            <option value="editorial">Editorial (සංස්කාරකීය ශෛලිය)</option>
-            <option value="feature">Feature (විශේෂාංග ශෛලිය)</option>
+            <option value="formal">Formal</option>
+            <option value="sports">Sports</option>
+            <option value="youth">Youth</option>
+            <option value="editorial">Editorial</option>
+            <option value="feature">Feature</option>
           </select>
-          <p class="help-text">Style Rewriter මෙවලමේ පෙරනිමි ස්වරය</p>
+          <p class="help-text">Default tone used by the Style Rewriter tool</p>
         </div>
 
         <div class="form-group">
-          <label for="options-default-length">පෙරනිමි සාරාංශ ප්‍රමාණය (Default Summary Length)</label>
+          <label for="options-default-length">Default Summary Length</label>
           <select id="options-default-length">
-            <option value="short">Short (කෙටි සාරාංශ)</option>
-            <option value="medium">Medium (මාධ්‍යම සාරාංශ)</option>
-            <option value="long">Long (දීර්ඝ සාරාංශ)</option>
+            <option value="short">Short</option>
+            <option value="medium">Medium</option>
+            <option value="long">Long</option>
           </select>
-          <p class="help-text">News Summarizer මෙවලමේ පෙරනිමි සාරාංශ දිග</p>
+          <p class="help-text">Default length used by the News Summarizer tool</p>
         </div>
 
         <div class="form-group">
-          <label for="options-default-headlines">පෙරනිමි සිරස්තල ගණන (Default Headline Count)</label>
+          <label for="options-default-headlines">Default Headline Count</label>
           <input type="number" id="options-default-headlines" min="1" max="10" value="5">
-          <p class="help-text">Headline Generator මෙවලම මඟින් නිර්මාණය වන සිරස්තල ගණන</p>
+          <p class="help-text">Number of headlines the Headline Generator produces</p>
         </div>
 
         <div style="margin-top: 30px; display: flex; gap: 12px;">
-          <button id="options-btn-save" class="btn btn-primary" style="flex: 2;">සැකසුම් සුරකින්න (Save Settings)</button>
-          <button id="options-btn-reset" class="btn btn-secondary" style="flex: 1;">පෙරනිමි තත්වයට පත් කරන්න</button>
+          <button id="options-btn-save" class="btn btn-primary" style="flex: 2;">Save Settings</button>
+          <button id="options-btn-reset" class="btn btn-secondary" style="flex: 1;">Reset to Defaults</button>
         </div>
       </section>
 
       <!-- Keyboard Shortcuts Info -->
       <section class="card">
-        <h2>කීබෝඩ් කෙටිමං (Keyboard Shortcuts)</h2>
-        <p style="margin-bottom: 16px;">ඔබට බ්‍රවුසරයේ ඕනෑම තැනකදී ඉක්මනින් SinAI ක්‍රියාත්මක කරගැනීම සඳහා කෙටිමං භාවිතා කළ හැක.</p>
-        
+        <h2>Keyboard Shortcuts</h2>
+        <p style="margin-bottom: 16px;">Use these shortcuts to run SinAi quickly from anywhere in your browser.</p>
+
         <ul class="shortcut-list">
           <li class="shortcut-item">
-            <span class="shortcut-name">SinAI Popup එක විවෘත කරන්න (Open Popup)</span>
-            <kbd>Alt + Shift + S</kbd>
-          </li>
-          <li class="shortcut-item">
-            <span class="shortcut-name">තෝරාගත් පෙළ සඳහා ව්‍යාකරණ පරීක්ෂා කරන්න</span>
-            <kbd>Context Menu (Right Click)</kbd>
+            <span class="shortcut-name">Run SinAi on a selection (right-click a selection)</span>
+            <kbd>Context Menu</kbd>
           </li>
         </ul>
-        
-        <div style="margin-top: 16px; font-size: 0.8rem; color: var(--text-dark); background: rgba(255,255,255,0.02); padding: 12px; border-radius: 8px; border: 1px dashed var(--border);">
-          💡 ඔබට මෙම කෙටිමං වෙනස් කිරීමට අවශ්‍ය නම් බ්‍රවුසරයේ <strong style="color: #FFFFFF;">chrome://extensions/shortcuts</strong> ලිපිනය වෙත පිවිසෙන්න.
+
+        <div style="margin-top: 16px; font-size: 0.8rem; color: var(--text-dark); background: #f8f7f7; padding: 12px; border-radius: 8px; border: 1px dashed var(--border);">
+          To assign your own keyboard shortcut, visit <strong style="color: var(--text);">chrome://extensions/shortcuts</strong>.
         </div>
       </section>
     </div>

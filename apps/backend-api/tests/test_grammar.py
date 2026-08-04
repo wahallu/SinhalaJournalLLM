@@ -422,3 +422,79 @@ async def test_grammar_check_endpoint_response_never_contains_the_adapter(monkey
     assert response.status_code == 200
     assert "grammar_sinllama_v13" not in response.text
     assert "adapter" not in response.json()
+
+
+# ── Dictionary suggestions (advisory, never applied) ──
+
+@pytest.mark.asyncio
+async def test_a_word_the_model_leaves_wrong_is_flagged_not_fixed(monkeypatch, fake_supabase):
+    """
+    The whole point of the lexicon layer: the model returns text unchanged
+    (it was never taught පරීක්ශන), and the dictionary still surfaces it —
+    without touching the text.
+    """
+    async def fake_model_generate(task, text, **_kwargs):
+        return GatewayResult(text=text, provider="sinllama", latency_ms=5, meta={})
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+
+    sentence = "අපරාධ පරීක්ශන දෙපාර්තමේන්තුවේ නිලධාරීන් පැමිණියා."
+    result = await check_grammar(sentence)
+
+    assert result.corrected == sentence          # nothing rewritten
+    assert result.corrections == []              # nothing claimed as an edit
+    flagged = {(s.original, s.suggestion) for s in result.suggestions}
+    assert ("පරීක්ශන", "පරීක්ෂණ") in flagged
+
+
+@pytest.mark.asyncio
+async def test_suggestion_offsets_point_into_the_returned_text(monkeypatch, fake_supabase):
+    """Clients underline by offset, so a wrong one marks the wrong word."""
+    async def fake_model_generate(task, text, **_kwargs):
+        return GatewayResult(text=text, provider="sinllama", latency_ms=5, meta={})
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+
+    result = await check_grammar(
+        "අපරාධ පරීක්ශන දෙපාර්තමේන්තුවේ නිලධාරීන් පැමිණියා. "
+        "වැරදිකරු බවට තීරණය කෙරුනි."
+    )
+
+    assert result.suggestions
+    for s in result.suggestions:
+        assert result.corrected[s.position : s.position + len(s.original)] == s.original
+
+
+@pytest.mark.asyncio
+async def test_spellcheck_ratio_zero_disables_suggestions(monkeypatch, fake_supabase):
+    async def fake_model_generate(task, text, **_kwargs):
+        return GatewayResult(text=text, provider="sinllama", latency_ms=5, meta={})
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+
+    real_get = grammar_service.runtime_settings.get
+
+    async def fake_get(key):
+        return 0 if key == "grammar.spellcheck_ratio" else await real_get(key)
+
+    monkeypatch.setattr(grammar_service.runtime_settings, "get", fake_get)
+
+    result = await check_grammar("අපරාධ පරීක්ශන දෙපාර්තමේන්තුවේ නිලධාරීන් පැමිණියා.")
+    assert result.suggestions == []
+
+
+@pytest.mark.asyncio
+async def test_a_broken_lexicon_never_fails_the_check(monkeypatch, fake_supabase):
+    """Advisory extra: a correction that succeeded must still be returned."""
+    async def fake_model_generate(task, text, **_kwargs):
+        return GatewayResult(text=text, provider="sinllama", latency_ms=5, meta={})
+
+    def exploding_check(*_args, **_kwargs):
+        raise RuntimeError("lexicon on fire")
+
+    monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
+    monkeypatch.setattr(grammar_service.lexicon, "check", exploding_check)
+
+    result = await check_grammar("අපරාධ පරීක්ශන දෙපාර්තමේන්තුවේ")
+    assert result.corrected == "අපරාධ පරීක්ශන දෙපාර්තමේන්තුවේ"
+    assert result.suggestions == []

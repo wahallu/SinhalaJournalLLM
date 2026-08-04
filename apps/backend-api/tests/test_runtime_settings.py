@@ -39,6 +39,7 @@ def test_registry_covers_the_documented_keys():
         "adapters.summarizer",
         "grammar.chunk_chars",
         "grammar.ensemble_size",
+        "grammar.spellcheck_ratio",
         "limits.anon_per_hour",
     }
     assert set(REGISTRY) == expected

@@ -19,6 +19,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const selectActiveTool = document.getElementById("select-active-tool");
   const toolOptionsStyleRewriter = document.getElementById("options-style-rewriter");
   const toolOptionsSummarizer = document.getElementById("options-summarizer");
+  const toolOptionsOptimize = document.getElementById("options-optimize");
+  const optimizeToggleRestyle = document.getElementById("optimize-toggle-restyle");
+  const optimizeToneControl = document.getElementById("optimize-tone-control");
+  const optimizeToggleSummarize = document.getElementById("optimize-toggle-summarize");
+  const optimizeLengthControl = document.getElementById("optimize-length-control");
   const toolTextareaInput = document.getElementById("tool-textarea-input");
   const toolCharCount = document.getElementById("tool-char-count");
   const btnProcessTool = document.getElementById("btn-process-tool");
@@ -27,6 +32,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const toolResultOutput = document.getElementById("tool-result-output");
   const btnCopyResult = document.getElementById("btn-copy-result");
   const grammarCorrectionsList = document.getElementById("grammar-corrections-list");
+  const optimizeResultsContainer = document.getElementById("optimize-results");
+
+  // Dashboard Tab — detected article
+  const detectedArticleCard = document.getElementById("detected-article-card");
+  const detectedArticleTitle = document.getElementById("detected-article-title");
+  const detectedArticleSource = document.getElementById("detected-article-source");
+  const btnUseDetectedArticle = document.getElementById("btn-use-detected-article");
 
   // History Tab
   const historyItemsContainer = document.getElementById("history-items-container");
@@ -154,6 +166,25 @@ document.addEventListener("DOMContentLoaded", () => {
     tone: "formal",
     length: "medium"
   };
+  // Grammar and headlines always run in Optimize; these two are opt-in
+  // extra stages, matching the web app's Optimize Article behavior.
+  let optimizeState = {
+    restyle: false,
+    summarize: false,
+    tone: "formal",
+    length: "medium"
+  };
+  let detectedArticle = null; // { text, title, hostname }
+
+  // Matches the web app's per-tool action labels and the content-script
+  // card — "Run" told the user nothing about what was about to happen.
+  const TOOL_RUN_LABEL = {
+    grammar: "Correct",
+    headlines: "Generate",
+    rewriter: "Rewrite",
+    summarizer: "Summarize",
+    optimize: "Optimize"
+  };
 
   // ── Initialize App ──
   loadSettingsAndData();
@@ -162,6 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupSettingsEvents();
   setupHistoryEvents();
   checkApiHealth();
+  fetchPageArticle();
 
   // ── Tab Navigation ──
   function setupNavigation() {
@@ -189,6 +221,42 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   }
+
+  // ── Detected Article (active tab) ──
+  // Asks the content script what article (if any) it extracted from the
+  // current page, so the popup can offer to run tools on it directly
+  // instead of the user having to copy/paste text in manually.
+  function fetchPageArticle() {
+    if (!isExtensionContext || !chrome.tabs) return;
+
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tab = tabs && tabs[0];
+      if (!tab || !tab.id) return;
+
+      chrome.tabs.sendMessage(tab.id, { action: "getPageArticle" }, (response) => {
+        // No content script on this tab (chrome:// pages, PDFs, a tab open
+        // before the extension was installed, etc.) — nothing to show.
+        if (chrome.runtime.lastError || !response || !response.success || !response.article) return;
+
+        detectedArticle = {
+          text: response.article.text,
+          title: response.article.title,
+          hostname: response.hostname
+        };
+        detectedArticleTitle.textContent = detectedArticle.title;
+        detectedArticleSource.textContent = detectedArticle.hostname;
+        detectedArticleCard.classList.remove("hidden");
+      });
+    });
+  }
+
+  btnUseDetectedArticle.addEventListener("click", () => {
+    if (!detectedArticle) return;
+    document.querySelector(".nav-item[data-target='panel-tools']").click();
+    toolTextareaInput.value = detectedArticle.text;
+    toolTextareaInput.dispatchEvent(new Event("input"));
+    toolTextareaInput.focus();
+  });
 
   // ── Settings Management ──
   function loadSettingsAndData() {
@@ -239,7 +307,7 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // Show success visual feedback on button
         const originalText = btnSaveSettings.textContent;
-        btnSaveSettings.textContent = "සුරැකිණි (Saved!)";
+        btnSaveSettings.textContent = "Saved!";
         btnSaveSettings.style.background = "#10B981";
         setTimeout(() => {
           btnSaveSettings.textContent = originalText;
@@ -315,22 +383,55 @@ document.addEventListener("DOMContentLoaded", () => {
       // Hide all options panels first
       toolOptionsStyleRewriter.classList.add("hidden");
       toolOptionsSummarizer.classList.add("hidden");
+      toolOptionsOptimize.classList.add("hidden");
 
       // Show the selected options panel
       if (tool === "rewriter") {
         toolOptionsStyleRewriter.classList.remove("hidden");
-        toolTextareaInput.placeholder = "නැවත ලිවීමට අවශ්‍ය සිංහල පෙළ මෙහි ඇතුළත් කරන්න...";
+        toolTextareaInput.placeholder = "Paste the Sinhala text you want to rewrite...";
       } else if (tool === "summarizer") {
         toolOptionsSummarizer.classList.remove("hidden");
-        toolTextareaInput.placeholder = "සාරාංශ කිරීමට බලාපොරොත්තු වන දිගු සිංහල ලිපිය මෙහි ඇතුළත් කරන්න...";
+        toolTextareaInput.placeholder = "Paste the long Sinhala article you want to summarize...";
       } else if (tool === "headlines") {
-        toolTextareaInput.placeholder = "සිරස්තල නිර්මාණය කිරීමට අදාළ ප්‍රවෘත්තිය හෝ විස්තරය මෙහි ඇතුළත් කරන්න...";
+        toolTextareaInput.placeholder = "Paste the news article to generate headlines from...";
+      } else if (tool === "optimize") {
+        toolOptionsOptimize.classList.remove("hidden");
+        toolTextareaInput.placeholder = "Paste the full article here...";
       } else {
-        toolTextareaInput.placeholder = "මෙහි ඔබගේ සිංහල වාක්‍යය ඇතුළත් කරන්න...";
+        toolTextareaInput.placeholder = "Paste your Sinhala sentence here...";
       }
+
+      // Button reflects what it's actually about to do, not a generic "Run".
+      btnProcessTool.textContent = TOOL_RUN_LABEL[tool] || "Run";
 
       // Hide previous result when switching tools
       toolResultContainer.classList.add("hidden");
+      optimizeResultsContainer.classList.add("hidden");
+      toolResultOutput.classList.remove("hidden");
+    });
+
+    // Optimize toggles
+    optimizeToggleRestyle.addEventListener("change", (e) => {
+      optimizeState.restyle = e.target.checked;
+      optimizeToneControl.classList.toggle("hidden", !e.target.checked);
+    });
+    optimizeToggleSummarize.addEventListener("change", (e) => {
+      optimizeState.summarize = e.target.checked;
+      optimizeLengthControl.classList.toggle("hidden", !e.target.checked);
+    });
+    optimizeToneControl.querySelectorAll(".seg-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        optimizeToneControl.querySelectorAll(".seg-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        optimizeState.tone = btn.getAttribute("data-value");
+      });
+    });
+    optimizeLengthControl.querySelectorAll(".seg-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        optimizeLengthControl.querySelectorAll(".seg-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        optimizeState.length = btn.getAttribute("data-value");
+      });
     });
 
     // Segmented Button Clicks (Options)
@@ -382,6 +483,11 @@ document.addEventListener("DOMContentLoaded", () => {
     btnProcessTool.addEventListener("click", () => {
       const inputVal = toolTextareaInput.value.trim();
       if (!inputVal) return;
+
+      if (activeToolState.tool === "optimize") {
+        runOptimizeInPopup(inputVal);
+        return;
+      }
 
       btnProcessTool.disabled = true;
       btnProcessTool.classList.add("loading");
@@ -451,7 +557,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       } else {
         grammarCorrectionsList.classList.remove("hidden");
-        grammarCorrectionsList.innerHTML = `<div class="empty-state" style="padding: 10px 0;"><p style="color: #10B981; font-size: 0.8rem;">👍 මෙම පාඨයේ ව්‍යාකරණ දෝෂ කිසිවක් හමු නොවීය.</p></div>`;
+        grammarCorrectionsList.innerHTML = `<div class="empty-state" style="padding: 10px 0;"><p style="color: #10B981; font-size: 0.8rem;">No grammar issues found.</p></div>`;
       }
     } else if (tool === "headlines") {
       const ol = document.createElement("ol");
@@ -476,7 +582,131 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showError(msg) {
     toolResultContainer.classList.remove("hidden");
-    toolResultOutput.innerHTML = `<span style="color: #EF4444; font-weight: 500;">ERROR: ${escapeHtml(msg)}</span><br><span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; display: block;">API සේවා ක්‍රියාත්මක දැයි සහ සැකසුම් (Settings) පරීක්ෂා කරන්න.</span>`;
+    toolResultOutput.classList.remove("hidden");
+    optimizeResultsContainer.classList.add("hidden");
+    toolResultOutput.innerHTML = `<span style="color: #EF4444; font-weight: 500;">ERROR: ${escapeHtml(msg)}</span><br><span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; display: block;">Check that the API service is running and review your Settings.</span>`;
+  }
+
+  // ── Optimize: client-side orchestration of the four existing endpoints ──
+  // Same behavior as the content-script card (see content.js) — there is no
+  // dedicated /optimize backend route. Grammar and headlines always run;
+  // restyle and summary are opt-in, and both run against the final
+  // (possibly restyled) text so they match the article's eventual tone.
+  const OPTIMIZE_STAGE_LABEL = { grammar: "Grammar", style: "Style", headline: "Headlines", summary: "Summary" };
+
+  function callApiPromise(endpoint, body) {
+    return new Promise((resolve, reject) => {
+      sendMessage({ action: "callApi", endpoint, body, method: "POST" }, (response) => {
+        if (!response || !response.success) {
+          reject(new Error(response ? response.error : "Failed to connect to server."));
+          return;
+        }
+        resolve(response.data);
+      });
+    });
+  }
+
+  function optimizeStageList() {
+    const stages = ["grammar"];
+    if (optimizeState.restyle) stages.push("style");
+    stages.push("headline");
+    if (optimizeState.summarize) stages.push("summary");
+    return stages;
+  }
+
+  function renderOptimizeSkeleton(stages) {
+    toolResultContainer.classList.remove("hidden");
+    toolResultOutput.classList.add("hidden");
+    grammarCorrectionsList.classList.add("hidden");
+    optimizeResultsContainer.classList.remove("hidden");
+    optimizeResultsContainer.innerHTML = stages
+      .map(
+        (id) => `
+        <div class="optimize-stage-card" data-stage="${id}">
+          <div class="optimize-stage-card-head">
+            ${OPTIMIZE_STAGE_LABEL[id]}
+            <span class="optimize-stage-card-status pending" data-role="status">Queued</span>
+          </div>
+          <div class="optimize-stage-card-body" data-role="body"></div>
+        </div>
+      `
+      )
+      .join("");
+  }
+
+  function setOptimizeStageStatus(id, status) {
+    const statusEl = optimizeResultsContainer.querySelector(`.optimize-stage-card[data-stage="${id}"] [data-role="status"]`);
+    if (!statusEl) return;
+    statusEl.className = `optimize-stage-card-status ${status}`;
+    statusEl.textContent =
+      status === "running" ? "Running" : status === "done" ? "Done" : status === "failed" ? "Failed" : "Queued";
+    const bodyEl = optimizeResultsContainer.querySelector(`.optimize-stage-card[data-stage="${id}"] [data-role="body"]`);
+    if (status === "running" && bodyEl) {
+      bodyEl.innerHTML = `<div class="optimize-shimmer-line" style="width:88%"></div><div class="optimize-shimmer-line" style="width:65%"></div>`;
+    }
+  }
+
+  function setOptimizeStageResult(id, text, isError) {
+    const bodyEl = optimizeResultsContainer.querySelector(`.optimize-stage-card[data-stage="${id}"] [data-role="body"]`);
+    if (!bodyEl) return;
+    bodyEl.textContent = text;
+    bodyEl.style.color = isError ? "var(--accent-hover)" : "";
+  }
+
+  async function runOptimizeInPopup(inputVal) {
+    const stages = optimizeStageList();
+    renderOptimizeSkeleton(stages);
+    btnProcessTool.disabled = true;
+    btnProcessTool.classList.add("loading");
+
+    let workingText = inputVal;
+    let finalText = inputVal;
+
+    try {
+      setOptimizeStageStatus("grammar", "running");
+      const grammarData = await callApiPromise("/grammar/check", { text: workingText });
+      workingText = grammarData.corrected;
+      finalText = workingText;
+      setOptimizeStageStatus("grammar", "done");
+      setOptimizeStageResult("grammar", grammarData.corrected);
+
+      if (optimizeState.restyle) {
+        setOptimizeStageStatus("style", "running");
+        const styleData = await callApiPromise("/rewrite", { text: workingText, tone: optimizeState.tone });
+        workingText = styleData.rewritten;
+        finalText = workingText;
+        setOptimizeStageStatus("style", "done");
+        setOptimizeStageResult("style", styleData.rewritten);
+      }
+
+      setOptimizeStageStatus("headline", "running");
+      const headlineData = await callApiPromise("/headlines/generate", {
+        text: workingText,
+        count: extensionSettings.defaultHeadlineCount
+      });
+      setOptimizeStageStatus("headline", "done");
+      setOptimizeStageResult("headline", headlineData.headlines.map((h, i) => `${i + 1}. ${h}`).join("\n"));
+
+      if (optimizeState.summarize) {
+        setOptimizeStageStatus("summary", "running");
+        const summaryData = await callApiPromise("/summarize", { text: workingText, length: optimizeState.length });
+        setOptimizeStageStatus("summary", "done");
+        setOptimizeStageResult("summary", summaryData.summary);
+      }
+    } catch (err) {
+      stages.forEach((id) => {
+        const statusEl = optimizeResultsContainer.querySelector(`.optimize-stage-card[data-stage="${id}"] [data-role="status"]`);
+        if (statusEl && (statusEl.textContent === "Queued" || statusEl.textContent === "Running")) {
+          setOptimizeStageStatus(id, "failed");
+          setOptimizeStageResult(id, err.message, true);
+        }
+      });
+    } finally {
+      btnProcessTool.disabled = false;
+      btnProcessTool.classList.remove("loading");
+      // Kept in sync (though hidden behind the stage cards) so Copy works.
+      toolResultOutput.textContent = finalText;
+    }
   }
 
   // ── History Listing ──
@@ -497,7 +727,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (list.length === 0) {
         historyItemsContainer.innerHTML = `
           <div class="empty-state">
-            <p>පසුගිය ක්‍රියාකාරකම් කිසිවක් නැත.</p>
+            <p>No recent activity.</p>
           </div>
         `;
         return;
@@ -519,8 +749,8 @@ document.addEventListener("DOMContentLoaded", () => {
             <span class="history-badge ${item.type}">${typeLabel}</span>
             <span class="history-time">${timeString}</span>
           </div>
-          <div class="history-snippet" title="${escapeHtml(item.original)}">මුල් පෙළ: ${escapeHtml(item.original)}</div>
-          <div class="history-result" title="${escapeHtml(item.result)}">ප්‍රතිඵලය: ${escapeHtml(item.result)}</div>
+          <div class="history-snippet" title="${escapeHtml(item.original)}">Original: ${escapeHtml(item.original)}</div>
+          <div class="history-result" title="${escapeHtml(item.result)}">Result: ${escapeHtml(item.result)}</div>
         `;
         
         card.addEventListener("click", () => {

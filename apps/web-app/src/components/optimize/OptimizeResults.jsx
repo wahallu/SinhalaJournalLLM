@@ -7,7 +7,7 @@ import { Card } from '../ui/Card';
 import CopyButton from '../ui/CopyButton';
 import ActionButton from '../ui/ActionButton';
 import { ShimmerDot, SkeletonLines } from '../ui/Skeleton';
-import { CorrectedText, CorrectionsList } from '../CorrectionsView';
+import { CorrectedText, CorrectionsList, SuggestionsList } from '../CorrectionsView';
 import { STAGE_ORDER } from '../../hooks/useOptimize';
 
 const STAGE_META = {
@@ -105,8 +105,10 @@ function GrammarStage({ data }) {
   const [open, setOpen] = useState(false);
   const corrections = data.corrections ?? [];
   const count = data.correction_count ?? corrections.length;
+  const suggestions = data.suggestions ?? [];
 
-  if (!count) {
+  // Only truly nothing to report — dictionary flags alone still need the text.
+  if (!count && !suggestions.length) {
     return (
       <p className="text-[12.5px] text-emerald-700 flex items-center gap-1.5">
         <Check size={13} strokeWidth={3} className="shrink-0" />
@@ -115,10 +117,14 @@ function GrammarStage({ data }) {
     );
   }
 
+  const parts = [];
+  if (count) parts.push(`${count} correction${count !== 1 ? 's' : ''}`);
+  if (suggestions.length) parts.push(`${suggestions.length} to check`);
+
   return (
     <div className="space-y-2.5">
       <p className="font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
-        <CorrectedText text={data.corrected} corrections={corrections} />
+        <CorrectedText text={data.corrected} corrections={corrections} suggestions={suggestions} />
       </p>
       <button
         onClick={() => setOpen((v) => !v)}
@@ -127,11 +133,12 @@ function GrammarStage({ data }) {
           hover:text-brand-700 cursor-pointer transition-colors"
       >
         <ChevronDown size={13} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-        {count} correction{count !== 1 ? 's' : ''} — {open ? 'hide' : 'review'} what changed
+        {parts.join(', ')} — {open ? 'hide' : 'review'} details
       </button>
       {/* Review, not decoration: an editor has to be able to check what the
           model rewrote, especially inside quoted material. */}
       {open && <CorrectionsList corrections={corrections} />}
+      {open && <SuggestionsList suggestions={suggestions} />}
     </div>
   );
 }

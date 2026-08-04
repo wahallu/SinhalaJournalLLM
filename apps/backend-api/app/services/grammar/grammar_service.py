@@ -25,7 +25,12 @@ from app.core import runtime_settings
 from app.core.model_gateway import add_tokens, model_generate
 from app.repositories.base import persist_if_owned
 from app.repositories.grammar_repository import save_correction
-from app.schemas.grammar import CorrectionDetail, GrammarCheckResponse
+from app.schemas.grammar import (
+    CorrectionDetail,
+    GrammarCheckResponse,
+    SpellingSuggestion,
+)
+from app.services.grammar import lexicon
 from app.services.grammar.chunking import chunk_text
 
 logger = logging.getLogger(__name__)
@@ -179,6 +184,7 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
     """
     ensemble_size = await runtime_settings.get("grammar.ensemble_size")
     max_chars = await runtime_settings.get("grammar.chunk_chars")
+    spell_ratio = await runtime_settings.get("grammar.spellcheck_ratio")
 
     chunks = chunk_text(text, max_chars)
     if not chunks:
@@ -233,11 +239,29 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
     }
     saved = await persist_if_owned(save_correction, record, user_id)
 
+    # Run on the CORRECTED text, not the input: anything the model already
+    # fixed should not be flagged again, and a word it introduced is worth
+    # checking too. 0 disables it entirely.
+    suggestions: list[SpellingSuggestion] = []
+    if spell_ratio:
+        try:
+            suggestions = [
+                SpellingSuggestion(
+                    position=s.position, original=s.original, suggestion=s.suggestion,
+                    seen=s.seen, suggestion_seen=s.suggestion_seen,
+                )
+                for s in lexicon.check(corrected_text, min_ratio=spell_ratio)
+            ]
+        except Exception:
+            # Advisory extra: never let it fail a correction that succeeded.
+            logger.exception("Spelling suggestions failed — returning none")
+
     response = GrammarCheckResponse(
         id=str(saved["id"]),
         corrected=corrected_text,
         corrections=corrections,
         correction_count=len(corrections),
+        suggestions=suggestions,
         created_at=saved.get("created_at"),
         model_used=provider,
         input_tokens=input_tokens,

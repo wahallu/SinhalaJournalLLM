@@ -66,7 +66,7 @@ chrome.runtime.onInstalled.addListener(() => {
   // 2. Setup Context Menus
   chrome.contextMenus.create({
     id: "sinai-parent",
-    title: "SinAI Assistant",
+    title: "SinAi Assistant",
     contexts: ["selection"]
   });
 

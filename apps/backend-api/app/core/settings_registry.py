@@ -96,6 +96,19 @@ def build_registry() -> dict[str, SettingSpec]:
             description="Specific LoRA adapter for the Grammar Checker. "
                         "Leave empty to use the newest one the model server resolved.",
         ),
+        "grammar.spellcheck_ratio": SettingSpec(
+            kind="int", default=3, minimum=0, maximum=100, group="Grammar Advanced",
+            description=(
+                "Dictionary spell-check sensitivity. A word the 106k-article "
+                "news corpus has essentially never seen is flagged when a "
+                "near-identical spelling is at least this many times commoner. "
+                "Suggestions only — they are never applied to the text. "
+                "Measured on what the model leaves wrong: 38% of remaining "
+                "single-word errors caught, for 1 flag across 44 already-correct "
+                "sentences, and unchanged anywhere from 1 to 10. Above 25 it "
+                "starts losing catches without removing flags. 0 turns it off."
+            ),
+        ),
         "grammar.chunk_chars": SettingSpec(
             kind="int", default=200, minimum=120, maximum=10000, group="Grammar Advanced",
             description=(

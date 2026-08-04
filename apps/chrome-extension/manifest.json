@@ -16,18 +16,18 @@
   ],
   "action": {
     "default_icon": {
-      "16": "icons/icon.svg",
-      "32": "icons/icon.svg",
-      "48": "icons/icon.svg",
-      "128": "icons/icon.svg"
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
     },
     "default_popup": "popup/popup.html"
   },
   "icons": {
-    "16": "icons/icon.svg",
-    "32": "icons/icon.svg",
-    "48": "icons/icon.svg",
-    "128": "icons/icon.svg"
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   },
   "background": {
     "service_worker": "background.js"
@@ -36,7 +36,6 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content/content.js"],
-      "css": ["content/content.css"],
       "run_at": "document_end"
     }
   ],
@@ -47,8 +46,9 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "icons/icon.svg",
-        "content/content.css"
+        "icons/icon128.png",
+        "fonts/Gwen-Trial-Regular.woff2",
+        "fonts/Gwen-Trial-Bold.woff2"
       ],
       "matches": ["<all_urls>"]
     }

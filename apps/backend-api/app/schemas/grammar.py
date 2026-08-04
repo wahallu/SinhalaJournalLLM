@@ -35,6 +35,27 @@ class CorrectionDetail(BaseModel):
 
 # ── Response ──
 
+class SpellingSuggestion(BaseModel):
+    """
+    A word the frequency lexicon thinks is misspelled.
+
+    Deliberately separate from `corrections`: those describe edits already
+    applied to the text, these are advisory only and nothing acts on them. The
+    grammar model memorises word forms, so it misses words it was never taught;
+    the lexicon covers ~38% of that residue (see services/grammar/lexicon.py).
+    It is tuned to near-silence rather than coverage — the corpus it counts
+    carries its own misspellings, so a bolder setting starts proposing the wrong
+    spelling for correct words. Shown for a human to judge, never written into
+    the copy.
+    """
+
+    position: int = Field(description="Character offset in the corrected text")
+    original: str = Field(description="The word as written")
+    suggestion: str = Field(description="A near-identical, far commoner spelling")
+    seen: int = Field(description="Times the written form appears in the news corpus")
+    suggestion_seen: int = Field(description="Times the suggested form appears")
+
+
 class GrammarCheckResponse(BaseModel):
     """Output payload after grammar checking."""
     id: str = Field(description="Unique correction record ID")
@@ -44,6 +65,13 @@ class GrammarCheckResponse(BaseModel):
         description="List of individual corrections applied",
     )
     correction_count: int = Field(description="Total number of corrections made")
+    suggestions: list[SpellingSuggestion] = Field(
+        default_factory=list,
+        description=(
+            "Possible misspellings the model did not fix. Advisory only — these "
+            "are NOT applied to `corrected`."
+        ),
+    )
     created_at: datetime | None = Field(
         default=None,
         description="Timestamp of the correction",
