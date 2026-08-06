@@ -31,6 +31,19 @@ class CorrectionDetail(BaseModel):
         default="grammar",
         description="Correction category: grammar | spelling | punctuation | spacing",
     )
+    suspicious: bool = Field(
+        default=False,
+        description=(
+            "The model appears to have swapped in a different word rather than "
+            "corrected a spelling — most often a name. The correction IS applied; "
+            "this flags it for a human to confirm. See services/grammar/"
+            "substitution_guard.py."
+        ),
+    )
+    suspicious_reason: str | None = Field(
+        default=None,
+        description="Why the replacement was flagged. None when not suspicious.",
+    )
 
 
 # ── Response ──

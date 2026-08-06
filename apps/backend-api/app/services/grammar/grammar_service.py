@@ -30,6 +30,7 @@ from app.schemas.grammar import (
     GrammarCheckResponse,
     SpellingSuggestion,
 )
+from app.services.grammar.substitution_guard import inspect_substitution
 from app.services.grammar import lexicon
 from app.services.grammar.chunking import chunk_text
 
@@ -100,6 +101,12 @@ def derive_corrections(original: str, corrected: str) -> list[CorrectionDetail]:
         else:
             position = len(original)
         kind, rule = _classify(original_fragment, corrected_fragment)
+        # A replacement that looks like a different word rather than a fixed
+        # spelling — most dangerously a swapped name — is still applied, but
+        # carries a flag so a client can put it in front of a human.
+        suspicious, suspicious_reason = inspect_substitution(
+            original_fragment, corrected_fragment
+        )
         corrections.append(
             CorrectionDetail(
                 position=position,
@@ -107,6 +114,8 @@ def derive_corrections(original: str, corrected: str) -> list[CorrectionDetail]:
                 corrected=corrected_fragment,
                 rule=rule,
                 type=kind,
+                suspicious=suspicious,
+                suspicious_reason=suspicious_reason,
             )
         )
     return corrections
