@@ -73,3 +73,25 @@ class HistoryItem(BaseModel):
 class UnifiedHistoryResponse(BaseModel):
     """Newest activity across every tool."""
     items: list[HistoryItem]
+
+
+class UsageStatsResponse(BaseModel):
+    """
+    Exact run counts for the caller.
+
+    Separate from the history feed on purpose. The dashboard used to count a
+    page of history to fill its tiles, which capped every figure at the page
+    size; these are counted in the database and are not bounded by any limit.
+    """
+
+    total: int = Field(description="All runs, across every tool, all time")
+    today: int = Field(description="Runs since midnight in Asia/Colombo")
+    week: int = Field(description="Runs in the last 7 days")
+    per_tool: dict[str, int] = Field(
+        default_factory=dict,
+        description="Tool key → total runs, for every tool including unused ones",
+    )
+    top_tool: str | None = Field(
+        default=None,
+        description="Most-used tool key, or null when there are no runs at all",
+    )

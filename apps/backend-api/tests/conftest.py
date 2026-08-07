@@ -83,6 +83,7 @@ class _FakeQuery:
         self._single = False
         self._count = None
         self._or: str | None = None
+        self._head = False
         self._on_conflict: str = "id"
 
     # ── builders ──
@@ -116,9 +117,16 @@ class _FakeQuery:
         self._or = expression
         return self
 
-    def select(self, *_cols, count: str | None = None):
+    def select(self, *_cols, count: str | None = None, head: bool = False):
+        """
+        `head=True` is PostgREST's count-without-rows mode, used by
+        base.count_rows for the dashboard stats. The fake mirrors it by
+        returning an empty `data` alongside the real count, so a caller that
+        wrongly reads rows from a head request fails here too.
+        """
         self._operation = "select"
         self._count = count
+        self._head = head
         return self
 
     def eq(self, column: str, value):
@@ -213,6 +221,13 @@ class _FakeQuery:
             result = result[: self._limit]
         if self._single:
             return SimpleNamespace(data=result[0] if result else None, count=None)
+        if self._head:
+            # PostgREST's head mode returns the count with no body. Empty data
+            # here rather than the rows, so a caller that reads rows off a
+            # head request breaks in the suite exactly as it would in prod.
+            return SimpleNamespace(
+                data=[], count=total if self._count == "exact" else None
+            )
         return SimpleNamespace(
             data=result,
             count=total if self._count == "exact" else None,

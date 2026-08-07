@@ -7,6 +7,7 @@ feed for the web app's History page and the extension dashboard.
 
 import asyncio
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from app.repositories import (
@@ -15,9 +16,15 @@ from app.repositories import (
     style_repository,
     summarizer_repository,
 )
-from app.repositories.base import fetch_recent
+from app.repositories.base import count_rows, fetch_recent
 
 logger = logging.getLogger(__name__)
+
+# The newsroom this serves works to Colombo time, so "today" and "this week"
+# are bounded there rather than in UTC or the server's local zone. Fixed
+# +05:30 with no daylight saving, so a plain offset is exact and avoids a
+# tzdata dependency at runtime.
+_COLOMBO = timezone(timedelta(hours=5, minutes=30))
 
 # tool key → (table, input column, output extractor)
 _SOURCES: dict[str, tuple[str, str, Any]] = {
@@ -141,3 +148,53 @@ async def list_all_recent(limit: int = 100) -> list[dict[str, Any]]:
     merged = [item for items in per_tool for item in items]
     merged.sort(key=lambda item: item.get("created_at") or "", reverse=True)
     return merged[:limit]
+
+
+async def usage_stats(
+    *, user_id: str | None = None, user_token: str | None = None
+) -> dict[str, Any]:
+    """
+    Exact run counts for one caller: total, today, this week, and per tool.
+
+    Counted in the database rather than derived from a page of history. The
+    dashboard used to compute these from a 50-row fetch, which meant every
+    tile silently capped at 50 — a user with 300 runs and one with exactly 50
+    saw the same "Total runs", and "Most used" was decided by whichever tool
+    happened to appear most in the newest 50 rows rather than overall.
+
+    Day and week boundaries are Asia/Colombo, matching the dashboard greeting:
+    "Today" has to mean today at the desk, not in UTC.
+
+    A tool whose table is missing counts 0 rather than failing the whole
+    payload — the same tolerance list_recent() has.
+    """
+    now = datetime.now(_COLOMBO)
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    start_of_week = start_of_day - timedelta(days=7)
+
+    async def _count(tool: str, since: str | None) -> int:
+        table, _, _ = _SOURCES[tool]
+        try:
+            return await count_rows(
+                table, user_id=user_id, user_token=user_token, since=since
+            )
+        except Exception:
+            logger.exception("Stats: failed to count %s — reporting 0", table)
+            return 0
+
+    tools = list(_SOURCES)
+    totals, today, week = await asyncio.gather(
+        asyncio.gather(*[_count(t, None) for t in tools]),
+        asyncio.gather(*[_count(t, start_of_day.isoformat()) for t in tools]),
+        asyncio.gather(*[_count(t, start_of_week.isoformat()) for t in tools]),
+    )
+
+    per_tool = dict(zip(tools, totals))
+    top_tool, top_count = max(per_tool.items(), key=lambda kv: kv[1], default=(None, 0))
+    return {
+        "total": sum(totals),
+        "today": sum(today),
+        "week": sum(week),
+        "per_tool": per_tool,
+        "top_tool": top_tool if top_count > 0 else None,
+    }

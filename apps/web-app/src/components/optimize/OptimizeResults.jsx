@@ -8,6 +8,10 @@ import CopyButton from '../ui/CopyButton';
 import ActionButton from '../ui/ActionButton';
 import { ShimmerDot, SkeletonLines } from '../ui/Skeleton';
 import { CorrectedText, CorrectionsList, SuggestionsList } from '../CorrectionsView';
+import { useAcceptedSuggestions } from '../../lib/suggestions';
+
+/* Stable identity for the "no suggestions" case — see OutputPanel. */
+const NO_SUGGESTIONS = [];
 import { STAGE_ORDER } from '../../hooks/useOptimize';
 
 const STAGE_META = {
@@ -105,7 +109,9 @@ function GrammarStage({ data }) {
   const [open, setOpen] = useState(false);
   const corrections = data.corrections ?? [];
   const count = data.correction_count ?? corrections.length;
-  const suggestions = data.suggestions ?? [];
+  const suggestions = data.suggestions ?? NO_SUGGESTIONS;
+  // Above the early return below: hooks cannot be called conditionally.
+  const accepted = useAcceptedSuggestions(data.corrected ?? '', suggestions);
 
   // Only truly nothing to report — dictionary flags alone still need the text.
   if (!count && !suggestions.length) {
@@ -124,7 +130,13 @@ function GrammarStage({ data }) {
   return (
     <div className="space-y-2.5">
       <p className="font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
-        <CorrectedText text={data.corrected} corrections={corrections} suggestions={suggestions} />
+        <CorrectedText
+          text={data.corrected}
+          corrections={corrections}
+          suggestions={suggestions}
+          acceptedKeys={accepted.acceptedKeys}
+          onAccept={accepted.toggle}
+        />
       </p>
       <button
         onClick={() => setOpen((v) => !v)}
@@ -138,7 +150,14 @@ function GrammarStage({ data }) {
       {/* Review, not decoration: an editor has to be able to check what the
           model rewrote, especially inside quoted material. */}
       {open && <CorrectionsList corrections={corrections} />}
-      {open && <SuggestionsList suggestions={suggestions} />}
+      {open && (
+        <SuggestionsList
+          suggestions={suggestions}
+          acceptedKeys={accepted.acceptedKeys}
+          onAccept={accepted.toggle}
+          onAcceptAll={accepted.acceptAll}
+        />
+      )}
     </div>
   );
 }

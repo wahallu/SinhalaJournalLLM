@@ -1,5 +1,12 @@
-import { AlertTriangle, Layers, SpellCheck } from 'lucide-react';
+import { AlertTriangle, Check, Layers, SpellCheck, Undo2 } from 'lucide-react';
 import { Card } from './ui/Card';
+import WordPopover from './ui/WordPopover';
+import { resolveSuggestions, suggestionKey } from '../lib/suggestions';
+
+/* Module-level so the default prop is referentially stable — a fresh Set()
+   per render would change identity every time and defeat memoisation in any
+   consumer that adds it later. */
+const EMPTY_SET = new Set();
 
 /**
  * Shared rendering for grammar corrections — the marked-up corrected text and
@@ -72,77 +79,169 @@ function locate(text, corrections) {
 }
 
 /**
- * Corrected text with every applied edit highlighted in yellow.
+ * Corrected text with every applied edit highlighted, and every dictionary
+ * suggestion actionable.
  *
- * Same treatment the admin Model Comparison pane uses for its verbatim-match
- * marks, so a changed word reads identically in both places. A red wavy
- * underline sat too close to the Sinhala glyphs' own descenders and vowel
- * signs — the mark and the script competed; a background fill does not.
+ * Marks read in three registers, deliberately distinct:
+ *   yellow fill    — an edit the model already made
+ *   rose fill      — an edit the substitution guard thinks replaced a word
+ *   dotted underline — a suggestion nothing has acted on yet
+ *
+ * A red wavy underline was tried for the last one and sat too close to the
+ * Sinhala glyphs' own descenders and vowel signs; the mark and the script
+ * competed. A dotted underline set well below the baseline does not.
+ *
+ * `acceptedKeys` / `onAccept` are optional. Without them the suggestions are
+ * still explained on hover but cannot be applied, which is what the read-only
+ * surfaces (history, comparison) want.
  */
-export function CorrectedText({ text, corrections = [], suggestions = [], className = '' }) {
+export function CorrectedText({
+  text,
+  corrections = [],
+  suggestions = [],
+  acceptedKeys = EMPTY_SET,
+  onAccept,
+  className = '',
+}) {
   if (!text) return null;
 
-  const applied = locate(text, corrections).map((s) => ({ ...s, kind: 'applied' }));
+  /* One pass produces both the text to show and where each suggestion sits in
+     it. Accepting a suggestion can change the text's length, so anything that
+     tracked offsets separately would drift after the first acceptance. */
+  const { text: shownText, marks } = resolveSuggestions(text, suggestions, acceptedKeys);
 
-  /* Suggestions carry an exact offset from the backend rather than needing to
-     be searched for, but it is verified before use: the offset is into the
-     text the server checked, and a client showing anything else would mark the
-     wrong word. An applied edit wins any overlap — the text there has already
-     changed, so a suggestion about the old spelling is stale. */
-  const flagged = suggestions
-    .filter((s) => text.slice(s.position, s.position + s.original.length) === s.original)
-    .map((s) => ({ at: s.position, term: s.original, suggestion: s, kind: 'suggested' }))
+  const applied = locate(shownText, corrections).map((s) => ({ ...s, kind: 'applied' }));
+
+  // An applied edit wins any overlap: the text there has already changed, so a
+  // suggestion about the old spelling is stale.
+  const flagged = marks
+    .map((m) => ({ at: m.at, term: m.term, mark: m, kind: 'suggested' }))
     .filter((s) => !applied.some((a) => s.at < a.at + a.term.length && a.at < s.at + s.term.length));
 
   const spans = [...applied, ...flagged].sort((a, b) => a.at - b.at);
-  if (!spans.length) return <>{text}</>;
+  if (!spans.length) return <>{shownText}</>;
 
   const nodes = [];
   let cursor = 0;
-  spans.forEach(({ at, term, correction, suggestion, kind }, i) => {
-    if (at > cursor) nodes.push(text.slice(cursor, at));
-    nodes.push(
-      kind === 'applied' ? (
-        /* A flagged edit gets rose rather than yellow. The backend's
-           substitution guard thinks this replaced a word rather than fixing a
-           spelling — most often a name — so it must not blend in with the
-           routine edits around it. Same fill treatment, different hue, because
-           the point is "look here", not "something else happened here". */
-        <mark
-          key={i}
-          title={
-            correction.suspicious
-              ? `${correction.original || '—'} → ${term}\n\n⚠ ${correction.suspicious_reason || 'Possible word replacement — verify.'}`
-              : `${correction.original || '—'} → ${term}`
-          }
-          className={
-            correction.suspicious
-              ? `bg-rose-200/90 text-rose-950 font-semibold px-1 py-0.5 rounded-[3px]
-                 border border-rose-400/80 cursor-help ${className}`
-              : `bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px]
-                 border border-yellow-300/70 ${className}`
+
+  spans.forEach(({ at, term, correction, mark, kind }, i) => {
+    if (at > cursor) nodes.push(shownText.slice(cursor, at));
+
+    if (kind === 'applied') {
+      const suspicious = correction.suspicious;
+      nodes.push(
+        <WordPopover
+          key={`c-${i}`}
+          ariaLabel={`${suspicious ? 'Flagged change' : 'Change'}: ${correction.original || '—'} to ${term}`}
+          panel={
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-ink-500">
+                {suspicious ? 'Check this change' : 'Changed'}
+              </p>
+              <p className="text-[13px] font-sinhala">
+                <span className="text-ink-400 line-through">{correction.original || '—'}</span>
+                <span className="text-ink-300 mx-1.5">→</span>
+                <span className={`font-semibold ${suspicious ? 'text-rose-900' : 'text-ink-900'}`}>{term}</span>
+              </p>
+              {suspicious && (
+                <p className="text-[11px] leading-snug text-rose-700">
+                  {correction.suspicious_reason || 'Possible word replacement — verify against your source.'}
+                </p>
+              )}
+            </div>
           }
         >
-          {term}
-        </mark>
-      ) : (
-        /* Deliberately not a fill. Nothing was changed here, so it must not
-           read like the yellow marks above it — a dotted underline says "worth
-           a look" where a highlight would say "done". */
-        <span
-          key={i}
-          title={`Possible misspelling — did you mean ${suggestion.suggestion}?`}
-          className={`underline decoration-dotted decoration-2 decoration-sky-500/80
-            underline-offset-[5px] cursor-help ${className}`}
+          <mark
+            className={
+              suspicious
+                ? `bg-rose-200/90 text-rose-950 font-semibold px-1 py-0.5 rounded-[3px]
+                   border border-rose-400/80 ${className}`
+                : `bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px]
+                   border border-yellow-300/70 ${className}`
+            }
+          >
+            {term}
+          </mark>
+        </WordPopover>
+      );
+    } else {
+      const { suggestion, accepted, key } = mark;
+      nodes.push(
+        <WordPopover
+          key={`s-${i}`}
+          ariaLabel={
+            accepted
+              ? `Applied: ${suggestion.original} changed to ${suggestion.suggestion}`
+              : `Possible misspelling: ${suggestion.original}. Suggested ${suggestion.suggestion}`
+          }
+          panel={({ close }) => (
+            <SuggestionPanel
+              suggestion={suggestion}
+              accepted={accepted}
+              onAccept={onAccept ? () => { onAccept(key); close(); } : undefined}
+            />
+          )}
         >
-          {term}
-        </span>
-      )
-    );
+          <span
+            className={
+              accepted
+                ? // Applied by the reader, not the model — emerald keeps it
+                  // distinct from the model's own yellow edits.
+                  `bg-emerald-100 text-emerald-950 font-medium px-1 py-0.5 rounded-[3px]
+                   border border-emerald-300 ${className}`
+                : `underline decoration-dotted decoration-2 decoration-sky-500/80
+                   underline-offset-[5px] ${className}`
+            }
+          >
+            {term}
+          </span>
+        </WordPopover>
+      );
+    }
     cursor = at + term.length;
   });
-  nodes.push(text.slice(cursor));
+
+  nodes.push(shownText.slice(cursor));
   return <>{nodes}</>;
+}
+
+/** Body of a suggestion popover: the evidence, then the action. */
+function SuggestionPanel({ suggestion, accepted, onAccept }) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-ink-500">
+        {accepted ? 'Applied' : 'Possible misspelling'}
+      </p>
+      <p className="text-[13px] font-sinhala">
+        <span className={accepted ? 'text-ink-400 line-through' : 'text-ink-600'}>
+          {suggestion.original}
+        </span>
+        <span className="text-ink-300 mx-1.5">→</span>
+        <span className="font-semibold text-ink-900">{suggestion.suggestion}</span>
+      </p>
+      {/* The counts are the whole argument for the suggestion — it is evidence
+          from a 215k-article corpus, not a dictionary ruling. Showing them
+          lets an editor overrule it on sight for a name or a rare-but-correct
+          word. */}
+      <p className="text-[10.5px] text-ink-500 tabular-nums">
+        seen {Number(suggestion.seen ?? 0).toLocaleString()}× vs{' '}
+        {Number(suggestion.suggestion_seen ?? 0).toLocaleString()}× in the news corpus
+      </p>
+      {onAccept && (
+        <button
+          type="button"
+          onClick={onAccept}
+          className={`w-full inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5
+            text-[12px] font-semibold cursor-pointer transition-colors
+            ${accepted
+              ? 'border border-ink-200 text-ink-600 hover:bg-ink-50'
+              : 'bg-brand-600 text-white hover:bg-brand-700'}`}
+        >
+          {accepted ? (<><Undo2 size={12} /> Undo</>) : (<><Check size={12} /> Apply</>)}
+        </button>
+      )}
+    </div>
+  );
 }
 
 /**
@@ -156,35 +255,92 @@ export function CorrectedText({ text, corrections = [], suggestions = [], classN
  * news articles — which is evidence, not proof, hence the corpus counts on
  * every row rather than a bare assertion.
  */
-export function SuggestionsList({ suggestions = [], className = '' }) {
+export function SuggestionsList({
+  suggestions = [],
+  acceptedKeys = EMPTY_SET,
+  onAccept,
+  onAcceptAll,
+  className = '',
+}) {
   if (!suggestions.length) return null;
+
+  const pending = suggestions.filter((s) => !acceptedKeys.has(suggestionKey(s)));
+  const canAct = Boolean(onAccept);
 
   return (
     <Card className={`px-4 py-4 ${className}`}>
-      <p className="text-[10px] font-bold text-ink-500 uppercase tracking-[0.12em] mb-1 flex items-center gap-1.5">
-        <SpellCheck size={10} /> Possible misspellings
-      </p>
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <p className="text-[10px] font-bold text-ink-500 uppercase tracking-[0.12em] flex items-center gap-1.5">
+          <SpellCheck size={10} /> Possible misspellings
+        </p>
+        {/* Bulk accept only appears when there is more than one left to act
+            on — for a single row the per-row button is right there, and a
+            second control that does the same thing is just noise. */}
+        {canAct && onAcceptAll && pending.length > 1 && (
+          <button
+            type="button"
+            onClick={onAcceptAll}
+            className="text-[11px] font-semibold text-brand-700 hover:underline cursor-pointer shrink-0"
+          >
+            Apply all {pending.length}
+          </button>
+        )}
+      </div>
       <p className="text-[10.5px] text-ink-400 mb-2.5 leading-snug">
-        Not changed — these are rare spellings the checker noticed. Your call.
+        {canAct
+          ? 'Not changed automatically — the checker only flags them. Apply the ones you agree with.'
+          : 'Not changed — these are rare spellings the checker noticed. Your call.'}
       </p>
       <div className="space-y-1.5">
-        {suggestions.map((s, i) => (
-          <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 bg-sky-50/60 border border-sky-100 rounded-xl">
-            <div className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 bg-sky-400" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-sinhala text-[12px] text-ink-500 underline decoration-dotted decoration-sky-400 underline-offset-[3px]">
-                  {s.original}
-                </span>
-                <span className="text-ink-300 text-[10px]">→</span>
-                <span className="font-sinhala text-[12px] font-semibold text-ink-800">{s.suggestion}</span>
+        {suggestions.map((s, i) => {
+          const key = suggestionKey(s);
+          const accepted = acceptedKeys.has(key);
+          return (
+            <div
+              key={key || i}
+              className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl border ${
+                accepted
+                  ? 'bg-emerald-50/70 border-emerald-200'
+                  : 'bg-sky-50/60 border-sky-100'
+              }`}
+            >
+              <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${accepted ? 'bg-emerald-500' : 'bg-sky-400'}`} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className={`font-sinhala text-[12px] ${
+                    accepted
+                      ? 'text-ink-400 line-through'
+                      : 'text-ink-500 underline decoration-dotted decoration-sky-400 underline-offset-[3px]'
+                  }`}>
+                    {s.original}
+                  </span>
+                  <span className="text-ink-300 text-[10px]">→</span>
+                  <span className="font-sinhala text-[12px] font-semibold text-ink-800">{s.suggestion}</span>
+                </div>
+                <p className="text-[10px] text-ink-500 mt-0.5 tabular-nums">
+                  seen {Number(s.seen ?? 0).toLocaleString()}× vs {Number(s.suggestion_seen ?? 0).toLocaleString()}× in the news corpus
+                </p>
               </div>
-              <p className="text-[10px] text-ink-500 mt-0.5 tabular-nums">
-                seen {s.seen.toLocaleString()}× vs {s.suggestion_seen.toLocaleString()}× in the news corpus
-              </p>
+              {canAct && (
+                <button
+                  type="button"
+                  onClick={() => onAccept(key)}
+                  aria-label={accepted
+                    ? `Undo ${s.original} to ${s.suggestion}`
+                    : `Apply ${s.suggestion} in place of ${s.original}`}
+                  className={`shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px]
+                    font-semibold cursor-pointer transition-colors ${
+                    accepted
+                      ? 'border border-ink-200 text-ink-600 hover:bg-white'
+                      : 'bg-brand-600 text-white hover:bg-brand-700'
+                  }`}
+                >
+                  {accepted ? (<><Undo2 size={11} /> Undo</>) : (<><Check size={11} /> Apply</>)}
+                </button>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </Card>
   );

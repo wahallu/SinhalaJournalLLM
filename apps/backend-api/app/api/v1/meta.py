@@ -4,6 +4,7 @@ Capability discovery and unified activity history.
 GET /meta    — tasks, styles, lengths, provider status (clients build their
                pickers from this so options never drift from the model)
 GET /history — newest activity across all four tools
+GET /history/stats — exact run counts (not derived from a page of history)
 """
 
 from fastapi import APIRouter, Depends, Query
@@ -20,7 +21,7 @@ from app.core.prompts import (
     STYLE_LABELS,
     SUMMARY_LENGTHS,
 )
-from app.repositories.history_repository import list_recent
+from app.repositories.history_repository import list_recent, usage_stats
 from app.schemas.auth import AuthUser
 from app.schemas.meta import (
     HeadlineLengthOption,
@@ -29,6 +30,7 @@ from app.schemas.meta import (
     MetaResponse,
     StyleOption,
     UnifiedHistoryResponse,
+    UsageStatsResponse,
 )
 
 router = APIRouter(tags=["Meta"])
@@ -79,3 +81,14 @@ async def unified_history_endpoint(
     """Newest activity for the caller across grammar, headlines, rewriter, and summarizer."""
     items = await list_recent(limit, user_id=user.id, user_token=user.token)
     return UnifiedHistoryResponse(items=[HistoryItem(**item) for item in items])
+
+
+@router.get("/history/stats", response_model=UsageStatsResponse)
+async def usage_stats_endpoint(user: AuthUser = Depends(require_user)):
+    """
+    Exact run counts for the caller.
+
+    The dashboard cannot compute these from /history: that returns at most
+    `limit` rows, so every tile derived from it saturated at the page size.
+    """
+    return UsageStatsResponse(**await usage_stats(user_id=user.id, user_token=user.token))

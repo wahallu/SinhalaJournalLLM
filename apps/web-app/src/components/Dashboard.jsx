@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  ArrowRight, ArrowUpRight, Activity, Clock,
+  ArrowRight, ArrowUpRight, Activity, AlertTriangle, Clock, LogIn,
   History as HistoryIcon,
 } from 'lucide-react';
 import { Card } from './ui/Card';
@@ -12,7 +12,7 @@ import Auralis from './ui/auralis';
 import EmptyState from './ui/EmptyState';
 import { OPTIMIZE_META, TOOL_LIST, TOOL_META } from '../lib/toolMeta';
 import { useAuth } from '../auth/useAuth';
-import { getCategories, getUnifiedHistory } from '../services/api';
+import { getCategories, getHistoryStats, getUnifiedHistory } from '../services/api';
 
 /**
  * Greeting for the current hour in Sri Lanka, not in the reader's browser.
@@ -92,14 +92,25 @@ function timeAgo(iso) {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function StatCard({ label, value, hint, small = false }) {
+function StatCard({ label, value, hint, small = false, loading = false }) {
   return (
     <Card className="px-4 py-3.5">
       <p className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.12em]">{label}</p>
-      <p className={`font-bold text-ink-900 mt-1 leading-tight tabular-nums truncate ${small ? 'text-[15px] pt-1' : 'text-[22px]'}`}>
-        {value}
-      </p>
-      {hint && <p className="text-[11px] text-ink-500 mt-1.5 truncate">{hint}</p>}
+      {loading ? (
+        // Shimmer rather than a zero. A tile that reads "0" while still
+        // loading is a wrong answer, not a pending one.
+        <>
+          <div className="h-[22px] w-12 mt-1 rounded bg-ink-100 animate-shimmer" />
+          <div className="h-[11px] w-20 mt-2 rounded bg-ink-100 animate-shimmer" />
+        </>
+      ) : (
+        <>
+          <p className={`font-bold text-ink-900 mt-1 leading-tight tabular-nums truncate ${small ? 'text-[15px] pt-1' : 'text-[22px]'}`}>
+            {value}
+          </p>
+          {hint && <p className="text-[11px] text-ink-500 mt-1.5 truncate">{hint}</p>}
+        </>
+      )}
     </Card>
   );
 }
@@ -109,7 +120,23 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
   const location = useLocation();
   const { user, profile } = useAuth();
   const [history, setHistory] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [error, setError] = useState(null);
   const [categoryNames, setCategoryNames] = useState([]);
+  // Bumped by the error state's retry, which re-runs the fetch effect.
+  const [reloadKey, setReloadKey] = useState(0);
+  // Primitive, not the object: a fresh `user` identity per render would make
+  // the fetch effect loop. Combined with reloadKey so the retry button forces
+  // a new request for the same user.
+  const userId = user?.id ?? null;
+  const requestKey = userId ? `${userId}:${reloadKey}` : null;
+  const [loadedKey, setLoadedKey] = useState(null);
+
+  /* Derived, not stored. Setting a loading flag inside the effect costs an
+     extra render and leaves the first paint showing zeroes; comparing the
+     request we want against the one we have is true from the very first
+     render and flips to false only when that exact request has settled. */
+  const loading = Boolean(requestKey) && loadedKey !== requestKey;
 
   // Only needed signed out, where they stand in for a name. The endpoint is
   // public for exactly this; a failure just leaves the fallback word.
@@ -134,16 +161,34 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
   const signedInName =
     profile?.full_name?.trim() || user?.email?.split('@')[0] || 'Journalist';
 
-  // Activity stats come from the server now. Signed-out visitors get a 401
-  // here — the dashboard stays usable and simply shows an empty feed, since
-  // the four tools work anonymously.
+  /* Both are per-user, so this re-runs whenever the signed-in identity
+     changes. It used to run once on mount with an empty dependency list,
+     which broke in both directions: signing in through the modal leaves the
+     dashboard mounted, so the feed stayed empty until a manual reload, and
+     signing out left the previous user's activity on screen.
+
+     Stats come from their own endpoint rather than being counted off the
+     history page — that page is capped at 50 rows, so every tile derived
+     from it saturated there.
+
+     Failure is tracked separately from emptiness. "No activity yet" and
+     "we could not reach storage" look identical otherwise, and the backend
+     answers the second with a 503 that says exactly that. */
   useEffect(() => {
+    // Nothing to fetch signed out, and nothing to clear either: every panel
+    // that could show another user's data branches on `user` before it reads
+    // this state, so it is unreachable rather than stale.
+    if (!requestKey) return undefined;
+
     let active = true;
-    getUnifiedHistory()
-      .then((data) => {
+    Promise.all([
+      getUnifiedHistory(),
+      getHistoryStats().catch(() => null),
+    ])
+      .then(([historyData, statsData]) => {
         if (!active) return;
         setHistory(
-          (data.items ?? []).map((item) => ({
+          (historyData.items ?? []).map((item) => ({
             id: item.id,
             tool: item.tool,
             input: item.input_preview ?? '',
@@ -151,32 +196,38 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
             timestamp: item.created_at,
           }))
         );
+        setStats(statsData);
+        setError(null);
       })
-      .catch(() => {
-        if (active) setHistory([]);
+      .catch((err) => {
+        if (!active) return;
+        setHistory([]);
+        setStats(null);
+        setError(err?.message || 'Could not load your activity.');
+      })
+      .finally(() => {
+        if (active) setLoadedKey(requestKey);
       });
+
     return () => {
       active = false;
     };
-  }, []);
+  }, [requestKey]);
 
-  const stats = useMemo(() => {
-    const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const weekAgo = now.getTime() - 7 * 86400000;
-    const today = history.filter((h) => new Date(h.timestamp).getTime() >= startOfDay).length;
-    const week = history.filter((h) => new Date(h.timestamp).getTime() >= weekAgo).length;
+  /* Server counts when they arrived, otherwise counted from the loaded feed.
+     The fallback is capped at the page size and says so on the tile, which is
+     honest about being approximate rather than quietly wrong — the previous
+     behaviour presented the capped number as exact. */
+  const derived = useMemo(() => {
     const counts = {};
     history.forEach((h) => { counts[h.tool] = (counts[h.tool] || 0) + 1; });
-    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-    return {
-      total: history.length,
-      today,
-      week,
-      counts,
-      topTool: top ? (TOOL_META[top[0]]?.label ?? top[0]) : '—',
-    };
+    return counts;
   }, [history]);
+
+  const counts = stats?.per_tool ?? derived;
+  const topToolKey = stats
+    ? stats.top_tool
+    : Object.entries(derived).sort((a, b) => b[1] - a[1])[0]?.[0];
 
   const recent = history.slice(0, 5);
 
@@ -244,14 +295,34 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
            show an introduction instead of four zeroes. */}
       {user ? (
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-3.5" aria-label="Usage metrics">
-          <StatCard label="Total runs" value={stats.total} hint="Across all tools" />
-          <StatCard label="Today" value={stats.today} hint="Runs since midnight" />
-          <StatCard label="This week" value={stats.week} hint="Last 7 days" />
+          {/* On failure every tile reads "—/Unavailable" rather than a number.
+              A zero here is a claim that the account has no work, which is the
+              opposite of what an unreachable history store means — and it is
+              the reading a user is most likely to panic about. */}
+          <StatCard
+            label="Total runs"
+            loading={loading}
+            value={error ? '—' : stats ? stats.total : history.length}
+            hint={error ? 'Unavailable' : stats ? 'Across all tools' : 'Across all tools (recent)'}
+          />
+          <StatCard
+            label="Today"
+            loading={loading}
+            value={!error && stats ? stats.today : '—'}
+            hint={!error && stats ? 'Runs since midnight' : 'Unavailable'}
+          />
+          <StatCard
+            label="This week"
+            loading={loading}
+            value={!error && stats ? stats.week : '—'}
+            hint={!error && stats ? 'Last 7 days' : 'Unavailable'}
+          />
           <StatCard
             label="Most used"
-            small={stats.topTool !== '—'}
-            value={stats.topTool}
-            hint={stats.topTool === '—' ? 'No runs yet' : 'Your go-to tool'}
+            loading={loading}
+            small={!error && Boolean(topToolKey)}
+            value={!error && topToolKey ? (TOOL_META[topToolKey]?.label ?? topToolKey) : '—'}
+            hint={error ? 'Unavailable' : topToolKey ? 'Your go-to tool' : 'No runs yet'}
           />
         </section>
       ) : (
@@ -294,9 +365,17 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
                   </div>
                   <h3 className="text-[14px] font-bold text-ink-900 mt-3.5">{label}</h3>
                   <p className="text-[12px] text-ink-500 mt-1 leading-relaxed">{shortDesc}</p>
-                  <p className="text-[11px] text-ink-400 mt-3 tabular-nums">
-                    {stats.counts[id] ? `${stats.counts[id]} run${stats.counts[id] !== 1 ? 's' : ''}` : 'Not used yet'}
-                  </p>
+                  {/* Signed out there is no per-user count to show, and "Not
+                      used yet" would be a claim about a user we cannot see. */}
+                  {user && (
+                    <p className="text-[11px] text-ink-400 mt-3 tabular-nums">
+                      {loading || error
+                        ? ' '
+                        : counts[id]
+                          ? `${counts[id]} run${counts[id] !== 1 ? 's' : ''}`
+                          : 'Not used yet'}
+                    </p>
+                  )}
                 </Card>
               ))}
             </div>
@@ -321,7 +400,52 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
                 )}
               </div>
 
-              {recent.length === 0 ? (
+              {/* Four distinct states, in the order they can occur. Signed out
+                  is first because it is not an error and not emptiness: work
+                  is only ever saved against an account, so there is nothing to
+                  load and nothing to fix. */}
+              {!user ? (
+                <EmptyState
+                  icon={LogIn}
+                  title="Sign in to see your activity"
+                  description="Your runs are saved to your account. The writing tools work without one, but nothing is kept."
+                  action={
+                    <ActionButton
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => navigate('/login', { state: { backgroundLocation: location } })}
+                    >
+                      Sign in
+                    </ActionButton>
+                  }
+                />
+              ) : loading ? (
+                <ul className="divide-y divide-ink-100" aria-busy="true">
+                  {[0, 1, 2].map((i) => (
+                    <li key={i} className="flex items-center gap-3.5 px-5 py-3">
+                      <div className="w-8 h-8 rounded-lg bg-ink-100 animate-shimmer shrink-0" />
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <div className="h-[11px] w-24 rounded bg-ink-100 animate-shimmer" />
+                        <div className="h-[13px] w-3/4 rounded bg-ink-100 animate-shimmer" />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : error ? (
+                // Distinct from "no activity": the backend answers an
+                // unreachable history store with a 503 saying so, and showing
+                // that as emptiness tells the user their work is gone.
+                <EmptyState
+                  icon={AlertTriangle}
+                  title="Couldn't load your activity"
+                  description={error}
+                  action={
+                    <ActionButton size="sm" variant="secondary" onClick={() => setReloadKey((k) => k + 1)}>
+                      Try again
+                    </ActionButton>
+                  }
+                />
+              ) : recent.length === 0 ? (
                 <EmptyState
                   icon={HistoryIcon}
                   title="No activity yet"

@@ -3,6 +3,11 @@ import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
 import { SkeletonLines } from './ui/Skeleton';
 import { CorrectedText, CorrectionsList, SuggestionsList } from './CorrectionsView';
+import { useAcceptedSuggestions } from '../lib/suggestions';
+
+/* Stable identities for the "not present" case. A fresh [] each render would
+   change the hook's dependencies every time and recompute for nothing. */
+const NO_SUGGESTIONS = [];
 
 /**
  * Generic output panel for grammar, style rewriter, and summarizer tools.
@@ -41,6 +46,13 @@ function TextCard({ children, muted = false, className = '' }) {
 }
 
 export default function OutputPanel({ output, loading, error, type, input, summaryView = 'paragraph', showCorrections = false }) {
+  /* Above the early returns: hooks cannot be called conditionally, and the
+     loading/error branches below return before the grammar block. Reads
+     defensively because `output` is null on both of those paths. */
+  const grammarSource = output?.corrected ?? '';
+  const grammarSuggestions = output?.suggestions ?? NO_SUGGESTIONS;
+  const accepted = useAcceptedSuggestions(grammarSource, grammarSuggestions);
+
   if (loading) {
     return (
       <div id="output-loading" className="space-y-3">
@@ -170,11 +182,20 @@ export default function OutputPanel({ output, loading, error, type, input, summa
         <div>
           <div className="flex items-center justify-between mb-2 h-7">
             <ResultLabel>Corrected</ResultLabel>
-            <CopyButton id="copy-output" text={displayText} />
+            {/* Copies the text as it currently reads, applied suggestions
+                included — copying the pre-suggestion version would silently
+                discard the edits the reader just made. */}
+            <CopyButton id="copy-output" text={accepted.text || displayText} />
           </div>
           <Card className="px-5 py-4 border-emerald-200/60">
             <p className="font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
-              <CorrectedText text={displayText} corrections={corrections} suggestions={suggestions} />
+              <CorrectedText
+                text={displayText}
+                corrections={corrections}
+                suggestions={suggestions}
+                acceptedKeys={accepted.acceptedKeys}
+                onAccept={accepted.toggle}
+              />
             </p>
             {(corrections.length > 0 || suggestions.length > 0) && (
               <p className="text-[11px] text-ink-400 mt-3 pt-2.5 border-t border-ink-100 space-x-1">
@@ -191,7 +212,16 @@ export default function OutputPanel({ output, loading, error, type, input, summa
                     <span className="underline decoration-dotted decoration-2 decoration-sky-500/80 underline-offset-[3px]">
                       Dotted
                     </span>{' '}
-                    words were left as written — hover for a suggestion.
+                    words were left as written — hover or tab to one to apply the suggestion.
+                    {accepted.acceptedCount > 0 && (
+                      <>
+                        {' '}
+                        <span className="text-emerald-700 font-semibold">
+                          {accepted.acceptedCount} applied
+                        </span>
+                        .
+                      </>
+                    )}
                   </span>
                 )}
               </p>
@@ -267,7 +297,14 @@ export default function OutputPanel({ output, loading, error, type, input, summa
       )}
 
       {showCorrections && <CorrectionsList corrections={corrections} />}
-      {showCorrections && <SuggestionsList suggestions={suggestions} />}
+      {showCorrections && (
+        <SuggestionsList
+          suggestions={suggestions}
+          acceptedKeys={accepted.acceptedKeys}
+          onAccept={accepted.toggle}
+          onAcceptAll={accepted.acceptAll}
+        />
+      )}
 
       <p className="text-center text-[11px] text-ink-400 pt-1">
         SinAi can make mistakes. Please double-check responses.

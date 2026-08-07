@@ -294,6 +294,14 @@ export function getUnifiedHistory(limit = 50) {
   return request(`/history?limit=${limit}`, null, 'GET');
 }
 
+// Exact run counts for the dashboard tiles. Deliberately not derived from
+// getUnifiedHistory: that returns at most `limit` rows, so counting it capped
+// every figure at the page size — a user with 300 runs read "50".
+// Response: { total, today, week, per_tool: {tool: n}, top_tool }
+export function getHistoryStats() {
+  return request('/history/stats', null, 'GET');
+}
+
 // ── Image Generation (OpenRouter — Krea 2 Large) ──
 // The backend proxies to OpenRouter and returns a base64 PNG data URL or hosted image URL.
 export function generateImage(prompt) {

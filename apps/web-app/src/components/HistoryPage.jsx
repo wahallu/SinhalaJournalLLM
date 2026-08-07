@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Clock, ArrowLeft, Search, ArrowUpRight, History as HistoryIcon, CornerDownRight } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Clock, ArrowLeft, Search, ArrowUpRight, History as HistoryIcon, CornerDownRight, LogIn } from 'lucide-react';
 import PageHeader from './ui/PageHeader';
 import ActionButton from './ui/ActionButton';
 import EmptyState from './ui/EmptyState';
@@ -7,6 +8,7 @@ import CopyButton from './ui/CopyButton';
 import { Card } from './ui/Card';
 import { Skeleton, SkeletonLines } from './ui/Skeleton';
 import { TOOL_META } from '../lib/toolMeta';
+import { useAuth } from '../auth/useAuth';
 import { getUnifiedHistory } from '../services/api';
 
 function formatTime(iso) {
@@ -29,13 +31,29 @@ function dayGroup(iso) {
 }
 
 export default function HistoryPage({ onRerun, onBack }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
   const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
 
+  /* History is per-user, so the fetch is keyed to the signed-in identity.
+     With an empty dependency list it ran once on mount, so signing in from
+     this page left it showing the signed-out error until a manual reload,
+     and signing out left the previous user's rows on screen.
+
+     `loading` is derived rather than stored: comparing the request we want
+     against the one we have is already true on the first render, where a
+     stored flag would need an effect to set it and would paint an empty
+     history for one frame first. */
+  const userId = user?.id ?? null;
+  const [loadedFor, setLoadedFor] = useState(null);
+  const loading = Boolean(userId) && loadedFor !== userId;
+
   useEffect(() => {
+    if (!userId) return undefined;
     let active = true;
     getUnifiedHistory()
       .then((data) => {
@@ -50,17 +68,18 @@ export default function HistoryPage({ onRerun, onBack }) {
             timestamp: item.created_at,
           }))
         );
+        setError(null);
       })
       .catch((err) => {
         if (active) setError(err.message);
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) setLoadedFor(userId);
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [userId]);
 
   const filtered = history
     .filter((h) => filter === 'all' || h.tool === filter)
@@ -90,9 +109,13 @@ export default function HistoryPage({ onRerun, onBack }) {
         icon={HistoryIcon}
         title="History"
         description={
-          loading
-            ? 'Loading your activity…'
-            : `${history.length} saved ${history.length === 1 ? 'entry' : 'entries'} — synced to your account.`
+          !user
+            // "0 saved entries — synced to your account" would otherwise read
+            // as an empty account rather than as no account.
+            ? 'Sign in to keep a history of your runs.'
+            : loading
+              ? 'Loading your activity…'
+              : `${history.length} saved ${history.length === 1 ? 'entry' : 'entries'} — synced to your account.`
         }
         actions={
           <ActionButton id="history-back" size="sm" variant="ghost" icon={ArrowLeft} onClick={onBack}>
@@ -135,8 +158,27 @@ export default function HistoryPage({ onRerun, onBack }) {
         ))}
       </div>
 
-      {/* Feed */}
-      {loading ? (
+      {/* Feed. Signed out is checked first: history only exists against an
+          account, so there is nothing to load and nothing to retry — showing
+          the 401 as "Could not load your history" reads like a fault. */}
+      {!user ? (
+        <div className="rounded-2xl border border-dashed border-ink-300/70">
+          <EmptyState
+            icon={LogIn}
+            title="Sign in to see your history"
+            description="Runs are saved to your account. The writing tools work without one, but nothing is kept."
+            action={
+              <ActionButton
+                size="sm"
+                variant="secondary"
+                onClick={() => navigate('/login', { state: { backgroundLocation: location } })}
+              >
+                Sign in
+              </ActionButton>
+            }
+          />
+        </div>
+      ) : loading ? (
         <div className="space-y-2" role="status" aria-label="Loading history">
           {[0, 1, 2, 3].map((i) => (
             <Card key={i} className="px-4 py-3.5">

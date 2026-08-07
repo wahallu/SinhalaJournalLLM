@@ -216,6 +216,41 @@ async def fetch_page(
     return response.data, response.count or 0
 
 
+async def count_rows(
+    table: str,
+    *,
+    user_id: str | None = None,
+    user_token: str | None = None,
+    since: str | None = None,
+) -> int:
+    """
+    Exact row count, scoped to `user_id` and optionally to rows created at or
+    after `since` (an ISO timestamp).
+
+    Counting server-side rather than measuring a fetched page: the dashboard
+    used to derive "Total runs" from `len(history)` over a 50-row request, so
+    every number it showed silently saturated at 50. `head=True` asks PostgREST
+    for the count without transferring any rows.
+    """
+    if _circuit_is_open():
+        raise DatabaseUnavailable(f"History storage unavailable (cooldown): {table}")
+    try:
+        client = await resolve_client(user_token)
+        query = client.table(table).select("id", count="exact", head=True)
+        if user_id is not None:
+            query = query.eq("user_id", user_id)
+        if since is not None:
+            query = query.gte("created_at", since)
+        response = await asyncio.wait_for(
+            query.execute(), timeout=READ_TIMEOUT_SECONDS
+        )
+    except Exception as exc:
+        _record_failure(exc)
+        raise DatabaseUnavailable(f"Failed to count {table}: {exc}") from exc
+    _record_success()
+    return response.count or 0
+
+
 async def fetch_recent(
     table: str,
     limit: int,
