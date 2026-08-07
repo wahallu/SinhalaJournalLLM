@@ -202,38 +202,6 @@ export default function OutputPanel({ output, loading, error, type, input, summa
                 onToggle={resolved.toggle}
               />
             </p>
-            {(corrections.length > 0 || suggestions.length > 0) && (
-              <p className="text-[11px] text-ink-400 mt-3 pt-2.5 border-t border-ink-100 space-x-1">
-                {corrections.length > 0 && (
-                  <span>
-                    <mark className="bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px] border border-yellow-300/70">
-                      Highlighted
-                    </mark>{' '}
-                    words were changed — hover one to see the original.
-                  </span>
-                )}
-                {suggestions.length > 0 && (
-                  <span>
-                    <span className="bg-yellow-100 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px] border border-dashed border-yellow-500/80">
-                      Dashed
-                    </span>{' '}
-                    words are suggestions — hover or tab to one to apply it.
-                    {resolved.appliedSuggestionCount > 0 && (
-                      <>
-                        {' '}
-                        <span className="bg-emerald-100 text-emerald-950 font-medium px-1 py-0.5 rounded-[3px] border border-emerald-300">
-                          Green
-                        </span>{' '}
-                        <span className="text-emerald-700 font-semibold">
-                          ({resolved.appliedSuggestionCount} applied)
-                        </span>
-                        {mode === 'auto' && ' — applied for you by Auto mode'}.
-                      </>
-                    )}
-                  </span>
-                )}
-              </p>
-            )}
           </Card>
         </div>
       ) : isRewrite ? (

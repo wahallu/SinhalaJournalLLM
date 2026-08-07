@@ -78,23 +78,58 @@ function locateNameChanges(text, corrections) {
 }
 
 /**
- * Every reversible edit in the server's text, in one coordinate system.
+ * Locate the model's ordinary corrections — everything the substitution guard
+ * did NOT flag. Grammar and spelling edits the model already made; there is
+ * nothing to accept or undo, only something to show.
+ */
+function locatePlainCorrections(text, corrections) {
+  const spans = [];
+  let cursor = 0;
+  for (const correction of corrections) {
+    if (correction?.suspicious) continue; // names: handled separately, never shown
+    const term = correction.corrected;
+    if (!term) continue;
+    const at = text.indexOf(term, cursor);
+    if (at === -1) continue;
+    spans.push({
+      kind: 'correction',
+      key: `correction:${at}:${term}`,
+      at,
+      length: term.length,
+      reversible: false, // always shows `term` — see resolveEdits
+      base: term,
+      alternative: term,
+      correction,
+    });
+    cursor = at + term.length;
+  }
+  return spans;
+}
+
+/**
+ * Every marked span in the server's text, in one coordinate system.
  *
- * Two kinds, pulling in opposite directions:
+ * Three kinds:
  *
+ *   correction  a grammar/spelling edit the model already made. Not
+ *               reversible — informational only, always shows `term`.
  *   suggestion  the server text holds the ORIGINAL; applying shows the
  *               suggestion. Off by default in Manual, on in Auto.
  *   name        the server text holds the model's REPLACEMENT; the model has
  *               already renamed someone. "Applying" here means putting the
  *               source's name back, and it is on by default in both modes —
  *               a renamed person is a false statement of fact, so the burden
- *               of proof runs the other way from a spelling.
+ *               of proof runs the other way from a spelling. Never marked in
+ *               the rendered text (see CorrectedText) — this is the one kind
+ *               nothing here calls attention to.
  *
- * A suggestion overlapping a name span is dropped. Both would rewrite the same
- * characters, and the name has to win.
+ * A suggestion overlapping a name or correction span is dropped; whichever was
+ * already placed wins the characters.
  */
 export function buildEdits(text, { corrections = [], suggestions = [] } = {}) {
   const names = locateNameChanges(text, corrections);
+  const plain = locatePlainCorrections(text, corrections);
+  const claimed = [...names, ...plain];
 
   const spellings = suggestions
     .filter((s) => isAnchored(text, s))
@@ -107,9 +142,9 @@ export function buildEdits(text, { corrections = [], suggestions = [] } = {}) {
       alternative: s.suggestion,
       suggestion: s,
     }))
-    .filter((s) => !names.some((n) => s.at < n.at + n.length && n.at < s.at + s.length));
+    .filter((s) => !claimed.some((c) => s.at < c.at + c.length && c.at < s.at + s.length));
 
-  return [...names, ...spellings].sort((a, b) => a.at - b.at);
+  return [...claimed, ...spellings].sort((a, b) => a.at - b.at);
 }
 
 /** Keys that should start active: every name change, plus suggestions in Auto. */
@@ -134,9 +169,12 @@ export function resolveEdits(text, edits, activeKeys = EMPTY) {
 
   for (const edit of edits) {
     if (edit.at < cursor) continue; // overlaps one already consumed
+
     out += text.slice(cursor, edit.at);
 
-    const active = activeKeys.has(edit.key);
+    // A non-reversible edit (an ordinary correction) always shows its own
+    // text — there is no state to flip, so it never consults activeKeys.
+    const active = edit.reversible === false ? true : activeKeys.has(edit.key);
     const term = active ? edit.alternative : edit.base;
 
     marks.push({ ...edit, active, at: out.length, term });

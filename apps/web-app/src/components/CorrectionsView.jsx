@@ -56,28 +56,25 @@ function resolveRule(correction = {}) {
   return RULE_META.grammar;
 }
 
+/* One highlight for every mark this view shows. Corrections the model already
+   made and suggestions waiting on the reader used to read in three different
+   registers (solid fill, dashed border, emerald once applied); collapsing
+   them to one removed a legend that existed only to explain the difference. */
+const MARK_CLASS =
+  'bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px] border border-yellow-300/70';
+
 /**
  * Corrected text with every applied edit highlighted, and every dictionary
- * suggestion actionable.
+ * suggestion actionable — a single visual treatment for both, so hovering or
+ * tabbing to any marked word is what tells you what kind it is, not its color.
  *
- * Marks read in three registers, deliberately distinct:
- *   yellow fill, solid border   — an edit the model already made
- *   yellow fill, dashed border  — a suggestion waiting on the reader
- *   emerald fill                — a suggestion the reader (or Auto mode)
- *                                 applied
+ * A name the substitution guard flagged is the one exception: it renders as
+ * plain text, unmarked. The source's spelling is restored underneath (see
+ * useResolvedText/buildEdits) and stays that way; a name is simply never
+ * something this view calls attention to, in either mode.
  *
- * The pending state was a dotted underline and went unnoticed — too quiet to
- * read as actionable, so the layer looked like decoration. It now shares the
- * changed-word fill and is separated only by the dashed border, which is the
- * minimum that still says "proposed, not done".
- *
- * A name the substitution guard flagged is NOT one of the registers above —
- * it renders as plain text, unmarked. The source's spelling is restored
- * underneath (see useResolvedText/buildEdits) and stays that way; a name is
- * simply never something this view calls attention to, in either mode.
- *
- * `acceptedKeys` / `onAccept` are optional. Without them the suggestions are
- * still explained on hover but cannot be applied, which is what the read-only
+ * `acceptedKeys` / `onAccept` are optional. Without them a suggestion is still
+ * explained on hover but cannot be applied, which is what the read-only
  * surfaces (history, comparison) want.
  */
 export function CorrectedText({ marks = [], text = '', className = '', onToggle }) {
@@ -93,6 +90,23 @@ export function CorrectedText({ marks = [], text = '', className = '', onToggle 
     if (mark.kind === 'name') {
       // Plain text, on purpose — see the docstring above.
       nodes.push(mark.term);
+    } else if (mark.kind === 'correction') {
+      // Informational only: nothing to accept or undo, just what changed.
+      nodes.push(
+        <WordPopover
+          key={`c-${i}`}
+          ariaLabel={`Changed: ${mark.correction?.original || '—'} to ${mark.term}`}
+          panel={
+            <p className="text-[13px] font-sinhala">
+              <span className="text-ink-400 line-through">{mark.correction?.original || '—'}</span>
+              <span className="text-ink-300 mx-1.5">→</span>
+              <span className="font-semibold text-ink-900">{mark.term}</span>
+            </p>
+          }
+        >
+          <mark className={`${MARK_CLASS} ${className}`}>{mark.term}</mark>
+        </WordPopover>
+      );
     } else {
       nodes.push(
         <WordPopover
@@ -110,17 +124,7 @@ export function CorrectedText({ marks = [], text = '', className = '', onToggle 
             />
           )}
         >
-          <span
-            className={
-              mark.active
-                ? `bg-emerald-100 text-emerald-950 font-medium px-1 py-0.5 rounded-[3px]
-                   border border-emerald-300 ${className}`
-                : `bg-yellow-100 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px]
-                   border border-dashed border-yellow-500/80 ${className}`
-            }
-          >
-            {mark.term}
-          </span>
+          <mark className={`${MARK_CLASS} ${className}`}>{mark.term}</mark>
         </WordPopover>
       );
     }
@@ -144,14 +148,6 @@ function SuggestionPanel({ suggestion, accepted, onAccept }) {
         </span>
         <span className="text-ink-300 mx-1.5">→</span>
         <span className="font-semibold text-ink-900">{suggestion.suggestion}</span>
-      </p>
-      {/* The counts are the whole argument for the suggestion — it is evidence
-          from a 215k-article corpus, not a dictionary ruling. Showing them
-          lets an editor overrule it on sight for a name or a rare-but-correct
-          word. */}
-      <p className="text-[10.5px] text-ink-500 tabular-nums">
-        seen {Number(suggestion.seen ?? 0).toLocaleString()}× vs{' '}
-        {Number(suggestion.suggestion_seen ?? 0).toLocaleString()}× in the news corpus
       </p>
       {onAccept && (
         <button
@@ -238,9 +234,6 @@ export function SuggestionsList({
                   <span className="text-ink-300 text-[10px]">→</span>
                   <span className="font-sinhala text-[12px] font-semibold text-ink-800">{s.suggestion}</span>
                 </div>
-                <p className="text-[10px] text-ink-500 mt-0.5 tabular-nums">
-                  seen {Number(s.seen ?? 0).toLocaleString()}× vs {Number(s.suggestion_seen ?? 0).toLocaleString()}× in the news corpus
-                </p>
               </div>
               {canAct && (
                 <button

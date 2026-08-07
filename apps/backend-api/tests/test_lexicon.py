@@ -274,3 +274,43 @@ def test_without_a_lexicon_the_rule_is_silent():
     """Advisory layer: no data means no guess, never a crash."""
     assert sentence_final.check("එක්වෙමින්.", None) == []
     assert sentence_final.check("එක්වෙමින්.", {}) == []
+
+
+@needs_lexicon
+def test_dropped_vowel_typo_resolves_to_the_grammatically_correct_form():
+    """
+    Reported: a dropped-vowel typo (සක්‍රය, missing the vowel sign entirely)
+    was suggested as සක්‍රීය — itself a common misspelling.
+
+    Corpus frequency has this backwards: සක්‍රීය outnumbers සක්‍රිය 4.6x. But
+    the bare root ක්‍රියා ("action") is written with the short vowel with zero
+    exceptions across 40,000+ occurrences of its inflections — writers get the
+    root right and the sa-/a- prefixed form wrong, plausibly by false analogy
+    with the genuine long "-ීය" adjectival suffix (as in සමාජීය). Curated in
+    build_corpus_dataset.CURATED_NORMALIZE; this pins the fix at the lexicon.
+    """
+    got = check("මෙය සක්‍රය ලෙස සලකනු ලැබේ.")
+    assert [(s.original, s.suggestion) for s in got] == [("සක්‍රය", "සක්‍රිය")]
+
+
+@needs_lexicon
+def test_the_common_long_form_misspelling_is_itself_caught():
+    """The curated fold must make සක්‍රීය directly correctable too, not just
+    reachable as a completion of the dropped-vowel typo."""
+    got = check("එම පද්ධතිය සක්‍රීය කෙරිණි. එය අක්‍රීය තත්වයේ තිබුණි.")
+    assert [(s.original, s.suggestion) for s in got] == [
+        ("සක්‍රීය", "සක්‍රිය"),
+        ("අක්‍රීය", "අක්‍රිය"),
+    ]
+
+
+@needs_lexicon
+def test_the_correct_short_forms_are_never_flagged():
+    assert check("එය සක්‍රිය කර ඇත. එය අක්‍රිය කර ඇත.") == []
+
+
+@needs_lexicon
+def test_the_root_word_and_its_inflections_are_never_flagged():
+    """ක්‍රියා/ක්‍රියාව/ක්‍රියාත්මක/ක්‍රියාකාරී are unambiguous — the curated
+    pair must not spill over onto the root the prefixed forms are built on."""
+    assert check("එය ක්‍රියාත්මක කරන ලදී. ක්‍රියාව අවසන් විය.") == []
