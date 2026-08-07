@@ -276,41 +276,133 @@ def test_without_a_lexicon_the_rule_is_silent():
     assert sentence_final.check("එක්වෙමින්.", {}) == []
 
 
+# ── Sentence-final colloquial verb rule: -නව -> -නවා ──
+
+@needs_lexicon
+def test_sentence_final_bare_verb_is_flagged():
+    """
+    Reported: තිබෙනව was left uncorrected at a sentence end. Measured
+    sentence-final in the corpus: bare -නව 127 times across 34 verb stems
+    against 16,376 for -නවා — a missing ා, not a second valid form.
+    """
+    text = "රැස්වීම හෙට පැවැත්වීමට තිබෙනව."
+    got = sentence_final.check(text, lexicon._lexicon())
+    assert [(s.original, s.suggestion) for s in got] == [("තිබෙනව", "තිබෙනවා")]
+    assert text[got[0].position:got[0].position + len(got[0].original)] == got[0].original
+
+
+@needs_lexicon
+def test_mid_sentence_bare_verb_is_left_alone():
+    """The rule only looks at the word immediately before the sentence stop."""
+    assert sentence_final.check("කරනව යැයි ඔහු කීවේය.", lexicon._lexicon()) == []
+
+
+@needs_lexicon
+def test_bare_word_new_or_nine_is_never_flagged():
+    """
+    නව on its own means "new" or "nine" — it is not a truncated verb, it IS
+    the -නව suffix in full. A naive suffix match would misfire on it, so the
+    rule requires a stem before the suffix (_MIN_VERB_STEM) and excludes the
+    bare word explicitly as a second, independent guard.
+    """
+    assert sentence_final.check("අද නව.", lexicon._lexicon()) == []
+
+
+# ── Sentence-final rule: නියමිත -> නියමිතය ──
+
+@needs_lexicon
+def test_bare_niyamita_is_completed_with_the_formal_suffix():
+    """
+    Measured sentence-final: නියමිත. bare is 2 occurrences against 7,100 for
+    නියමිතය. and 789 for නියමිතයි. — bare is essentially never correct there,
+    and between the two completions -ය wins 9:1 AT THIS POSITION. This is the
+    opposite of the any-position ratio the dropped-vowel guard in lexicon.py
+    documents (නියමිතයි outnumbering නියමිතය generally, 10,149 to 766) —
+    position decides here, not overall frequency, which is why this is a
+    sentence_final rule and not a lexicon.py candidate.
+    """
+    text = "ඉදිරියේදී තවත් වැඩසටහන් පැවැත්වීමට නියමිත."
+    got = sentence_final.check(text, lexicon._lexicon())
+    assert [(s.original, s.suggestion) for s in got] == [("නියමිත", "නියමිතය")]
+
+
+@needs_lexicon
+def test_niyamitayi_and_niyamitaya_are_never_flagged():
+    """Both completed forms are correct sentence-final; only the bare stem is not."""
+    assert sentence_final.check("රැස්වීම හෙට පැවැත්වීමට නියමිතය.", lexicon._lexicon()) == []
+    assert sentence_final.check("රැස්වීම හෙට පැවැත්වීමට නියමිතයි.", lexicon._lexicon()) == []
+
+
 @needs_lexicon
 def test_dropped_vowel_typo_resolves_to_the_grammatically_correct_form():
     """
-    Reported: a dropped-vowel typo (සක්‍රය, missing the vowel sign entirely)
-    was suggested as සක්‍රීය — itself a common misspelling.
+    A dropped-vowel typo (සක්‍රය, missing the vowel sign entirely) must
+    resolve to සක්‍රීය — confirmed by a native speaker as the correct
+    spelling of "active".
 
-    Corpus frequency has this backwards: සක්‍රීය outnumbers සක්‍රිය 4.6x. But
-    the bare root ක්‍රියා ("action") is written with the short vowel with zero
-    exceptions across 40,000+ occurrences of its inflections — writers get the
-    root right and the sa-/a- prefixed form wrong, plausibly by false analogy
-    with the genuine long "-ීය" adjectival suffix (as in සමාජීය). Curated in
-    build_corpus_dataset.CURATED_NORMALIZE; this pins the fix at the lexicon.
+    A prior round asserted the opposite here and shipped a curated override
+    forcing සක්‍රීය -> සක්‍රිය, reasoning from the bare root ක්‍රියා ("action"),
+    which is written with the short vowel with zero exceptions at scale. That
+    reasoning was wrong: ක්‍රියා (the noun) and සක්‍රීය/අක්‍රීය (the adjectives
+    "active"/"inactive") are different Sanskrit-derived forms, and the analogy
+    across them does not hold. The override corrupted correct text — every
+    occurrence of සක්‍රීය in real articles got flagged for "correction" into
+    the wrong spelling — and has been removed. This test pins the correct
+    direction so that mistake cannot silently return.
     """
     got = check("මෙය සක්‍රය ලෙස සලකනු ලැබේ.")
-    assert [(s.original, s.suggestion) for s in got] == [("සක්‍රය", "සක්‍රිය")]
+    assert [(s.original, s.suggestion) for s in got] == [("සක්‍රය", "සක්‍රීය")]
 
 
 @needs_lexicon
-def test_the_common_long_form_misspelling_is_itself_caught():
-    """The curated fold must make සක්‍රීය directly correctable too, not just
-    reachable as a completion of the dropped-vowel typo."""
-    got = check("එම පද්ධතිය සක්‍රීය කෙරිණි. එය අක්‍රීය තත්වයේ තිබුණි.")
-    assert [(s.original, s.suggestion) for s in got] == [
-        ("සක්‍රීය", "සක්‍රිය"),
-        ("අක්‍රීය", "අක්‍රිය"),
-    ]
-
-
-@needs_lexicon
-def test_the_correct_short_forms_are_never_flagged():
-    assert check("එය සක්‍රිය කර ඇත. එය අක්‍රිය කර ඇත.") == []
+def test_the_correct_long_forms_are_never_flagged():
+    """
+    සක්‍රීය/අක්‍රීය are correct and must never be proposed for "correction".
+    This is the regression test for the corruption itself: with the wrong
+    curated override in place, this assertion failed — real, correct text
+    was being flagged.
+    """
+    assert check("එම පද්ධතිය සක්‍රීය කෙරිණි. එය අක්‍රීය තත්වයේ තිබුණි.") == []
 
 
 @needs_lexicon
 def test_the_root_word_and_its_inflections_are_never_flagged():
-    """ක්‍රියා/ක්‍රියාව/ක්‍රියාත්මක/ක්‍රියාකාරී are unambiguous — the curated
-    pair must not spill over onto the root the prefixed forms are built on."""
+    """ක්‍රියා/ක්‍රියාව/ක්‍රියාත්මක/ක්‍රියාකාරී are unambiguous and unrelated to
+    the සක්‍රීය/අක්‍රීය question — neither should ever affect the other."""
     assert check("එය ක්‍රියාත්මක කරන ලදී. ක්‍රියාව අවසන් විය.") == []
+
+
+@needs_lexicon
+def test_missing_anusvara_is_restored():
+    """
+    Reported: අමාත්‍යාශයේ ("of the ministry", missing the anusvara ං) was not
+    corrected. Two independent causes, both fixed:
+
+    1. ං is not a vowel sign, so _dropped_vowel_candidates never tried
+       inserting it — see _ANUSVARA. A candidate was never even generated.
+    2. Even with a candidate, 47 corpus occurrences clears _MAX_SEEN=5, so
+       lexicon frequency alone would still leave it silent. Curated in
+       build_corpus_dataset.CURATED_NORMALIZE, same mechanism as ජුනි/මගහැර.
+    """
+    got = check("අමාත්‍යාශයේ නිලධාරීන් රැස්විය.")
+    assert [(s.original, s.suggestion) for s in got] == [("අමාත්‍යාශයේ", "අමාත්‍යාංශයේ")]
+
+
+def test_anusvara_insertion_allowed_after_a_vowel_sign():
+    """
+    The general regression this depends on: ං commonly follows a vowel sign
+    (අමාත්‍යාංශය itself is ...ය + ා + ං + ...), unlike an ordinary vowel sign,
+    which never stacks on another one. _dropped_vowel_candidates must insert
+    ං at that position while still skipping ordinary-vowel-sign insertion
+    there — this does not need the shipped lexicon, only the generator.
+    """
+    cands = _dropped_vowel_candidates("අමාත්‍යාශයේ")
+    assert "අමාත්‍යාංශයේ" in cands
+
+    # The position right after "ා" is where ං was inserted. Confirm the skip
+    # is selective rather than simply disabled: no ORDINARY vowel sign should
+    # be insertable at that same position — only _ANUSVARA is exempt from the
+    # "previous is a vowel sign" skip.
+    prefix = "අමාත්‍යා"  # "අ ම ා ත ් ZWJ ය ා" — ends right after the vowel sign
+    stacked_vowel = {c for c in cands if c.startswith(prefix) and len(c) == len(prefix) + 1}
+    assert stacked_vowel == set(), stacked_vowel

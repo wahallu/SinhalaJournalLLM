@@ -212,15 +212,29 @@ def _doubled_candidates(word: str) -> set[str]:
 # (build_corpus_dataset.py VOWEL_SIGNS).
 _VOWEL_SIGNS = "ාැෑිීුූෘෙේෛොෝෞ"
 
+# The anusvara (ං, nasalisation — "ministry" as අමාත්‍යාංශය vs. the typo
+# අමාත්‍යාශය) is dropped by the exact same class of typo as a vowel sign — one
+# character silently missing from an otherwise-correct word — and is restored
+# the same way: try inserting it at every plausible position and let the
+# lexicon counts decide. Kept separate from _VOWEL_SIGNS rather than folded
+# into it because the two need different insertion rules below: a real vowel
+# sign never stacks on another vowel sign, so the skip two lines down is
+# correct for them, but ං routinely does follow one (අමාත්‍යාංශය is itself
+# ...ය + ා + ං + ...) — folding it into _VOWEL_SIGNS would make it subject to
+# a skip written for a constraint it doesn't share, and silently exclude the
+# exact position this exists to catch.
+_ANUSVARA = "ං"
+
 
 def _dropped_vowel_candidates(word: str) -> set[str]:
     """
-    Forms reachable by restoring a dropped vowel sign.
+    Forms reachable by restoring a dropped vowel sign or anusvara.
 
     A third distinct error class: මෙහදී for මෙහිදී is a missing ි, which is
     neither a swap nor a repetition, so the two generators above cannot reach it
-    at any threshold. Vowel signs only ever follow a consonant, so insertion is
-    tried only in those positions rather than at every offset.
+    at any threshold. Vowel signs and the anusvara only ever follow a
+    consonant (or, for the anusvara, a vowel sign), so insertion is tried only
+    in those positions rather than at every offset.
 
     Insertion stops before the final letter. A vowel sign appended at the very
     end of a Sinhala word is inflection, not a typo: නියමිතය and නියමිතයි are
@@ -232,10 +246,12 @@ def _dropped_vowel_candidates(word: str) -> set[str]:
     out: set[str] = set()
     for i in range(1, len(word)):
         previous = word[i - 1]
-        if previous in _VOWEL_SIGNS or previous == "‍" or previous == "්":
+        if previous == "‍" or previous == "්":
             continue
-        for sign in _VOWEL_SIGNS:
-            out.add(word[:i] + sign + word[i:])
+        if previous not in _VOWEL_SIGNS:
+            for sign in _VOWEL_SIGNS:
+                out.add(word[:i] + sign + word[i:])
+        out.add(word[:i] + _ANUSVARA + word[i:])
     out.discard(word)
     return out
 
