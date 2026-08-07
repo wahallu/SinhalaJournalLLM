@@ -111,14 +111,35 @@ async def signup(payload: SignupRequest) -> SessionResponse:
     # `from ... import get_supabase`, so the test suite's fake_supabase
     # fixture covers this path. A direct import binds its own name at import
     # time and silently keeps hitting the real database under test.
+    # These are two writes with no transaction between them. If the second one
+    # fails the account is left unusable rather than absent: login still
+    # succeeds (_session tolerates a missing profile) but deps._resolve rejects
+    # every subsequent request, so the user appears signed in and then gets 401
+    # on everything, permanently, with no way to recover it themselves.
+    # Undoing the credentials row turns that silent trap into a plain signup
+    # failure the user can simply retry.
     client = await base.get_supabase()
-    await client.table("profiles").insert({
-        "id": user["id"],
-        "email": email,
-        "full_name": payload.full_name,
-        "role": "user",
-        "status": "active",
-    }).execute()
+    try:
+        await client.table("profiles").insert({
+            "id": user["id"],
+            "email": email,
+            "full_name": payload.full_name,
+            "role": "user",
+            "status": "active",
+        }).execute()
+    except Exception as exc:
+        logger.exception("Profile insert failed for %s — rolling back the user row", email)
+        try:
+            await user_repository.delete_user(user["id"])
+        except Exception:
+            logger.exception(
+                "Could not roll back user %s — it now has no profile and must "
+                "be repaired by hand", user["id"],
+            )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not complete signup. Please try again.",
+        ) from exc
 
     await _send_verification(user["id"], email)
 

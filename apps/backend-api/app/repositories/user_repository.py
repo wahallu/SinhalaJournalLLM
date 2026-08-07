@@ -62,6 +62,19 @@ async def create_user(email: str, password_hash: str) -> dict[str, Any]:
     return response.data[0]
 
 
+async def delete_user(user_id: str) -> None:
+    """
+    Remove a credentials row.
+
+    Only for rolling back a signup whose profile insert failed. An account left
+    in that half-created state can log in but is rejected by every authenticated
+    endpoint, which is worse than not existing. This is not an account-deletion
+    feature — suspension is `status` on the profile, not removal.
+    """
+    client = await base.get_supabase()
+    await client.table(USERS).delete().eq("id", user_id).execute()
+
+
 async def set_password(user_id: str, password_hash: str) -> None:
     client = await base.get_supabase()
     await client.table(USERS).update({"password_hash": password_hash}).eq("id", user_id).execute()

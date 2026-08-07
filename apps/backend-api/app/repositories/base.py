@@ -15,27 +15,78 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from typing import Any
 
+import httpx
+
 from app.core.database import get_supabase
 
 logger = logging.getLogger(__name__)
 
 # A dead Supabase host costs ~11s in DNS resolution alone on Windows, which
-# would be paid on every request. Cap each attempt hard, and after a failure
-# skip persistence entirely for a cooldown window (circuit breaker).
+# would be paid on every request. Cap each attempt hard, and once the host
+# looks genuinely unreachable skip it entirely for a cooldown (circuit breaker).
 WRITE_TIMEOUT_SECONDS = 3.0
-READ_TIMEOUT_SECONDS = 5.0
+# Raised from 5s: on a cold Render dyno talking to a sleeping Supabase project,
+# the first read routinely takes longer than 5s. That is a slow database, not a
+# missing one, and timing it out used to be enough to lock every user out — see
+# the failure threshold below.
+READ_TIMEOUT_SECONDS = 8.0
 CIRCUIT_COOLDOWN_SECONDS = 60.0
 
+# The circuit opens only after this many CONSECUTIVE infrastructure failures.
+#
+# It used to open on the first exception of any kind, which made a single slow
+# query a total outage: the breaker is process-wide, and authentication reads
+# the `profiles` table through it. One cold-start timeout therefore produced
+# exactly the symptoms reported — POST /auth/login returning 503 (login calls
+# get_profile) and every authenticated GET returning 401 (deps._resolve treats
+# an unreadable profile as unauthenticated) — for a full 60 seconds, for
+# everybody. Trying a different account "fixing" it was the cooldown expiring,
+# not anything about the account.
+CIRCUIT_FAILURE_THRESHOLD = 3
+
 _circuit_open_until: float = 0.0
+_consecutive_failures: int = 0
 
 
 def _circuit_is_open() -> bool:
     return time.monotonic() < _circuit_open_until
 
 
-def _trip_circuit() -> None:
+def _is_unreachable(exc: BaseException) -> bool:
+    """
+    True when the database could not be reached at all.
+
+    An APIError means PostgREST answered — the row was missing, RLS refused,
+    a constraint failed. The database is up, so that must never open the
+    breaker no matter how often it happens; only transport-level faults count.
+    """
+    return isinstance(exc, (TimeoutError, asyncio.TimeoutError, httpx.TransportError, OSError))
+
+
+def _record_failure(exc: BaseException) -> None:
+    """Count an infrastructure failure, opening the circuit once it persists."""
+    global _consecutive_failures
+    if not _is_unreachable(exc):
+        return
+    _consecutive_failures += 1
+    if _consecutive_failures >= CIRCUIT_FAILURE_THRESHOLD:
+        _circuit_open()
+
+
+def _record_success() -> None:
+    """A completed round trip clears the run of failures."""
+    global _consecutive_failures
+    _consecutive_failures = 0
+
+
+def _circuit_open() -> None:
     global _circuit_open_until
     _circuit_open_until = time.monotonic() + CIRCUIT_COOLDOWN_SECONDS
+    logger.error(
+        "Database unreachable %d times in a row — skipping it for %.0fs",
+        _consecutive_failures,
+        CIRCUIT_COOLDOWN_SECONDS,
+    )
 
 
 class DatabaseUnavailable(Exception):
@@ -98,8 +149,8 @@ async def insert_record(table: str, record: dict[str, Any]) -> dict[str, Any]:
             timeout=WRITE_TIMEOUT_SECONDS,
         )
         return response.data[0]
-    except Exception:
-        _trip_circuit()
+    except Exception as exc:
+        _record_failure(exc)
         logger.exception(
             "Failed to persist record to %s — returning unsaved record and "
             "skipping persistence for %.0fs",
@@ -129,8 +180,9 @@ async def fetch_by_id(
             timeout=READ_TIMEOUT_SECONDS,
         )
     except Exception as exc:
-        _trip_circuit()
+        _record_failure(exc)
         raise DatabaseUnavailable(f"Failed to read {table}: {exc}") from exc
+    _record_success()
     return response.data if response is not None else None
 
 
@@ -158,8 +210,9 @@ async def fetch_page(
             timeout=READ_TIMEOUT_SECONDS,
         )
     except Exception as exc:
-        _trip_circuit()
+        _record_failure(exc)
         raise DatabaseUnavailable(f"Failed to read {table}: {exc}") from exc
+    _record_success()
     return response.data, response.count or 0
 
 
@@ -183,6 +236,7 @@ async def fetch_recent(
             timeout=READ_TIMEOUT_SECONDS,
         )
     except Exception as exc:
-        _trip_circuit()
+        _record_failure(exc)
         raise DatabaseUnavailable(f"Failed to read {table}: {exc}") from exc
+    _record_success()
     return response.data

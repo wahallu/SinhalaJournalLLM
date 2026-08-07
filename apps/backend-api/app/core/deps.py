@@ -64,6 +64,17 @@ async def _resolve(request: Request) -> AuthUser | None:
         return None
 
     if profile is None:
+        # The token is cryptographically valid but there is no profiles row.
+        # Nothing deletes profiles — suspension sets status instead — so this
+        # is always a data-integrity gap, most likely a signup whose second
+        # insert failed. It is worth its own log line because the symptom
+        # (401 on every call, for one account, permanently) is identical to an
+        # expired token and impossible to tell apart otherwise.
+        logger.error(
+            "No profiles row for authenticated user %s — account cannot be "
+            "used until the row is restored",
+            user_id,
+        )
         return None
 
     user = AuthUser(
