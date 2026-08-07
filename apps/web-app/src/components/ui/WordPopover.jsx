@@ -29,12 +29,29 @@ const CLOSE_GRACE_MS = 160;
 const GAP = 8;
 const EDGE = 10;
 
+/**
+ * The one popover currently open, as a function that closes it.
+ *
+ * Only one may be open at a time, and opening a second closes the first. This
+ * is not tidiness — it fixes a real trap. A panel is far wider than the word
+ * it belongs to and sits on the line below, so it frequently covers the *next*
+ * marked word. Moving the pointer there put it inside the old panel, whose own
+ * "is the pointer still over me?" guard then refused every close request. The
+ * panel could never be dismissed by moving away, because moving away is what
+ * kept it alive, and panels accumulated across the paragraph.
+ */
+let closeOpenPopover = null;
+
 export default function WordPopover({ children, panel, className = '', ariaLabel }) {
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState(null);
   const anchorRef = useRef(null);
   const panelRef = useRef(null);
   const openTimer = useRef(null);
+  /* How the popover was opened. Pointer and keyboard need different dismissal
+     rules — see closeIfAway — and the DOM cannot tell them apart after the
+     fact, because a click focuses the word just as Tab does. */
+  const openedByKeyboard = useRef(false);
   const closeTimer = useRef(null);
   const panelId = useId();
 
@@ -65,14 +82,25 @@ export default function WordPopover({ children, panel, className = '', ariaLabel
   const closeIfAway = useCallback((relatedTarget = null) => {
     const overAnchor = anchorRef.current?.matches(':hover');
     const overPanel = panelRef.current?.matches(':hover');
+
     // `document.activeElement` at blur time is still the blurring element
     // in Safari/Firefox; use `relatedTarget` (where focus is *going*) if
     // available so Tab-into-the-panel is not treated as a leave.
     const nextFocus = relatedTarget ?? document.activeElement;
-    const focusInside =
+
+    /* Focus inside the PANEL always holds it open — otherwise pressing Apply
+       dismisses the thing being pressed.
+
+       Focus on the ANCHOR only holds it open for a keyboard user. Clicking a
+       word also focuses it, and treating that as "hold open" left the popover
+       stuck: the pointer moved away, mouseleave fired, and this guard refused
+       every close for as long as the word kept focus. That is the bug where
+       popovers piled up and never dismissed. */
+    const focusHolds =
       panelRef.current?.contains(nextFocus) ||
-      anchorRef.current === nextFocus;
-    if (overAnchor || overPanel || focusInside) return;
+      (openedByKeyboard.current && anchorRef.current === nextFocus);
+
+    if (overAnchor || overPanel || focusHolds) return;
     setOpen(false);
   }, []);
 
@@ -122,6 +150,19 @@ export default function WordPopover({ children, panel, className = '', ariaLabel
     };
   }, [open]);
 
+  /* Enforce the single-open rule. Registering closes whoever held the slot,
+     and the cleanup releases it only if we still own it — a later popover may
+     already have taken over by the time this one tears down. */
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = () => setOpen(false);
+    if (closeOpenPopover && closeOpenPopover !== close) closeOpenPopover();
+    closeOpenPopover = close;
+    return () => {
+      if (closeOpenPopover === close) closeOpenPopover = null;
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
@@ -145,18 +186,30 @@ export default function WordPopover({ children, panel, className = '', ariaLabel
         aria-controls={open ? panelId : undefined}
         className={`cursor-pointer rounded-[2px] outline-none focus-visible:ring-2
           focus-visible:ring-brand-400/70 focus-visible:ring-offset-1 ${className}`}
-        onMouseEnter={() => scheduleOpen()}
-        onMouseLeave={scheduleClose}
-        onFocus={() => scheduleOpen(true)}
+        onMouseEnter={() => { openedByKeyboard.current = false; scheduleOpen(); }}
+        onMouseLeave={() => scheduleClose()}
+        // Fires on click too (focus follows mousedown), so onClick below
+        // corrects the flag afterwards for pointer interactions.
+        onFocus={() => { openedByKeyboard.current = true; scheduleOpen(true); }}
         onBlur={(e) => scheduleClose(e.relatedTarget)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
+            openedByKeyboard.current = true;
             scheduleOpen(true);
           }
         }}
-        // Touch has no hover: a tap opens it.
-        onClick={() => scheduleOpen(true)}
+        /* Touch has no hover, so a tap opens it — and a second tap closes it
+           again, which is the only dismissal a touch user has. */
+        onClick={() => {
+          openedByKeyboard.current = false;
+          if (open) {
+            clearTimers();
+            setOpen(false);
+          } else {
+            scheduleOpen(true);
+          }
+        }}
       >
         {children}
       </span>

@@ -259,49 +259,71 @@ def check(text: str, min_ratio: int = 3, max_suggestions: int = 25) -> list[Sugg
         return []
 
     suggestions: list[Suggestion] = []
-    seen_words: set[str] = set()
+    # word -> (suggestion, written_count, suggestion_count) or None when the
+    # word is fine. Purely a cache: the candidate generation below is the
+    # expensive part and the answer cannot differ between two occurrences of
+    # the same word.
+    verdicts: dict[str, tuple[str, int, int] | None] = {}
 
     for match in _WORD_RE.finditer(unicodedata.normalize("NFC", text)):
         word = match.group(0)
-        if word in seen_words:
-            continue
-        seen_words.add(word)
 
-        written = lexicon.get(word, 0)
+        if word not in verdicts:
+            verdicts[word] = _verdict(word, lexicon, min_ratio)
 
-        # A word the corpus knows is left alone, however much commoner its
-        # neighbour is — see _MAX_SEEN. The cost is real: දුෂණ appears 224
-        # times against දූෂණ's 1,636, and this skips it. That is the deliberate
-        # trade, because the same leniency that catches දුෂණ also "corrects"
-        # මඟහැර and බැණ, which are right as written.
-        if written > _MAX_SEEN:
+        verdict = verdicts[word]
+        if verdict is None:
             continue
 
-        candidates = (
-            _swap_candidates(word)
-            | _doubled_candidates(word)
-            | _dropped_vowel_candidates(word)
-        )
-        best, best_count = None, 0
-        for candidate in candidates:
-            count = lexicon.get(candidate, 0)
-            if count > best_count:
-                best, best_count = candidate, count
-
-        if best is None:
-            continue
-        if best_count < min_ratio * max(written, 1):
-            continue
-
+        suggestion, written, best_count = verdict
+        # One entry per OCCURRENCE, not per distinct word. Skipping repeats
+        # meant a misspelling used three times was underlined once and left
+        # bare the other two, which reads as the checker having changed its
+        # mind rather than as a deliberate limit.
         suggestions.append(
             Suggestion(
                 position=match.start(),
                 original=word,
-                suggestion=best,
+                suggestion=suggestion,
                 seen=written,
                 suggestion_seen=best_count,
             )
         )
 
+    # Commonest suggestion first so the cap keeps the best evidence, then back
+    # into document order: a client marks by offset, and a list that jumps
+    # around the article is hard to review against the text.
     suggestions.sort(key=lambda s: -s.suggestion_seen)
-    return suggestions[:max_suggestions]
+    return sorted(suggestions[:max_suggestions], key=lambda s: s.position)
+
+
+def _verdict(
+    word: str, lexicon: dict[str, int], min_ratio: int
+) -> tuple[str, int, int] | None:
+    """The suggestion for one word, or None when it should be left alone."""
+    written = lexicon.get(word, 0)
+
+    # A word the corpus knows is left alone, however much commoner its
+    # neighbour is — see _MAX_SEEN. The cost is real: a misspelling common
+    # enough to clear that bar is invisible here, and the fix for those is
+    # CURATED_NORMALIZE in build_corpus_dataset (which folds the wrong form to
+    # zero and so brings it back under this bar), not a looser threshold — the
+    # same leniency that would catch දුෂණ also "corrects" මඟහැර and බැණ, which
+    # are right as written.
+    if written > _MAX_SEEN:
+        return None
+
+    candidates = (
+        _swap_candidates(word)
+        | _doubled_candidates(word)
+        | _dropped_vowel_candidates(word)
+    )
+    best, best_count = None, 0
+    for candidate in candidates:
+        count = lexicon.get(candidate, 0)
+        if count > best_count:
+            best, best_count = candidate, count
+
+    if best is None or best_count < min_ratio * max(written, 1):
+        return None
+    return best, written, best_count

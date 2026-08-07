@@ -1,7 +1,7 @@
-import { AlertTriangle, Check, Layers, SpellCheck, Undo2 } from 'lucide-react';
+import { Check, Layers, SpellCheck, Undo2 } from 'lucide-react';
 import { Card } from './ui/Card';
 import WordPopover from './ui/WordPopover';
-import { resolveSuggestions, suggestionKey } from '../lib/suggestions';
+import { suggestionKey } from '../lib/suggestions';
 
 /* Module-level so the default prop is referentially stable — a fresh Set()
    per render would change identity every time and defeat memoisation in any
@@ -57,151 +57,77 @@ function resolveRule(correction = {}) {
 }
 
 /**
- * Locate each correction inside the corrected text.
- *
- * Scans forward from a moving cursor rather than restarting at 0 for every
- * correction: a word corrected twice in one article (common — the same
- * misspelling repeated) would otherwise resolve both corrections onto the
- * first occurrence and leave the second unmarked.
- */
-function locate(text, corrections) {
-  const spans = [];
-  let cursor = 0;
-  for (const correction of corrections) {
-    const term = correction.corrected;
-    if (!term) continue;
-    const at = text.indexOf(term, cursor);
-    if (at === -1) continue;
-    spans.push({ at, term, correction });
-    cursor = at + term.length;
-  }
-  return spans;
-}
-
-/**
  * Corrected text with every applied edit highlighted, and every dictionary
  * suggestion actionable.
  *
  * Marks read in three registers, deliberately distinct:
- *   yellow fill    — an edit the model already made
- *   rose fill      — an edit the substitution guard thinks replaced a word
- *   dotted underline — a suggestion nothing has acted on yet
+ *   yellow fill, solid border   — an edit the model already made
+ *   yellow fill, dashed border  — a suggestion waiting on the reader
+ *   emerald fill                — a suggestion the reader (or Auto mode)
+ *                                 applied
  *
- * A red wavy underline was tried for the last one and sat too close to the
- * Sinhala glyphs' own descenders and vowel signs; the mark and the script
- * competed. A dotted underline set well below the baseline does not.
+ * The pending state was a dotted underline and went unnoticed — too quiet to
+ * read as actionable, so the layer looked like decoration. It now shares the
+ * changed-word fill and is separated only by the dashed border, which is the
+ * minimum that still says "proposed, not done".
+ *
+ * A name the substitution guard flagged is NOT one of the registers above —
+ * it renders as plain text, unmarked. The source's spelling is restored
+ * underneath (see useResolvedText/buildEdits) and stays that way; a name is
+ * simply never something this view calls attention to, in either mode.
  *
  * `acceptedKeys` / `onAccept` are optional. Without them the suggestions are
  * still explained on hover but cannot be applied, which is what the read-only
  * surfaces (history, comparison) want.
  */
-export function CorrectedText({
-  text,
-  corrections = [],
-  suggestions = [],
-  acceptedKeys = EMPTY_SET,
-  onAccept,
-  className = '',
-}) {
+export function CorrectedText({ marks = [], text = '', className = '', onToggle }) {
   if (!text) return null;
-
-  /* One pass produces both the text to show and where each suggestion sits in
-     it. Accepting a suggestion can change the text's length, so anything that
-     tracked offsets separately would drift after the first acceptance. */
-  const { text: shownText, marks } = resolveSuggestions(text, suggestions, acceptedKeys);
-
-  const applied = locate(shownText, corrections).map((s) => ({ ...s, kind: 'applied' }));
-
-  // An applied edit wins any overlap: the text there has already changed, so a
-  // suggestion about the old spelling is stale.
-  const flagged = marks
-    .map((m) => ({ at: m.at, term: m.term, mark: m, kind: 'suggested' }))
-    .filter((s) => !applied.some((a) => s.at < a.at + a.term.length && a.at < s.at + s.term.length));
-
-  const spans = [...applied, ...flagged].sort((a, b) => a.at - b.at);
-  if (!spans.length) return <>{shownText}</>;
+  if (!marks.length) return <>{text}</>;
 
   const nodes = [];
   let cursor = 0;
 
-  spans.forEach(({ at, term, correction, mark, kind }, i) => {
-    if (at > cursor) nodes.push(shownText.slice(cursor, at));
+  marks.forEach((mark, i) => {
+    if (mark.at > cursor) nodes.push(text.slice(cursor, mark.at));
 
-    if (kind === 'applied') {
-      const suspicious = correction.suspicious;
-      nodes.push(
-        <WordPopover
-          key={`c-${i}`}
-          ariaLabel={`${suspicious ? 'Flagged change' : 'Change'}: ${correction.original || '—'} to ${term}`}
-          panel={
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-ink-500">
-                {suspicious ? 'Check this change' : 'Changed'}
-              </p>
-              <p className="text-[13px] font-sinhala">
-                <span className="text-ink-400 line-through">{correction.original || '—'}</span>
-                <span className="text-ink-300 mx-1.5">→</span>
-                <span className={`font-semibold ${suspicious ? 'text-rose-900' : 'text-ink-900'}`}>{term}</span>
-              </p>
-              {suspicious && (
-                <p className="text-[11px] leading-snug text-rose-700">
-                  {correction.suspicious_reason || 'Possible word replacement — verify against your source.'}
-                </p>
-              )}
-            </div>
-          }
-        >
-          <mark
-            className={
-              suspicious
-                ? `bg-rose-200/90 text-rose-950 font-semibold px-1 py-0.5 rounded-[3px]
-                   border border-rose-400/80 ${className}`
-                : `bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px]
-                   border border-yellow-300/70 ${className}`
-            }
-          >
-            {term}
-          </mark>
-        </WordPopover>
-      );
+    if (mark.kind === 'name') {
+      // Plain text, on purpose — see the docstring above.
+      nodes.push(mark.term);
     } else {
-      const { suggestion, accepted, key } = mark;
       nodes.push(
         <WordPopover
           key={`s-${i}`}
           ariaLabel={
-            accepted
-              ? `Applied: ${suggestion.original} changed to ${suggestion.suggestion}`
-              : `Possible misspelling: ${suggestion.original}. Suggested ${suggestion.suggestion}`
+            mark.active
+              ? `Applied: ${mark.base} changed to ${mark.alternative}`
+              : `Possible misspelling: ${mark.base}. Suggested ${mark.alternative}`
           }
           panel={({ close }) => (
             <SuggestionPanel
-              suggestion={suggestion}
-              accepted={accepted}
-              onAccept={onAccept ? () => { onAccept(key); close(); } : undefined}
+              suggestion={mark.suggestion}
+              accepted={mark.active}
+              onAccept={onToggle ? () => { onToggle(mark.key); close(); } : undefined}
             />
           )}
         >
           <span
             className={
-              accepted
-                ? // Applied by the reader, not the model — emerald keeps it
-                  // distinct from the model's own yellow edits.
-                  `bg-emerald-100 text-emerald-950 font-medium px-1 py-0.5 rounded-[3px]
+              mark.active
+                ? `bg-emerald-100 text-emerald-950 font-medium px-1 py-0.5 rounded-[3px]
                    border border-emerald-300 ${className}`
-                : `underline decoration-dotted decoration-2 decoration-sky-500/80
-                   underline-offset-[5px] ${className}`
+                : `bg-yellow-100 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px]
+                   border border-dashed border-yellow-500/80 ${className}`
             }
           >
-            {term}
+            {mark.term}
           </span>
         </WordPopover>
       );
     }
-    cursor = at + term.length;
+    cursor = mark.at + mark.term.length;
   });
 
-  nodes.push(shownText.slice(cursor));
+  nodes.push(text.slice(cursor));
   return <>{nodes}</>;
 }
 
@@ -286,11 +212,6 @@ export function SuggestionsList({
           </button>
         )}
       </div>
-      <p className="text-[10.5px] text-ink-400 mb-2.5 leading-snug">
-        {canAct
-          ? 'Not changed automatically — the checker only flags them. Apply the ones you agree with.'
-          : 'Not changed — these are rare spellings the checker noticed. Your call.'}
-      </p>
       <div className="space-y-1.5">
         {suggestions.map((s, i) => {
           const key = suggestionKey(s);
@@ -355,42 +276,24 @@ export function SuggestionsList({
  * material, rather than take the corrected text on trust.
  */
 export function CorrectionsList({ corrections = [], className = '' }) {
-  if (!corrections.length) return null;
+  /* A name the substitution guard flagged is never applied (see
+     useResolvedText), so it does not belong in a list titled "Corrections
+     applied" — the text does not say what this row would claim it says. Left
+     out entirely rather than shown with a warning: a name is not a thing this
+     view calls attention to at all. */
+  const applied = corrections.filter((c) => !c.suspicious);
+  if (!applied.length) return null;
 
   const breakdown = {};
-  corrections.forEach((c) => {
+  applied.forEach((c) => {
     const meta = resolveRule(c);
     breakdown[meta.label] = breakdown[meta.label] || { count: 0, meta };
     breakdown[meta.label].count += 1;
   });
   const entries = Object.entries(breakdown).sort((a, b) => b[1].count - a[1].count);
-  const flaggedCount = corrections.filter((c) => c.suspicious).length;
 
   return (
     <Card className={`px-4 py-4 space-y-4 ${className}`}>
-      {/* Sits above the category breakdown, not inside the list, because the
-          list is scrollable and a renamed person must not be something an
-          editor can scroll past. The model swaps one real surname for another
-          in roughly 1.5-2% of articles and does it fluently, so nothing in the
-          text itself signals the error. */}
-      {flaggedCount > 0 && (
-        <div className="flex items-start gap-2.5 px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-xl">
-          <AlertTriangle size={13} className="mt-0.5 shrink-0 text-rose-600" />
-          <div className="min-w-0">
-            <p className="text-[11.5px] font-semibold text-rose-800">
-              {flaggedCount === 1
-                ? '1 change may have replaced a word'
-                : `${flaggedCount} changes may have replaced words`}
-            </p>
-            <p className="text-[10.5px] text-rose-700/90 leading-snug mt-0.5">
-              Marked in red below and in the text. These look like a different
-              word rather than a corrected spelling — often a name. Check them
-              against your source before publishing.
-            </p>
-          </div>
-        </div>
-      )}
-
       {entries.length > 1 && (
         <div>
           <p className="text-[10px] font-bold text-ink-500 uppercase tracking-[0.12em] mb-2 flex items-center gap-1.5">
@@ -404,7 +307,7 @@ export function CorrectionsList({ corrections = [], className = '' }) {
                 <div className="w-20 h-1.5 bg-ink-100 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full ${meta.bar}`}
-                    style={{ width: `${Math.round((count / corrections.length) * 100)}%` }}
+                    style={{ width: `${Math.round((count / applied.length) * 100)}%` }}
                   />
                 </div>
                 <span className="text-[11px] font-semibold text-ink-600 w-3 text-right tabular-nums">{count}</span>
@@ -419,47 +322,18 @@ export function CorrectionsList({ corrections = [], className = '' }) {
           Corrections applied
         </p>
         <div className="space-y-1.5">
-          {corrections.map((c, i) => {
+          {applied.map((c, i) => {
             const meta = resolveRule(c);
             return (
-              <div
-                key={i}
-                className={
-                  c.suspicious
-                    ? 'flex items-start gap-2.5 px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-xl'
-                    : 'flex items-start gap-2.5 px-3 py-2.5 bg-ink-50/70 border border-ink-100 rounded-xl'
-                }
-              >
-                {c.suspicious ? (
-                  <AlertTriangle size={12} className="mt-1 shrink-0 text-rose-600" />
-                ) : (
-                  <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
-                )}
+              <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 bg-ink-50/70 border border-ink-100 rounded-xl">
+                <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-sinhala text-[12px] text-ink-400 line-through decoration-brand-300">{c.original}</span>
                     <span className="text-ink-300 text-[10px]">→</span>
-                    <span
-                      className={
-                        c.suspicious
-                          ? 'font-sinhala text-[12px] font-semibold text-rose-900'
-                          : 'font-sinhala text-[12px] font-semibold text-ink-800'
-                      }
-                    >
-                      {c.corrected}
-                    </span>
+                    <span className="font-sinhala text-[12px] font-semibold text-ink-800">{c.corrected}</span>
                   </div>
-                  {c.suspicious ? (
-                    /* The reason, verbatim from the guard, rather than a generic
-                       "check this" — it names what triggered the flag, which is
-                       what lets an editor dismiss it in one read when it is a
-                       false alarm. */
-                    <p className="text-[10px] text-rose-700 mt-0.5 leading-snug">
-                      {c.suspicious_reason || 'Possible word replacement — verify against your source.'}
-                    </p>
-                  ) : (
-                    <p className="text-[10px] text-ink-500 mt-0.5 uppercase tracking-wide">{meta.label}</p>
-                  )}
+                  <p className="text-[10px] text-ink-500 mt-0.5 uppercase tracking-wide">{meta.label}</p>
                 </div>
               </div>
             );

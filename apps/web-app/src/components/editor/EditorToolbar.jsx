@@ -1,11 +1,14 @@
 import Dropdown from '../ui/Dropdown';
+import ModeToggle from '../ui/ModeToggle';
 import { TOOLBAR_CONTROLS } from '../../lib/toolOptions';
+import { useSuggestionMode } from '../../lib/suggestionMode';
 
 export default function EditorToolbar({
   tool, title, icon: Icon, charCount, maxChars, isOverLimit, isNearLimit,
-  settings, onSettingsChange,
+  settings, onSettingsChange, hasResult = false,
 }) {
   const controls = TOOLBAR_CONTROLS[tool] ?? [];
+  const [mode, setMode] = useSuggestionMode();
 
   return (
     <div className="flex items-center gap-2 px-3 py-2 border-b border-ink-100 flex-wrap shrink-0">
@@ -31,13 +34,32 @@ export default function EditorToolbar({
         ))}
       </div>
 
-      <span
-        className={`ml-auto text-[11px] font-medium tabular-nums whitespace-nowrap pr-1 ${
-          isOverLimit ? 'text-brand-600 font-semibold' : isNearLimit ? 'text-amber-600' : 'text-ink-400'
-        }`}
-        aria-live="polite"
-      >
-        {charCount.toLocaleString()} / {maxChars.toLocaleString()}
+      <span className="ml-auto flex items-center gap-2 pr-1">
+        {/* Grammar only: the other three tools rewrite wholesale and have no
+            suggestion layer for a mode to govern, so a toggle there would be a
+            control that does nothing. */}
+        {tool === 'grammar' && (
+          <ModeToggle
+            value={mode}
+            onChange={setMode}
+            /* Locked once a result is on screen. Flipping the mode there would
+               have to re-baseline every decision already made on that result,
+               silently discarding them — and the two modes differ only in
+               where they start, so anything Auto would have done is still one
+               click away per word. Editing the text or clearing unlocks it. */
+            disabled={hasResult}
+            disabledHint="Finish or clear this result to change the mode"
+          />
+        )}
+
+        <span
+          className={`text-[11px] font-medium tabular-nums whitespace-nowrap ${
+            isOverLimit ? 'text-brand-600 font-semibold' : isNearLimit ? 'text-amber-600' : 'text-ink-400'
+          }`}
+          aria-live="polite"
+        >
+          {charCount.toLocaleString()} / {maxChars.toLocaleString()}
+        </span>
       </span>
     </div>
   );

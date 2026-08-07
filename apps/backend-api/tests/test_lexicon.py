@@ -193,3 +193,84 @@ def test_suggestion_is_immutable():
     s = Suggestion(position=0, original="අ", suggestion="ආ", seen=1, suggestion_seen=99)
     with pytest.raises(Exception):
         s.suggestion = "වෙනස්"
+
+
+@needs_lexicon
+def test_every_occurrence_is_flagged_not_just_the_first():
+    """
+    A misspelling used three times must be flagged three times.
+
+    check() used to dedupe by word, so a client marking by offset underlined
+    the first occurrence and left the rest bare — which reads as the checker
+    changing its mind rather than as a deliberate limit, and left the reader
+    no way to fix the ones it skipped.
+    """
+    sentence = "දුෂණ චෝදනා ගැන කතා විය. දුෂණ නැවතීමට නම් දුෂණ ගැන දැනුවත් විය යුතුය."
+    flagged = [s for s in check(sentence) if s.original == "දුෂණ"]
+
+    assert sentence.count("දුෂණ") == 3
+    assert len(flagged) == 3
+    assert len({s.position for s in flagged}) == 3
+
+
+@needs_lexicon
+def test_every_suggestion_anchors_at_its_offset():
+    """
+    The offset must index the exact word, or a client marks the wrong one.
+    Clients verify this and silently drop anything that fails, so a drift here
+    shows up as "flagged in the list but not underlined in the text".
+    """
+    sentence = "දුෂණ චෝදනා. ජුනි මාසයේ පරීක්ශන පැවැත්විණි. දුෂණ නැවතිය යුතුය."
+    for s in check(sentence):
+        assert sentence[s.position:s.position + len(s.original)] == s.original
+
+
+@needs_lexicon
+def test_results_are_in_document_order():
+    """Reviewing against the text is impossible if the list jumps around it."""
+    sentence = "දුෂණ චෝදනා. ජුනි මාසයේ පරීක්ශන පැවැත්විණි. මගහැර ගිය ජිප් රථය."
+    positions = [s.position for s in check(sentence)]
+    assert positions == sorted(positions)
+
+
+# ── Sentence-final participle rule ──
+
+from app.services.grammar import sentence_final  # noqa: E402
+
+
+@needs_lexicon
+def test_sentence_final_participle_is_flagged():
+    """-මින් at a sentence end should be -මිනි (90.6% of the time in corpus)."""
+    text = "ඔහු මේ බව පැවසුවේ වැඩසටහන සමඟ එක්වෙමින්."
+    got = sentence_final.check(text, lexicon._lexicon())
+    assert [(s.original, s.suggestion) for s in got] == [("එක්වෙමින්", "එක්වෙමිනි")]
+    assert text[got[0].position:got[0].position + len(got[0].original)] == got[0].original
+
+
+@needs_lexicon
+def test_mid_sentence_participle_is_left_alone():
+    """
+    The whole rule is positional. Mid-sentence -මින් is correct and is 16,616
+    of the 16,637 occurrences measured — flagging it would be wrong far more
+    often than right.
+    """
+    assert sentence_final.check("වැඩසටහන සමඟ එක්වෙමින් ඔහු පැවසීය.", lexicon._lexicon()) == []
+
+
+@needs_lexicon
+def test_vocative_noun_is_excluded():
+    """ස්වාමින් is a noun, not a participle, and both spellings are real."""
+    assert sentence_final.check("ගරු ස්වාමින්.", lexicon._lexicon()) == []
+
+
+@needs_lexicon
+def test_unattested_final_form_is_not_invented():
+    """No corpus evidence for the -මිනි counterpart means no suggestion."""
+    for s in sentence_final.check("ඔහු කෙසේවත් ගොනුමින්.", lexicon._lexicon()):
+        assert s.suggestion_seen > 0
+
+
+def test_without_a_lexicon_the_rule_is_silent():
+    """Advisory layer: no data means no guess, never a crash."""
+    assert sentence_final.check("එක්වෙමින්.", None) == []
+    assert sentence_final.check("එක්වෙමින්.", {}) == []

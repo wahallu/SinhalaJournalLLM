@@ -3,7 +3,8 @@ import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
 import { SkeletonLines } from './ui/Skeleton';
 import { CorrectedText, CorrectionsList, SuggestionsList } from './CorrectionsView';
-import { useAcceptedSuggestions } from '../lib/suggestions';
+import { useResolvedText } from '../lib/suggestions';
+import { useSuggestionMode } from '../lib/suggestionMode';
 
 /* Stable identities for the "not present" case. A fresh [] each render would
    change the hook's dependencies every time and recompute for nothing. */
@@ -51,7 +52,13 @@ export default function OutputPanel({ output, loading, error, type, input, summa
      defensively because `output` is null on both of those paths. */
   const grammarSource = output?.corrected ?? '';
   const grammarSuggestions = output?.suggestions ?? NO_SUGGESTIONS;
-  const accepted = useAcceptedSuggestions(grammarSource, grammarSuggestions);
+  const [mode] = useSuggestionMode();
+  const grammarCorrections = output?.corrections ?? NO_SUGGESTIONS;
+  const resolved = useResolvedText(grammarSource, {
+    corrections: grammarCorrections,
+    suggestions: grammarSuggestions,
+    autoApply: mode === 'auto',
+  });
 
   if (loading) {
     return (
@@ -185,16 +192,14 @@ export default function OutputPanel({ output, loading, error, type, input, summa
             {/* Copies the text as it currently reads, applied suggestions
                 included — copying the pre-suggestion version would silently
                 discard the edits the reader just made. */}
-            <CopyButton id="copy-output" text={accepted.text || displayText} />
+            <CopyButton id="copy-output" text={resolved.text || displayText} />
           </div>
           <Card className="px-5 py-4 border-emerald-200/60">
             <p className="font-sinhala text-[15px] leading-[1.85] whitespace-pre-wrap text-ink-800">
               <CorrectedText
-                text={displayText}
-                corrections={corrections}
-                suggestions={suggestions}
-                acceptedKeys={accepted.acceptedKeys}
-                onAccept={accepted.toggle}
+                text={resolved.text}
+                marks={resolved.marks}
+                onToggle={resolved.toggle}
               />
             </p>
             {(corrections.length > 0 || suggestions.length > 0) && (
@@ -209,17 +214,20 @@ export default function OutputPanel({ output, loading, error, type, input, summa
                 )}
                 {suggestions.length > 0 && (
                   <span>
-                    <span className="underline decoration-dotted decoration-2 decoration-sky-500/80 underline-offset-[3px]">
-                      Dotted
+                    <span className="bg-yellow-100 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px] border border-dashed border-yellow-500/80">
+                      Dashed
                     </span>{' '}
-                    words were left as written — hover or tab to one to apply the suggestion.
-                    {accepted.acceptedCount > 0 && (
+                    words are suggestions — hover or tab to one to apply it.
+                    {resolved.appliedSuggestionCount > 0 && (
                       <>
                         {' '}
+                        <span className="bg-emerald-100 text-emerald-950 font-medium px-1 py-0.5 rounded-[3px] border border-emerald-300">
+                          Green
+                        </span>{' '}
                         <span className="text-emerald-700 font-semibold">
-                          {accepted.acceptedCount} applied
+                          ({resolved.appliedSuggestionCount} applied)
                         </span>
-                        .
+                        {mode === 'auto' && ' — applied for you by Auto mode'}.
                       </>
                     )}
                   </span>
@@ -300,9 +308,9 @@ export default function OutputPanel({ output, loading, error, type, input, summa
       {showCorrections && (
         <SuggestionsList
           suggestions={suggestions}
-          acceptedKeys={accepted.acceptedKeys}
-          onAccept={accepted.toggle}
-          onAcceptAll={accepted.acceptAll}
+          acceptedKeys={resolved.activeKeys}
+          onAccept={resolved.toggle}
+          onAcceptAll={resolved.applyAllSuggestions}
         />
       )}
 

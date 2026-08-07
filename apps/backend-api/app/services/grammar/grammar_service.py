@@ -30,6 +30,7 @@ from app.schemas.grammar import (
     GrammarCheckResponse,
     SpellingSuggestion,
 )
+from app.services.grammar import sentence_final
 from app.services.grammar.substitution_guard import inspect_substitution
 from app.services.grammar import lexicon
 from app.services.grammar.chunking import chunk_text
@@ -254,12 +255,26 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
     suggestions: list[SpellingSuggestion] = []
     if spell_ratio:
         try:
+            found = list(lexicon.check(corrected_text, min_ratio=spell_ratio))
+
+            # The sentence-final participle rule (-මින් -> -මිනි at a sentence
+            # end) is positional, so the frequency lexicon cannot see it —
+            # both forms are real words and it compares counts. Merged here
+            # rather than kept separate because to a reader they are the same
+            # kind of thing: a flagged word with a proposed replacement.
+            taken = {s.position for s in found}
+            found += [
+                s for s in sentence_final.check(corrected_text, lexicon._lexicon())
+                if s.position not in taken
+            ]
+            found.sort(key=lambda s: s.position)
+
             suggestions = [
                 SpellingSuggestion(
                     position=s.position, original=s.original, suggestion=s.suggestion,
                     seen=s.seen, suggestion_seen=s.suggestion_seen,
                 )
-                for s in lexicon.check(corrected_text, min_ratio=spell_ratio)
+                for s in found
             ]
         except Exception:
             # Advisory extra: never let it fail a correction that succeeded.

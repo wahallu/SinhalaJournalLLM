@@ -251,6 +251,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
             onRun={handleRun}
             onClear={clear}
             loading={loading}
+            hasResult={Boolean(output)}
             settings={settings}
             onSettingsChange={setSettings}
           />
