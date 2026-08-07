@@ -784,6 +784,38 @@ input:checked + .slider:before {
   line-height: 1.3;
 }
 
+/* ── Substitution guard ──
+   The ordinary correction item already carries the brand tint and a red left
+   border, so a flagged one is distinguished by a heavier fill plus the one
+   signal nothing else uses: .corr-new flips from green (this was fixed) to
+   deep red (this may be wrong). Semantic reds here, deliberately outside the
+   brand ramp — the same separation the status dots use. */
+.correction-warning-banner {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  color: #991b1b;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.correction-detail-item.is-flagged {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  border-left-color: #dc2626;
+}
+
+.correction-detail-item.is-flagged .corr-new {
+  color: #7f1d1d;
+}
+
+.correction-detail-item.is-flagged .correction-rule {
+  color: #b91c1c;
+}
+
 /* ── Optimize result cards (Tools tab) ── */
 .optimize-results {
   display: flex;

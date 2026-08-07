@@ -344,6 +344,34 @@
     .inline-corr-arrow { color: #a6a2a2; font-size: 10px; }
     .inline-corr-new { color: #1d1819; font-weight: 600; }
 
+    /* Substitution-guard states. The ordinary item above already sits on the
+       brand tint, so a flagged one needs a heavier fill AND a left bar to read
+       as different rather than as more of the same — otherwise everything
+       looks mildly alarming and nothing stands out. No icon glyph: the card
+       is emoji-free by design. */
+    .inline-corr-warning {
+      padding: 7px 9px;
+      border-radius: 8px;
+      background: #fee2e2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+      font-size: 11.5px;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+    .inline-corr-item.is-flagged {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      border-left: 3px solid #dc2626;
+    }
+    .inline-corr-item.is-flagged .inline-corr-new { color: #7f1d1d; }
+    .inline-corr-reason {
+      margin-top: 3px;
+      font-size: 10.5px;
+      line-height: 1.4;
+      color: #b91c1c;
+    }
+
     .action-controls { display: flex; gap: 6px; flex-shrink: 0; }
     .btn-inline-primary {
       flex: 1;
@@ -876,15 +904,38 @@
 
       if (data.corrections && data.corrections.length > 0) {
         inlineCorrectionsList.classList.remove("hidden");
+
+        // The backend's substitution guard marks edits that look like a
+        // different word rather than a fixed spelling — usually a swapped
+        // name. Banner first: the card is small and scrolls, and a renamed
+        // person must not be something the user scrolls past.
+        const flagged = data.corrections.filter((c) => c.suspicious);
+        if (flagged.length > 0) {
+          const warn = document.createElement("div");
+          warn.className = "inline-corr-warning";
+          warn.textContent =
+            flagged.length === 1
+              ? "1 change may have replaced a word — check it below."
+              : `${flagged.length} changes may have replaced words — check them below.`;
+          inlineCorrectionsList.appendChild(warn);
+        }
+
         data.corrections.forEach((c) => {
           const div = document.createElement("div");
-          div.className = "inline-corr-item";
+          div.className = c.suspicious ? "inline-corr-item is-flagged" : "inline-corr-item";
           div.innerHTML = `
             <div class="inline-corr-comp">
               <span class="inline-corr-orig">${escapeHtml(c.original)}</span>
               <span class="inline-corr-arrow">➔</span>
               <span class="inline-corr-new">${escapeHtml(c.corrected)}</span>
             </div>
+            ${
+              c.suspicious
+                ? `<div class="inline-corr-reason">${escapeHtml(
+                    c.suspicious_reason || "Possible word replacement — verify against your source."
+                  )}</div>`
+                : ""
+            }
           `;
           inlineCorrectionsList.appendChild(div);
         });

@@ -541,17 +541,38 @@ document.addEventListener("DOMContentLoaded", () => {
       
       if (data.corrections && data.corrections.length > 0) {
         grammarCorrectionsList.classList.remove("hidden");
-        
+
+        // Mirrors the inline card: the substitution guard flags edits that
+        // look like a swapped word rather than a fixed spelling, and a
+        // renamed person has to be visible before the user copies the text
+        // out. Banner first so it survives scrolling.
+        const flagged = data.corrections.filter((c) => c.suspicious);
+        if (flagged.length > 0) {
+          const warn = document.createElement("div");
+          warn.className = "correction-warning-banner";
+          warn.textContent =
+            flagged.length === 1
+              ? "1 change may have replaced a word — check it below before using this text."
+              : `${flagged.length} changes may have replaced words — check them below before using this text.`;
+          grammarCorrectionsList.appendChild(warn);
+        }
+
         data.corrections.forEach((c) => {
           const detailItem = document.createElement("div");
-          detailItem.className = "correction-detail-item";
+          detailItem.className = c.suspicious
+            ? "correction-detail-item is-flagged"
+            : "correction-detail-item";
           detailItem.innerHTML = `
             <div class="correction-comparison">
               <span class="corr-orig">${escapeHtml(c.original)}</span>
               <span class="corr-arrow">➔</span>
               <span class="corr-new">${escapeHtml(c.corrected)}</span>
             </div>
-            <div class="correction-rule">${escapeHtml(c.rule)}</div>
+            <div class="correction-rule">${escapeHtml(
+              c.suspicious
+                ? c.suspicious_reason || "Possible word replacement — verify against your source."
+                : c.rule
+            )}</div>
           `;
           grammarCorrectionsList.appendChild(detailItem);
         });

@@ -1,4 +1,4 @@
-import { Layers, SpellCheck } from 'lucide-react';
+import { AlertTriangle, Layers, SpellCheck } from 'lucide-react';
 import { Card } from './ui/Card';
 
 /**
@@ -103,11 +103,25 @@ export function CorrectedText({ text, corrections = [], suggestions = [], classN
     if (at > cursor) nodes.push(text.slice(cursor, at));
     nodes.push(
       kind === 'applied' ? (
+        /* A flagged edit gets rose rather than yellow. The backend's
+           substitution guard thinks this replaced a word rather than fixing a
+           spelling — most often a name — so it must not blend in with the
+           routine edits around it. Same fill treatment, different hue, because
+           the point is "look here", not "something else happened here". */
         <mark
           key={i}
-          title={`${correction.original || '—'} → ${term}`}
-          className={`bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px]
-            border border-yellow-300/70 ${className}`}
+          title={
+            correction.suspicious
+              ? `${correction.original || '—'} → ${term}\n\n⚠ ${correction.suspicious_reason || 'Possible word replacement — verify.'}`
+              : `${correction.original || '—'} → ${term}`
+          }
+          className={
+            correction.suspicious
+              ? `bg-rose-200/90 text-rose-950 font-semibold px-1 py-0.5 rounded-[3px]
+                 border border-rose-400/80 cursor-help ${className}`
+              : `bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px]
+                 border border-yellow-300/70 ${className}`
+          }
         >
           {term}
         </mark>
@@ -194,9 +208,33 @@ export function CorrectionsList({ corrections = [], className = '' }) {
     breakdown[meta.label].count += 1;
   });
   const entries = Object.entries(breakdown).sort((a, b) => b[1].count - a[1].count);
+  const flaggedCount = corrections.filter((c) => c.suspicious).length;
 
   return (
     <Card className={`px-4 py-4 space-y-4 ${className}`}>
+      {/* Sits above the category breakdown, not inside the list, because the
+          list is scrollable and a renamed person must not be something an
+          editor can scroll past. The model swaps one real surname for another
+          in roughly 1.5-2% of articles and does it fluently, so nothing in the
+          text itself signals the error. */}
+      {flaggedCount > 0 && (
+        <div className="flex items-start gap-2.5 px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-xl">
+          <AlertTriangle size={13} className="mt-0.5 shrink-0 text-rose-600" />
+          <div className="min-w-0">
+            <p className="text-[11.5px] font-semibold text-rose-800">
+              {flaggedCount === 1
+                ? '1 change may have replaced a word'
+                : `${flaggedCount} changes may have replaced words`}
+            </p>
+            <p className="text-[10.5px] text-rose-700/90 leading-snug mt-0.5">
+              Marked in red below and in the text. These look like a different
+              word rather than a corrected spelling — often a name. Check them
+              against your source before publishing.
+            </p>
+          </div>
+        </div>
+      )}
+
       {entries.length > 1 && (
         <div>
           <p className="text-[10px] font-bold text-ink-500 uppercase tracking-[0.12em] mb-2 flex items-center gap-1.5">
@@ -228,15 +266,44 @@ export function CorrectionsList({ corrections = [], className = '' }) {
           {corrections.map((c, i) => {
             const meta = resolveRule(c);
             return (
-              <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 bg-ink-50/70 border border-ink-100 rounded-xl">
-                <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
+              <div
+                key={i}
+                className={
+                  c.suspicious
+                    ? 'flex items-start gap-2.5 px-3 py-2.5 bg-rose-50 border border-rose-200 rounded-xl'
+                    : 'flex items-start gap-2.5 px-3 py-2.5 bg-ink-50/70 border border-ink-100 rounded-xl'
+                }
+              >
+                {c.suspicious ? (
+                  <AlertTriangle size={12} className="mt-1 shrink-0 text-rose-600" />
+                ) : (
+                  <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${meta.dot}`} />
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-sinhala text-[12px] text-ink-400 line-through decoration-brand-300">{c.original}</span>
                     <span className="text-ink-300 text-[10px]">→</span>
-                    <span className="font-sinhala text-[12px] font-semibold text-ink-800">{c.corrected}</span>
+                    <span
+                      className={
+                        c.suspicious
+                          ? 'font-sinhala text-[12px] font-semibold text-rose-900'
+                          : 'font-sinhala text-[12px] font-semibold text-ink-800'
+                      }
+                    >
+                      {c.corrected}
+                    </span>
                   </div>
-                  <p className="text-[10px] text-ink-500 mt-0.5 uppercase tracking-wide">{meta.label}</p>
+                  {c.suspicious ? (
+                    /* The reason, verbatim from the guard, rather than a generic
+                       "check this" — it names what triggered the flag, which is
+                       what lets an editor dismiss it in one read when it is a
+                       false alarm. */
+                    <p className="text-[10px] text-rose-700 mt-0.5 leading-snug">
+                      {c.suspicious_reason || 'Possible word replacement — verify against your source.'}
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-ink-500 mt-0.5 uppercase tracking-wide">{meta.label}</p>
+                  )}
                 </div>
               </div>
             );
