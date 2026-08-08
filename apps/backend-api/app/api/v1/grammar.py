@@ -91,7 +91,7 @@ async def grammar_history_endpoint(
     """
     Retrieve the caller's paginated grammar correction history, newest first.
     """
-    records, total = await get_corrections(page=page, page_size=page_size, user_id=user.id, user_token=user.token)
+    records, total = await get_corrections(page=page, page_size=page_size, user_id=user.id)
     return GrammarHistoryResponse(
         items=[_record_to_response(r) for r in records],
         total=total,
@@ -113,7 +113,7 @@ async def grammar_detail_endpoint(
     exists.
     """
     record = await get_correction_by_id(
-        correction_id, user_id=user.id, user_token=user.token
+        correction_id, user_id=user.id
     )
     if not record:
         raise HTTPException(status_code=404, detail="Correction not found")

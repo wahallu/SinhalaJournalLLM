@@ -23,8 +23,11 @@ class AuthUser(BaseModel):
     status: str = "active"
     category_id: str | None = None
     # The caller's raw JWT. Internal only — excluded from any response model
-    # and never logged. Retained because callers still pass it around; it no
-    # longer builds a database client now that RLS is gone.
+    # and never logged. Nothing reads it any more: it used to build a
+    # per-caller database client for RLS, which the self-hosted auth
+    # migration removed. Kept because it is the verified token for the
+    # current request and is cheap to carry, but a new caller wanting
+    # per-user data should filter on `id`, not authenticate as this token.
     token: str | None = Field(default=None, exclude=True, repr=False)
 
     @property

@@ -104,7 +104,7 @@ async def headline_history_endpoint(
     """
     Retrieve the caller's paginated headline generation history, newest first.
     """
-    records, total = await get_generations(page=page, page_size=page_size, user_id=user.id, user_token=user.token)
+    records, total = await get_generations(page=page, page_size=page_size, user_id=user.id)
     items = [
         HeadlineHistoryItem(
             id=str(r["id"]),

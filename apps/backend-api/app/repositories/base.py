@@ -93,20 +93,34 @@ class DatabaseUnavailable(Exception):
     """History storage can't be reached (read path). Mapped to 503 in main."""
 
 
-async def resolve_client(user_token: str | None = None):
+async def resolve_client():
     """
     The database client to use for one operation.
 
-    With a token, returns a PostgREST client authenticated as that caller, so
-    Row Level Security decides what they can see. Without one, returns the
-    service-role client, which bypasses RLS — correct for admin paths and
-    telemetry, wrong for anything user-facing.
-    """
-    if user_token is None:
-        return await get_supabase()
-    from app.core.user_client import user_postgrest
+    Always the service-role client, and per-user scoping is the explicit
+    `user_id` filter every read below applies — the design the self-hosted
+    auth migration moved to (migrations/2026-08-02-self-hosted-auth.sql).
 
-    return await user_postgrest(user_token)
+    This used to build a PostgREST client from the caller's JWT so Row Level
+    Security could decide what they could see. That stopped working the
+    moment auth was self-hosted, and it took every user's history down with
+    it: the RLS policies keyed off `auth.uid()`, which is populated from a
+    SUPABASE-issued JWT, and the migration dropped them precisely because
+    our tokens can never satisfy them. RLS is still ENABLED with no policies
+    at all, so a non-service-role client now reads exactly zero rows —
+    the dashboard's "no activity yet" was RLS denying everything, not an
+    empty account.
+
+    It could not even get that far in practice: the token client read
+    `settings.SUPABASE_ANON_KEY`, a field that does not exist on Settings
+    (the key is PUBLIC_SUPABASE_ANON_KEY), so every call raised
+    AttributeError before a request was made. The tests missed it because
+    they monkeypatched the client factory out, which replaced the broken
+    call with a working fake.
+
+    Restoring the token client is therefore not the fix — it is the bug.
+    """
+    return await get_supabase()
 
 
 def _synthetic_record(record: dict[str, Any]) -> dict[str, Any]:
@@ -165,13 +179,19 @@ async def fetch_by_id(
     record_id: str,
     *,
     user_id: str | None = None,
-    user_token: str | None = None,
 ) -> dict[str, Any] | None:
-    """Fetch a single row by UUID, scoped to `user_id` when given."""
+    """
+    Fetch a single row by UUID, scoped to `user_id` when given.
+
+    Omitting `user_id` returns the row whoever owns it. That is correct for
+    admin paths and wrong for anything user-facing: this runs as service
+    role, so the filter is the only thing isolating one account from
+    another.
+    """
     if _circuit_is_open():
         raise DatabaseUnavailable(f"History storage unavailable (cooldown): {table}")
     try:
-        client = await resolve_client(user_token)
+        client = await resolve_client()
         query = client.table(table).select("*").eq("id", record_id)
         if user_id is not None:
             query = query.eq("user_id", user_id)
@@ -192,13 +212,16 @@ async def fetch_page(
     page: int = 1,
     page_size: int = 20,
     user_id: str | None = None,
-    user_token: str | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
-    """Newest-first page plus exact total, scoped to `user_id` when given."""
+    """
+    Newest-first page plus exact total, scoped to `user_id` when given.
+
+    Omitting `user_id` pages over every user's rows — see fetch_by_id.
+    """
     if _circuit_is_open():
         raise DatabaseUnavailable(f"History storage unavailable (cooldown): {table}")
     try:
-        client = await resolve_client(user_token)
+        client = await resolve_client()
         offset = (page - 1) * page_size
         query = client.table(table).select("*", count="exact")
         if user_id is not None:
@@ -220,12 +243,13 @@ async def count_rows(
     table: str,
     *,
     user_id: str | None = None,
-    user_token: str | None = None,
     since: str | None = None,
 ) -> int:
     """
     Exact row count, scoped to `user_id` and optionally to rows created at or
     after `since` (an ISO timestamp).
+
+    Omitting `user_id` counts every user's rows — see fetch_by_id.
 
     Counting server-side rather than measuring a fetched page: the dashboard
     used to derive "Total runs" from `len(history)` over a 50-row request, so
@@ -235,7 +259,7 @@ async def count_rows(
     if _circuit_is_open():
         raise DatabaseUnavailable(f"History storage unavailable (cooldown): {table}")
     try:
-        client = await resolve_client(user_token)
+        client = await resolve_client()
         query = client.table(table).select("id", count="exact", head=True)
         if user_id is not None:
             query = query.eq("user_id", user_id)
@@ -256,13 +280,16 @@ async def fetch_recent(
     limit: int,
     *,
     user_id: str | None = None,
-    user_token: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Newest `limit` rows without a count query, scoped when given."""
+    """
+    Newest `limit` rows without a count query, scoped when given.
+
+    Omitting `user_id` returns every user's rows — see fetch_by_id.
+    """
     if _circuit_is_open():
         raise DatabaseUnavailable(f"History storage unavailable (cooldown): {table}")
     try:
-        client = await resolve_client(user_token)
+        client = await resolve_client()
         query = client.table(table).select("*")
         if user_id is not None:
             query = query.eq("user_id", user_id)

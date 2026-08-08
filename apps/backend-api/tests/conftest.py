@@ -252,15 +252,17 @@ def fake_supabase(monkeypatch):
 
     monkeypatch.setattr("app.repositories.base.get_supabase", _get_fake)
 
-    # User-scoped reads build a PostgREST client from the caller's JWT.
-    # Without this the suite would open real HTTP connections to Supabase.
-    # The fake ignores the token, so RLS itself is NOT exercised here — that
-    # is covered by the explicit user_id filters and, in a real database, by
-    # the policies in schema.sql.
-    async def _get_fake_user_client(_jwt: str):
-        return fake
+    # There is deliberately no second patch for a caller-scoped client. Every
+    # read now goes through the service-role client above, and per-user
+    # isolation is the explicit user_id filter the repositories apply —
+    # which this fake honours, so the suite really does exercise it.
+    #
+    # The removed patch is why the "no history on the dashboard" outage
+    # survived a green suite: reads built a PostgREST client from the
+    # caller's JWT, that factory raised AttributeError on a settings field
+    # that does not exist, and patching it out replaced the broken call with
+    # this working fake in every test.
 
-    monkeypatch.setattr("app.core.user_client.user_postgrest", _get_fake_user_client)
     # A test that exercises a persistence failure trips the circuit breaker;
     # reset it so later tests still reach the fake store.
     monkeypatch.setattr("app.repositories.base._circuit_open_until", 0.0)
