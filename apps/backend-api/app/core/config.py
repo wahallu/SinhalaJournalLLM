@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     # How long an emailed password-reset or verification link stays valid.
     EMAIL_TOKEN_TTL_MINUTES: int = 60
 
+    # OAuth 2.0 Web Client ID from Google Cloud Console → APIs & Services →
+    # Credentials. Not secret — the frontend embeds the same value to render
+    # the Sign in with Google button. Empty disables POST /auth/google.
+    GOOGLE_CLIENT_ID: str = ""
+
     # ── Outbound email (Gmail SMTP) ──
     # Gmail requires an App Password (16 characters, account must have 2FA
     # enabled) — a normal account password will not authenticate. Free Gmail
@@ -108,8 +113,8 @@ class Settings(BaseSettings):
     OPENROUTER_IMAGE_API_KEY: str = ""
 
     # OpenAI Image Generation Configs
-    OPENAI_API_KEY: str = "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"
-    IMAGE_API_KEY: str = "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"
+    OPENAI_API_KEY: str = ""
+    IMAGE_API_KEY: str = ""
     IMAGE_MODEL: str = "gpt-image-1"
     IMAGE_GATEWAY_URL: str = "https://api.openai.com/v1"
 

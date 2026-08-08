@@ -55,6 +55,13 @@ export function AuthProvider({ children }) {
     return session;
   }, []);
 
+  const signInWithGoogle = useCallback(async (credential) => {
+    const session = await authClient.loginWithGoogle(credential);
+    authClient.storeTokens(session);
+    setAccount(session.user);
+    return session;
+  }, []);
+
   const signOut = useCallback(async () => {
     // Tokens are stateless, so signing out is purely local: drop them and
     // the short-lived access token expires on its own.
@@ -73,6 +80,7 @@ export function AuthProvider({ children }) {
       isAdmin: account?.role === 'admin',
       signIn,
       signUp,
+      signInWithGoogle,
       signOut,
       resetPassword: (email) => authClient.requestPasswordReset(email),
       updatePassword: (token, password) => authClient.resetPassword(token, password),
@@ -83,7 +91,7 @@ export function AuthProvider({ children }) {
         return me;
       },
     }),
-    [account, loading, signIn, signUp, signOut]
+    [account, loading, signIn, signUp, signInWithGoogle, signOut]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

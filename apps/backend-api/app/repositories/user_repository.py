@@ -47,15 +47,24 @@ async def get_by_id(user_id: str) -> dict[str, Any] | None:
     return response.data or None
 
 
-async def create_user(email: str, password_hash: str) -> dict[str, Any]:
-    """Insert a credentials row. The caller creates the matching profile."""
+async def create_user(
+    email: str, password_hash: str | None, *, email_verified: bool = False
+) -> dict[str, Any]:
+    """
+    Insert a credentials row. The caller creates the matching profile.
+
+    password_hash is None for a Google-only account — the same state a
+    Supabase OAuth-only user was migrated in as (see
+    migrations/2026-08-02-self-hosted-auth.sql). Such a row can still gain a
+    password later through "forgot password".
+    """
     client = await base.get_supabase()
     response = await (
         client.table(USERS)
         .insert({
             "email": normalize_email(email),
             "password_hash": password_hash,
-            "email_verified": False,
+            "email_verified": email_verified,
         })
         .execute()
     )
