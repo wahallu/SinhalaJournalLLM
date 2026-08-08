@@ -4,9 +4,11 @@ import { useAuth } from '../../auth/useAuth';
 import ActionButton from '../../components/ui/ActionButton';
 import AuthLayout from './AuthLayout';
 import { ERROR, INPUT, LABEL } from './formStyles';
+import GoogleButton from './GoogleButton';
+import { GOOGLE_CLIENT_ID } from '../../auth/googleIdentity';
 
 export default function Login() {
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
@@ -14,13 +16,29 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
+  const goToDestination = () =>
+    navigate(location.state?.from ?? location.state?.backgroundLocation?.pathname ?? '/dashboard', { replace: true });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
       await signIn(email, password);
-      navigate(location.state?.from ?? location.state?.backgroundLocation?.pathname ?? '/dashboard', { replace: true });
+      goToDestination();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleGoogleCredential = async (credential) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await signInWithGoogle(credential);
+      goToDestination();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -45,6 +63,17 @@ export default function Login() {
         </>
       }
     >
+      {GOOGLE_CLIENT_ID && (
+        <div className="space-y-4 mb-4">
+          <GoogleButton onCredential={handleGoogleCredential} disabled={busy} />
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-ink-100" />
+            <span className="text-[11.5px] font-semibold text-ink-400">OR</span>
+            <div className="h-px flex-1 bg-ink-100" />
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="email" className={LABEL}>

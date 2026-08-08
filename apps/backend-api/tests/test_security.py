@@ -8,9 +8,12 @@ issued for.
 """
 
 import time
+from types import SimpleNamespace
 
 import bcrypt
+import jwt
 import pytest
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 from app.core import security
 
@@ -134,3 +137,84 @@ def test_email_tokens_are_unique_per_call():
 def test_email_token_hash_differs_from_the_raw_value():
     raw = security.generate_url_token()
     assert security.hash_url_token(raw) != raw
+
+
+# ── Google Sign-In ──
+#
+# verify_google_id_token's own signature check runs for real against a
+# throwaway RSA keypair standing in for Google's — only the network fetch
+# of Google's actual JWKS is faked, via google_keypair below, so aud/iss/exp
+# validation is exercised exactly as it runs in production.
+
+def _google_id_token(private_key, **claim_overrides):
+    claims = {
+        "iss": "https://accounts.google.com",
+        "aud": "test-client-id",
+        "sub": "1234567890",
+        "email": "user@example.com",
+        "email_verified": True,
+        "iat": int(time.time()),
+        "exp": int(time.time()) + 3600,
+        **claim_overrides,
+    }
+    return jwt.encode(claims, private_key, algorithm="RS256")
+
+
+@pytest.fixture
+def google_keypair(monkeypatch):
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    monkeypatch.setattr(
+        security._google_jwk_client,
+        "get_signing_key_from_jwt",
+        lambda _token: SimpleNamespace(key=private_key.public_key()),
+    )
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id")
+    security.get_settings.cache_clear()
+    return private_key
+
+
+def test_valid_google_token_is_accepted(google_keypair):
+    claims = security.verify_google_id_token(_google_id_token(google_keypair))
+    assert claims["email"] == "user@example.com"
+
+
+def test_google_token_accepts_the_bare_domain_issuer_form(google_keypair):
+    """Google's own tokens and documentation use both forms interchangeably."""
+    token = _google_id_token(google_keypair, iss="accounts.google.com")
+    assert security.verify_google_id_token(token)["email"] == "user@example.com"
+
+
+def test_google_token_for_a_different_client_is_rejected(google_keypair):
+    """
+    aud identifies which OAuth client the token was minted for. Accepting a
+    mismatched aud would let a token minted for someone else's Google
+    client sign in here.
+    """
+    token = _google_id_token(google_keypair, aud="someone-elses-client-id")
+    with pytest.raises(security.InvalidGoogleToken):
+        security.verify_google_id_token(token)
+
+
+def test_google_token_with_an_unrecognized_issuer_is_rejected(google_keypair):
+    token = _google_id_token(google_keypair, iss="https://not-google.example.com")
+    with pytest.raises(security.InvalidGoogleToken):
+        security.verify_google_id_token(token)
+
+
+def test_google_token_without_an_email_is_rejected(google_keypair):
+    token = _google_id_token(google_keypair, email="")
+    with pytest.raises(security.InvalidGoogleToken):
+        security.verify_google_id_token(token)
+
+
+def test_expired_google_token_is_rejected(google_keypair):
+    token = _google_id_token(google_keypair, exp=int(time.time()) - 10)
+    with pytest.raises(security.InvalidGoogleToken):
+        security.verify_google_id_token(token)
+
+
+def test_google_sign_in_is_refused_when_unconfigured():
+    """GOOGLE_CLIENT_ID defaults empty, which must disable the endpoint
+    outright rather than accept a token meant for no client in particular."""
+    with pytest.raises(security.InvalidGoogleToken):
+        security.verify_google_id_token("irrelevant-without-a-configured-client-id")

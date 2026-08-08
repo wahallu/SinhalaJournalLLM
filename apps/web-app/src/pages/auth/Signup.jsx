@@ -4,9 +4,11 @@ import { useAuth } from '../../auth/useAuth';
 import ActionButton from '../../components/ui/ActionButton';
 import AuthLayout from './AuthLayout';
 import { ERROR, INPUT, LABEL } from './formStyles';
+import GoogleButton from './GoogleButton';
+import { GOOGLE_CLIENT_ID } from '../../auth/googleIdentity';
 
 export default function Signup() {
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [fullName, setFullName] = useState('');
@@ -34,6 +36,21 @@ export default function Signup() {
     }
   };
 
+  const handleGoogleCredential = async (credential) => {
+    setBusy(true);
+    setError(null);
+    try {
+      // Google already vouches for the address, so there is no email to
+      // verify — straight to the app rather than /verify-email.
+      await signInWithGoogle(credential);
+      navigate(location.state?.backgroundLocation?.pathname ?? '/dashboard', { replace: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <AuthLayout
       title="Create your account"
@@ -51,6 +68,17 @@ export default function Signup() {
         </>
       }
     >
+      {GOOGLE_CLIENT_ID && (
+        <div className="space-y-4 mb-4">
+          <GoogleButton onCredential={handleGoogleCredential} disabled={busy} />
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-ink-100" />
+            <span className="text-[11.5px] font-semibold text-ink-400">OR</span>
+            <div className="h-px flex-1 bg-ink-100" />
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="name" className={LABEL}>

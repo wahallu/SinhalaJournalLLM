@@ -62,6 +62,12 @@ class VerifyEmailRequest(BaseModel):
     token: str
 
 
+class GoogleAuthRequest(BaseModel):
+    """The ID token Google Identity Services hands the frontend on success."""
+
+    credential: str
+
+
 # ── Responses ──
 
 class AccountResponse(BaseModel):

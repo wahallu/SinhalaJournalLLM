@@ -21,6 +21,7 @@ import time
 
 import bcrypt
 import jwt
+from jwt import PyJWKClient
 
 from app.core.config import get_settings
 
@@ -36,6 +37,10 @@ MAX_PASSWORD_BYTES = 72
 
 class InvalidToken(Exception):
     """Token is malformed, expired, wrongly typed, or fails verification."""
+
+
+class InvalidGoogleToken(Exception):
+    """Google ID token is malformed, expired, or fails verification."""
 
 
 # Verified against when no such user exists, so a login attempt costs the
@@ -168,3 +173,55 @@ def hash_url_token(raw: str) -> str:
 def url_tokens_match(raw: str, stored_hash: str) -> bool:
     """Constant-time comparison, to keep lookups free of a timing oracle."""
     return hmac.compare_digest(hash_url_token(raw), stored_hash)
+
+
+# ── Google Sign-In ──
+#
+# Verifies the ID token handed back by Google Identity Services in the
+# browser. No client secret is involved: the token is a JWT that Google
+# itself signs, so proving it is genuine only takes checking that signature
+# against Google's published keys — the same shape of check decode_token
+# above does against this app's own JWT_SECRET, just with a fetched public
+# key instead of a shared one.
+
+_GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
+# Both forms appear in the wild across Google's own documentation.
+_GOOGLE_ISSUERS = {"accounts.google.com", "https://accounts.google.com"}
+
+# Module-level so the fetched key set is cached (5 minutes, PyJWKClient's
+# default) across requests instead of hitting Google's endpoint every login.
+_google_jwk_client = PyJWKClient(_GOOGLE_JWKS_URL)
+
+
+def verify_google_id_token(id_token: str) -> dict:
+    """
+    Verify a Google Identity Services ID token and return its claims.
+
+    Signature is checked against Google's current signing keys; `aud` and
+    `exp` are checked by jwt.decode via the `audience` argument. `iss` is
+    checked by hand below since PyJWT has no built-in option for it.
+
+    Raises:
+        InvalidGoogleToken: on any verification failure, or if
+            GOOGLE_CLIENT_ID is unset (Google sign-in is not configured).
+    """
+    client_id = get_settings().GOOGLE_CLIENT_ID
+    if not client_id:
+        raise InvalidGoogleToken("Google sign-in is not configured")
+
+    try:
+        signing_key = _google_jwk_client.get_signing_key_from_jwt(id_token)
+        claims = jwt.decode(
+            id_token,
+            signing_key.key,
+            algorithms=["RS256"],
+            audience=client_id,
+        )
+    except Exception as exc:
+        logger.debug("Google ID token verification failed: %s", exc)
+        raise InvalidGoogleToken("Invalid Google credential") from exc
+
+    if claims.get("iss") not in _GOOGLE_ISSUERS or not claims.get("email"):
+        raise InvalidGoogleToken("Invalid Google credential")
+
+    return claims

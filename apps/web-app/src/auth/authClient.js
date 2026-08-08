@@ -75,6 +75,9 @@ export const signup = (email, password, fullName) =>
 
 export const login = (email, password) => post('/auth/login', { email, password });
 
+/** `credential` is the ID token Google Identity Services hands back on success. */
+export const loginWithGoogle = (credential) => post('/auth/google', { credential });
+
 export const requestPasswordReset = (email) => post('/auth/forgot-password', { email });
 
 export const resetPassword = (token, password) =>

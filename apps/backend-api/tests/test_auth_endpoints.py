@@ -282,3 +282,94 @@ async def test_verify_email_marks_the_account_verified(fake_supabase, monkeypatc
 
     assert response.status_code == 200
     assert fake_supabase.store["app_users"][0]["email_verified"] is True
+
+
+# ── Google sign-in ──
+#
+# What Google's ID token actually verifies to is core/security's concern
+# (see test_security.py); verify_google_id_token is stubbed here so these
+# focus on what /auth/google does with the claims — create-vs-link, the
+# unverified-email refusal, and suspension.
+
+def _google_claims(email="new@example.com", email_verified=True, name="New User"):
+    return {"email": email, "email_verified": email_verified, "name": name}
+
+
+@pytest.mark.asyncio
+async def test_google_sign_in_creates_an_account(fake_supabase, monkeypatch):
+    monkeypatch.setattr("app.core.security.verify_google_id_token", lambda _cred: _google_claims())
+
+    async with _client() as c:
+        response = await c.post("/api/v1/auth/google", json={"credential": "whatever"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["access_token"] and body["refresh_token"]
+    assert body["user"]["email"] == "new@example.com"
+    assert body["user"]["email_verified"] is True
+
+    [user] = fake_supabase.store["app_users"]
+    [profile] = fake_supabase.store["profiles"]
+    assert user["password_hash"] is None  # no password was ever set
+    assert user["email_verified"] is True  # Google already vouched for it
+    assert profile["id"] == user["id"]
+    assert profile["full_name"] == "New User"
+
+
+@pytest.mark.asyncio
+async def test_google_sign_in_links_an_existing_account_by_email(fake_supabase, monkeypatch):
+    async with _client() as c:
+        await _signup(c, email="shared@example.com")
+
+    monkeypatch.setattr(
+        "app.core.security.verify_google_id_token",
+        lambda _cred: _google_claims(email="shared@example.com"),
+    )
+    async with _client() as c:
+        response = await c.post("/api/v1/auth/google", json={"credential": "whatever"})
+
+    assert response.status_code == 200
+    # Signed into the same account rather than creating a second one.
+    assert len(fake_supabase.store["app_users"]) == 1
+    assert fake_supabase.store["app_users"][0]["email_verified"] is True
+
+
+@pytest.mark.asyncio
+async def test_google_sign_in_rejects_an_unverified_email(fake_supabase, monkeypatch):
+    monkeypatch.setattr(
+        "app.core.security.verify_google_id_token",
+        lambda _cred: _google_claims(email_verified=False),
+    )
+    async with _client() as c:
+        response = await c.post("/api/v1/auth/google", json={"credential": "whatever"})
+
+    assert response.status_code == 401
+    assert fake_supabase.store.get("app_users", []) == []
+
+
+@pytest.mark.asyncio
+async def test_google_sign_in_rejects_an_invalid_credential(fake_supabase, monkeypatch):
+    def _raise(_cred):
+        raise security.InvalidGoogleToken("Invalid Google credential")
+
+    monkeypatch.setattr("app.core.security.verify_google_id_token", _raise)
+    async with _client() as c:
+        response = await c.post("/api/v1/auth/google", json={"credential": "garbage"})
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_suspended_account_cannot_sign_in_with_google(fake_supabase, monkeypatch):
+    async with _client() as c:
+        await _signup(c, email="banned@example.com")
+    fake_supabase.store["profiles"][0]["status"] = "suspended"
+
+    monkeypatch.setattr(
+        "app.core.security.verify_google_id_token",
+        lambda _cred: _google_claims(email="banned@example.com"),
+    )
+    async with _client() as c:
+        response = await c.post("/api/v1/auth/google", json={"credential": "whatever"})
+
+    assert response.status_code == 403

@@ -38,6 +38,7 @@ from app.schemas.auth import (
     AccountResponse,
     AuthUser,
     ForgotPasswordRequest,
+    GoogleAuthRequest,
     LoginRequest,
     RefreshRequest,
     ResetPasswordRequest,
@@ -80,6 +81,50 @@ def _session(user: dict, profile: dict | None) -> SessionResponse:
     )
 
 
+async def _create_profile(user: dict, email: str, full_name: str | None) -> None:
+    """
+    Insert the matching profiles row, rolling back the credentials row on
+    failure. Shared by signup() and google_auth() — both create an
+    app_users row and then this one, and both need to unwind the same way
+    if the second write fails.
+
+    Resolved via the `base` module attribute rather than a direct
+    `from ... import get_supabase`, so the test suite's fake_supabase
+    fixture covers this path. A direct import binds its own name at import
+    time and silently keeps hitting the real database under test.
+
+    These are two writes with no transaction between them. If the second one
+    fails the account is left unusable rather than absent: login still
+    succeeds (_session tolerates a missing profile) but deps._resolve rejects
+    every subsequent request, so the caller appears signed in and then gets
+    401 on everything, permanently, with no way to recover it themselves.
+    Undoing the credentials row turns that silent trap into a plain,
+    retryable failure.
+    """
+    client = await base.get_supabase()
+    try:
+        await client.table("profiles").insert({
+            "id": user["id"],
+            "email": email,
+            "full_name": full_name,
+            "role": "user",
+            "status": "active",
+        }).execute()
+    except Exception as exc:
+        logger.exception("Profile insert failed for %s — rolling back the user row", email)
+        try:
+            await user_repository.delete_user(user["id"])
+        except Exception:
+            logger.exception(
+                "Could not roll back user %s — it now has no profile and must "
+                "be repaired by hand", user["id"],
+            )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Could not complete sign-in. Please try again.",
+        ) from exc
+
+
 @router.post("/signup", response_model=SessionResponse, status_code=status.HTTP_201_CREATED)
 async def signup(payload: SignupRequest) -> SessionResponse:
     """
@@ -106,44 +151,55 @@ async def signup(payload: SignupRequest) -> SessionResponse:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
 
     user = await user_repository.create_user(email, password_hash)
-
-    # Resolved via the `base` module attribute rather than a direct
-    # `from ... import get_supabase`, so the test suite's fake_supabase
-    # fixture covers this path. A direct import binds its own name at import
-    # time and silently keeps hitting the real database under test.
-    # These are two writes with no transaction between them. If the second one
-    # fails the account is left unusable rather than absent: login still
-    # succeeds (_session tolerates a missing profile) but deps._resolve rejects
-    # every subsequent request, so the user appears signed in and then gets 401
-    # on everything, permanently, with no way to recover it themselves.
-    # Undoing the credentials row turns that silent trap into a plain signup
-    # failure the user can simply retry.
-    client = await base.get_supabase()
-    try:
-        await client.table("profiles").insert({
-            "id": user["id"],
-            "email": email,
-            "full_name": payload.full_name,
-            "role": "user",
-            "status": "active",
-        }).execute()
-    except Exception as exc:
-        logger.exception("Profile insert failed for %s — rolling back the user row", email)
-        try:
-            await user_repository.delete_user(user["id"])
-        except Exception:
-            logger.exception(
-                "Could not roll back user %s — it now has no profile and must "
-                "be repaired by hand", user["id"],
-            )
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Could not complete signup. Please try again.",
-        ) from exc
-
+    await _create_profile(user, email, payload.full_name)
     await _send_verification(user["id"], email)
 
     profile = await get_profile(user["id"])
+    return _session(user, profile)
+
+
+@router.post("/google", response_model=SessionResponse)
+async def google_auth(payload: GoogleAuthRequest) -> SessionResponse:
+    """
+    Exchange a Google Identity Services ID token for a session.
+
+    Links by email: an existing account whose email matches a
+    Google-verified address is signed into directly rather than rejected or
+    duplicated — Google is vouching for the address, the same trust
+    forgot-password's emailed link already relies on. A brand-new address
+    gets a fresh app_users/profiles row with no password, the same shape a
+    Supabase OAuth-only account used to have before the self-hosted-auth
+    migration.
+    """
+    try:
+        claims = security.verify_google_id_token(payload.credential)
+    except security.InvalidGoogleToken as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, str(exc)) from exc
+
+    if not claims.get("email_verified"):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Your Google account's email address is not verified.",
+        )
+
+    email = user_repository.normalize_email(claims["email"])
+    user = await user_repository.get_by_email(email)
+
+    if user:
+        if not user.get("email_verified"):
+            await user_repository.mark_email_verified(user["id"])
+            user["email_verified"] = True
+    else:
+        user = await user_repository.create_user(email, None, email_verified=True)
+        await _create_profile(user, email, claims.get("name"))
+
+    profile = await get_profile(user["id"])
+    if (profile or {}).get("status") == "suspended":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This account has been suspended.",
+        )
+
     return _session(user, profile)
 
 
