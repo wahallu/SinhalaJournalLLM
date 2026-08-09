@@ -36,7 +36,10 @@ async def get_by_email(email: str) -> dict[str, Any] | None:
         .maybe_single()
         .execute()
     )
-    return response.data or None
+    # maybe_single() returns None itself (not a response with .data = None)
+    # when zero rows match — a known postgrest-py quirk. base.fetch_by_id
+    # already guards for it; this hand-rolled query needs the same guard.
+    return response.data if response else None
 
 
 async def get_by_id(user_id: str) -> dict[str, Any] | None:
@@ -44,7 +47,7 @@ async def get_by_id(user_id: str) -> dict[str, Any] | None:
     response = await (
         client.table(USERS).select("*").eq("id", user_id).maybe_single().execute()
     )
-    return response.data or None
+    return response.data if response else None
 
 
 async def create_user(
@@ -127,7 +130,7 @@ async def consume_email_token(token_hash: str, purpose: str) -> str | None:
         .maybe_single()
         .execute()
     )
-    row = response.data
+    row = response.data if response else None
     if not row or row.get("used_at"):
         return None
 
