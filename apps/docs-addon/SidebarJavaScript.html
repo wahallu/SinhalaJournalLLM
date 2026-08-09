@@ -7,8 +7,14 @@
     // ── DOM References ──
     const navButtons = document.querySelectorAll(".nav-btn");
     const panels = document.querySelectorAll(".sidebar-panel");
-    const apiStatusDot = document.querySelector("#sidebar-api-status .status-dot");
-    const apiStatusText = document.querySelector("#sidebar-api-status .status-text");
+    const apiStatusBadge = document.getElementById("sidebar-api-status");
+    const apiStatusDot = apiStatusBadge.querySelector(".status-dot");
+    const apiStatusText = apiStatusBadge.querySelector(".status-text");
+
+    // Account strip
+    const accountStrip = document.getElementById("account-strip");
+    const accountAvatar = document.getElementById("account-avatar");
+    const accountStripEmail = document.getElementById("account-strip-email");
 
     // Tools Panel
     const btnRefreshSelection = document.getElementById("btn-refresh-selection");
@@ -16,13 +22,40 @@
     const selectToolMode = document.getElementById("select-tool-mode");
     const subOptionsStyle = document.getElementById("sub-options-style");
     const subOptionsSummary = document.getElementById("sub-options-summary");
+    const subOptionsOptimize = document.getElementById("sub-options-optimize");
+    const optimizeToggleRestyle = document.getElementById("optimize-toggle-restyle");
+    const optimizeToneControl = document.getElementById("optimize-tone-control");
+    const optimizeToggleSummarize = document.getElementById("optimize-toggle-summarize");
+    const optimizeLengthControl = document.getElementById("optimize-length-control");
     const btnProcessAction = document.getElementById("btn-process-action");
+    const bannerArea = document.getElementById("banner-area");
     const resultContainer = document.getElementById("result-container");
     const resultOutputText = document.getElementById("result-output-text");
     const btnCopyResult = document.getElementById("btn-copy-result");
     const grammarCorrectionsList = document.getElementById("grammar-corrections-list");
     const btnApplyReplace = document.getElementById("btn-apply-replace");
     const btnApplyInsert = document.getElementById("btn-apply-insert");
+    const optimizeResultsContainer = document.getElementById("optimize-results");
+
+    // Account Panel
+    const accountSignedIn = document.getElementById("account-signed-in");
+    const accountSignedOut = document.getElementById("account-signed-out");
+    const accountAvatarLg = document.getElementById("account-avatar-lg");
+    const accountCardEmail = document.getElementById("account-card-email");
+    const btnSignOut = document.getElementById("btn-sign-out");
+    const btnAuthModeLogin = document.getElementById("btn-auth-mode-login");
+    const btnAuthModeSignup = document.getElementById("btn-auth-mode-signup");
+    const authBannerArea = document.getElementById("auth-banner-area");
+    const formAuth = document.getElementById("form-auth");
+    const fieldFullName = document.getElementById("field-full-name");
+    const inputFullName = document.getElementById("input-full-name");
+    const inputEmail = document.getElementById("input-email");
+    const inputPassword = document.getElementById("input-password");
+    const btnAuthSubmit = document.getElementById("btn-auth-submit");
+    const btnForgotPassword = document.getElementById("btn-forgot-password");
+
+    // History Panel
+    const historyListContainer = document.getElementById("history-list-container");
 
     // Settings Panel
     const inputApiHost = document.getElementById("input-api-host");
@@ -44,13 +77,32 @@
       tone: "formal",
       length: "medium"
     };
+    let optimizeOptions = {
+      restyle: false,
+      summarize: false,
+      tone: "formal",
+      length: "medium"
+    };
+    let currentUser = null;
+    let authMode = "login";
+
+    const TOOL_RUN_LABEL = {
+      grammar: "Correct",
+      headlines: "Generate",
+      rewriter: "Rewrite",
+      summarizer: "Summarize",
+      optimize: "Optimize"
+    };
+    const OPTIMIZE_STAGE_LABEL = { grammar: "Grammar", style: "Style", headline: "Headlines", summary: "Summary" };
 
     // ── Initialize Addon ──
     setupNavigation();
     loadAddonSettings();
     setupToolEvents();
     setupSettingsEvents();
+    setupAccountEvents();
     refreshSelection();
+    refreshSession();
 
     // ── Tab Navigation ──
     function setupNavigation() {
@@ -69,9 +121,28 @@
 
           if (targetPanelId === "panel-tools") {
             refreshSelection();
+          } else if (targetPanelId === "panel-history") {
+            loadHistory();
           }
         });
       });
+    }
+
+    function goToToolsPanel() {
+      const toolsBtn = document.querySelector(".nav-btn[data-panel='panel-tools']");
+      if (toolsBtn && !toolsBtn.classList.contains("active")) toolsBtn.click();
+    }
+
+    // ── Banners (replaces native alert()/confirm()) ──
+    function showBanner(container, message, type) {
+      container.innerHTML = "";
+      const div = document.createElement("div");
+      div.className = "banner banner-" + (type || "error");
+      div.textContent = message;
+      container.appendChild(div);
+    }
+    function clearBanner(container) {
+      container.innerHTML = "";
     }
 
     // ── Load Settings ──
@@ -80,23 +151,24 @@
         .withSuccessHandler((settings) => {
           activeSettings = settings;
 
-          // Populate Settings Tab fields
           inputApiHost.value = settings.apiHost;
           selectDefaultTone.value = settings.defaultTone;
           selectDefaultLength.value = settings.defaultLength;
           inputDefaultHeadlines.value = settings.defaultHeadlineCount;
 
-          // Sync default options
           activeToolOptions.tone = settings.defaultTone;
           activeToolStateToggle("tone", settings.defaultTone);
-          
+
           activeToolOptions.length = settings.defaultLength;
           activeToolStateToggle("length", settings.defaultLength);
+
+          optimizeOptions.tone = settings.defaultTone;
+          optimizeOptions.length = settings.defaultLength;
 
           checkApiHealth();
         })
         .withFailureHandler((err) => {
-          showStatusError("Failed to load settings: " + err);
+          showBanner(bannerArea, "Failed to load settings: " + err, "error");
         })
         .loadSettings();
     }
@@ -113,92 +185,87 @@
     function checkApiHealth() {
       apiStatusDot.className = "status-dot warning";
       apiStatusText.textContent = "Checking...";
+      apiStatusBadge.title = "Checking...";
 
       google.script.run
         .withSuccessHandler((response) => {
           if (response && response.success) {
             apiStatusDot.className = "status-dot success";
             apiStatusText.textContent = "Connected";
-            apiStatusDot.parentElement.setAttribute("title", "Connected to Render Backend");
+            apiStatusBadge.title = "Connected to the backend";
           } else {
             apiStatusDot.className = "status-dot error";
             apiStatusText.textContent = "Offline";
-            const errMsg = response ? response.error : "Unknown connection error";
-            apiStatusDot.parentElement.setAttribute("title", "Offline: " + errMsg);
-            alert("Health Check failed: " + errMsg);
+            apiStatusBadge.title = "Offline: " + (response ? response.error : "Unknown connection error");
           }
         })
         .withFailureHandler((err) => {
           apiStatusDot.className = "status-dot error";
           apiStatusText.textContent = "Offline";
-          apiStatusDot.parentElement.setAttribute("title", "Apps Script error: " + err);
-          alert("Apps Script connection error: " + err);
+          apiStatusBadge.title = "Apps Script error: " + err;
         })
         .callApiProxy("/health", null, "GET");
     }
-
-    // Click on status badge to display connection error details
-    apiStatusDot.parentElement.addEventListener("click", () => {
-      const statusTitle = apiStatusDot.parentElement.getAttribute("title");
-      if (statusTitle) {
-        alert(statusTitle);
-      }
-    });
 
     // ── Document Selection Handling ──
     btnRefreshSelection.addEventListener("click", refreshSelection);
 
     function refreshSelection() {
       selectionPreviewBox.className = "tracker-preview placeholder";
-      selectionPreviewBox.textContent = "තේරාගත් කොටස පරීක්ෂා කරමින්... (Refreshing...)";
+      selectionPreviewBox.textContent = "Reading selection...";
       btnProcessAction.disabled = true;
 
       google.script.run
         .withSuccessHandler((text) => {
           activeSelection = text.trim();
-          
+
           if (activeSelection) {
             selectionPreviewBox.className = "tracker-preview";
             selectionPreviewBox.textContent = activeSelection;
             btnProcessAction.disabled = false;
           } else {
             selectionPreviewBox.className = "tracker-preview placeholder";
-            selectionPreviewBox.textContent = "කරුණාකර Google Document එකෙහි වචන කිහිපයක් තෝරා Refresh කරන්න...";
+            selectionPreviewBox.textContent = "Select some text in the document, then press refresh.";
             btnProcessAction.disabled = true;
           }
         })
         .withFailureHandler((err) => {
           selectionPreviewBox.className = "tracker-preview placeholder";
-          selectionPreviewBox.textContent = "දෝෂයකි: " + err;
+          selectionPreviewBox.textContent = "Error: " + err;
         })
         .getSelectedText();
     }
 
     // ── Tools Tab Operations ──
     function setupToolEvents() {
-      // Tool selection toggle
       selectToolMode.addEventListener("change", (e) => {
         const val = e.target.value;
         activeToolOptions.tool = val;
 
         subOptionsStyle.classList.add("hidden");
         subOptionsSummary.classList.add("hidden");
+        subOptionsOptimize.classList.add("hidden");
 
         if (val === "rewriter") {
           subOptionsStyle.classList.remove("hidden");
         } else if (val === "summarizer") {
           subOptionsSummary.classList.remove("hidden");
+        } else if (val === "optimize") {
+          subOptionsOptimize.classList.remove("hidden");
         }
 
-        // Hide previous results on switch
+        btnProcessAction.textContent = TOOL_RUN_LABEL[val] || "Run";
+
         resultContainer.classList.add("hidden");
+        optimizeResultsContainer.classList.add("hidden");
+        clearBanner(bannerArea);
       });
 
-      // Segmented control button click
-      document.querySelectorAll(".option-segmented .seg-item").forEach((btn) => {
+      // Segmented control clicks (tone/length)
+      document.querySelectorAll("#sub-options-style .seg-item, #sub-options-summary .seg-item").forEach((btn) => {
         btn.addEventListener("click", () => {
           const parent = btn.parentElement;
-          parent.querySelectorAll(".seg-item").forEach(b => b.classList.remove("active"));
+          parent.querySelectorAll(".seg-item").forEach((b) => b.classList.remove("active"));
           btn.classList.add("active");
 
           const val = btn.getAttribute("data-value");
@@ -210,59 +277,50 @@
         });
       });
 
+      // Optimize toggles + sub-options
+      optimizeToggleRestyle.addEventListener("change", (e) => {
+        optimizeOptions.restyle = e.target.checked;
+        optimizeToneControl.classList.toggle("hidden", !e.target.checked);
+      });
+      optimizeToggleSummarize.addEventListener("change", (e) => {
+        optimizeOptions.summarize = e.target.checked;
+        optimizeLengthControl.classList.toggle("hidden", !e.target.checked);
+      });
+      optimizeToneControl.querySelectorAll(".seg-item").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          optimizeToneControl.querySelectorAll(".seg-item").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          optimizeOptions.tone = btn.getAttribute("data-value");
+        });
+      });
+      optimizeLengthControl.querySelectorAll(".seg-item").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          optimizeLengthControl.querySelectorAll(".seg-item").forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          optimizeOptions.length = btn.getAttribute("data-value");
+        });
+      });
+
       // Copy Result
       btnCopyResult.addEventListener("click", () => {
         const text = resultOutputText.textContent;
         navigator.clipboard.writeText(text).then(() => {
           const originalSvg = btnCopyResult.innerHTML;
-          btnCopyResult.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14"><path fill="#10B981" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
-          setTimeout(() => {
-            btnCopyResult.innerHTML = originalSvg;
-          }, 1500);
+          btnCopyResult.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="#059669" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
+          setTimeout(() => { btnCopyResult.innerHTML = originalSvg; }, 1500);
         });
       });
 
-      // Run Analysis
+      // Run Action
       btnProcessAction.addEventListener("click", () => {
         if (!activeSelection) return;
+        clearBanner(bannerArea);
 
-        btnProcessAction.disabled = true;
-        btnProcessAction.classList.add("loading");
-        resultContainer.classList.add("hidden");
-        grammarCorrectionsList.classList.add("hidden");
-        grammarCorrectionsList.innerHTML = "";
-
-        let endpoint = "/grammar/check";
-        let body = { text: activeSelection };
-
-        if (activeToolOptions.tool === "headlines") {
-          endpoint = "/headlines/generate";
-          body = { text: activeSelection, count: activeSettings.defaultHeadlineCount };
-        } else if (activeToolOptions.tool === "rewriter") {
-          endpoint = "/rewrite";
-          body = { text: activeSelection, tone: activeToolOptions.tone };
-        } else if (activeToolOptions.tool === "summarizer") {
-          endpoint = "/summarize";
-          body = { text: activeSelection, length: activeToolOptions.length };
+        if (activeToolOptions.tool === "optimize") {
+          runOptimize();
+          return;
         }
-
-        google.script.run
-          .withSuccessHandler((response) => {
-            btnProcessAction.disabled = false;
-            btnProcessAction.classList.remove("loading");
-
-            if (response && response.success) {
-              renderResult(activeToolOptions.tool, response.data);
-            } else {
-              showError(response ? response.error : "Failed to connect to API.");
-            }
-          })
-          .withFailureHandler((err) => {
-            btnProcessAction.disabled = false;
-            btnProcessAction.classList.remove("loading");
-            showError("Apps Script Error: " + err.toString());
-          })
-          .callApiProxy(endpoint, body, "POST");
+        runSingleTool();
       });
 
       // Apply Replace Selection
@@ -271,17 +329,16 @@
         if (!text) return;
 
         btnApplyReplace.disabled = true;
-        
+
         google.script.run
           .withSuccessHandler(() => {
             btnApplyReplace.disabled = false;
             resultContainer.classList.add("hidden");
-            // Clear selections preview
             refreshSelection();
           })
           .withFailureHandler((err) => {
             btnApplyReplace.disabled = false;
-            alert("නැවත ප්‍රතිස්ථාපනය අසාර්ථකයි: " + err);
+            showBanner(bannerArea, "Could not replace the selection: " + err, "error");
           })
           .replaceSelectedText(text);
       });
@@ -292,7 +349,7 @@
         if (!text) return;
 
         btnApplyInsert.disabled = true;
-        
+
         google.script.run
           .withSuccessHandler(() => {
             btnApplyInsert.disabled = false;
@@ -300,51 +357,74 @@
           })
           .withFailureHandler((err) => {
             btnApplyInsert.disabled = false;
-            alert("ඇතුළත් කිරීම අසාර්ථකයි: " + err);
+            showBanner(bannerArea, "Could not insert the text: " + err, "error");
           })
           .insertTextAtCursor(text);
       });
     }
 
+    function runSingleTool() {
+      btnProcessAction.disabled = true;
+      btnProcessAction.classList.add("loading");
+      resultContainer.classList.add("hidden");
+      optimizeResultsContainer.classList.add("hidden");
+      grammarCorrectionsList.classList.add("hidden");
+      grammarCorrectionsList.innerHTML = "";
+
+      let endpoint = "/grammar/check";
+      let body = { text: activeSelection };
+
+      if (activeToolOptions.tool === "headlines") {
+        endpoint = "/headlines/generate";
+        body = { text: activeSelection, count: activeSettings.defaultHeadlineCount };
+      } else if (activeToolOptions.tool === "rewriter") {
+        endpoint = "/rewrite";
+        body = { text: activeSelection, tone: activeToolOptions.tone };
+      } else if (activeToolOptions.tool === "summarizer") {
+        endpoint = "/summarize";
+        body = { text: activeSelection, length: activeToolOptions.length };
+      }
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          btnProcessAction.disabled = false;
+          btnProcessAction.classList.remove("loading");
+
+          if (response && response.success) {
+            renderResult(activeToolOptions.tool, response.data);
+          } else {
+            showBanner(bannerArea, response ? response.error : "Failed to connect to the API.", "error");
+          }
+        })
+        .withFailureHandler((err) => {
+          btnProcessAction.disabled = false;
+          btnProcessAction.classList.remove("loading");
+          showBanner(bannerArea, "Apps Script error: " + err.toString(), "error");
+        })
+        .callApiProxy(endpoint, body, "POST");
+    }
+
     // ── Render Output Result ──
     function renderResult(tool, data) {
       resultContainer.classList.remove("hidden");
-      
-      // Control button states depending on tool type
+
       if (tool === "headlines" || tool === "summarizer") {
         // Headlines/summaries are usually appended rather than replacing selected text
-        btnApplyReplace.textContent = "පෙළ ප්‍රතිස්ථාපනය කරන්න";
+        btnApplyReplace.textContent = "Replace Selection";
         btnApplyInsert.classList.remove("hidden");
       } else {
-        btnApplyReplace.textContent = "තෝරාගත් පෙළ වෙනස් කරන්න";
+        btnApplyReplace.textContent = "Replace Selection";
         btnApplyInsert.classList.add("hidden");
       }
 
+      grammarCorrectionsList.innerHTML = "";
+      grammarCorrectionsList.classList.add("hidden");
+
       if (tool === "grammar") {
         resultOutputText.textContent = data.corrected;
-
-        if (data.corrections && data.corrections.length > 0) {
-          grammarCorrectionsList.classList.remove("hidden");
-          data.corrections.forEach((c) => {
-            const card = document.createElement("div");
-            card.className = "corr-card";
-            card.innerHTML = `
-              <div class="corr-comp">
-                <span class="corr-del">${escapeHtml(c.original)}</span>
-                <span class="corr-arrow">➔</span>
-                <span class="corr-add">${escapeHtml(c.corrected)}</span>
-              </div>
-              <div class="corr-rule">${escapeHtml(c.rule)}</div>
-            `;
-            grammarCorrectionsList.appendChild(card);
-          });
-        } else {
-          grammarCorrectionsList.classList.remove("hidden");
-          grammarCorrectionsList.innerHTML = `<span style="color: #10B981; font-size: 0.75rem; text-align: center; display: block; padding-top: 4px;">👍 ව්‍යාකරණ දෝෂ කිසිවක් හමු නොවීය.</span>`;
-        }
+        renderGrammarCorrections(data.corrections || []);
       } else if (tool === "headlines") {
-        const text = data.headlines.map((h, i) => `${i + 1}. ${h}`).join("\n");
-        resultOutputText.textContent = text;
+        resultOutputText.textContent = data.headlines.map((h, i) => (i + 1) + ". " + h).join("\n");
       } else if (tool === "rewriter") {
         resultOutputText.textContent = data.rewritten;
       } else if (tool === "summarizer") {
@@ -352,11 +432,377 @@
       }
     }
 
-    function showError(msg) {
-      resultContainer.classList.remove("hidden");
-      btnApplyInsert.classList.add("hidden");
-      btnApplyReplace.classList.add("hidden");
-      resultOutputText.innerHTML = `<span style="color: #EF4444; font-weight: 500;">ERROR: ${escapeHtml(msg)}</span><br><span style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">API URL එක (Settings) පරීක්ෂා කර නැවත උත්සාහ කරන්න.</span>`;
+    /** Renders corrections into `grammarCorrectionsList`, including the
+     *  suspicious-word substitution guard — mirrors the extension's
+     *  content.js/popup.js treatment exactly, so all three surfaces agree. */
+    function renderGrammarCorrections(corrections) {
+      if (!corrections || corrections.length === 0) {
+        grammarCorrectionsList.classList.remove("hidden");
+        grammarCorrectionsList.innerHTML =
+          '<span style="color:#059669; font-size:0.78rem; text-align:center; display:block; padding-top:4px;">No grammar issues found.</span>';
+        return;
+      }
+
+      grammarCorrectionsList.classList.remove("hidden");
+
+      // Banner first: the model appears to have swapped in a different word
+      // rather than corrected a spelling — most often a name. The
+      // correction IS applied; this flags it for a human to confirm before
+      // it survives scrolling past.
+      const flagged = corrections.filter((c) => c.suspicious);
+      if (flagged.length > 0) {
+        const warn = document.createElement("div");
+        warn.className = "correction-warning-banner";
+        warn.textContent =
+          flagged.length === 1
+            ? "1 change may have replaced a word — check it below before using this text."
+            : flagged.length + " changes may have replaced words — check them below before using this text.";
+        grammarCorrectionsList.appendChild(warn);
+      }
+
+      corrections.forEach((c) => {
+        const card = document.createElement("div");
+        card.className = c.suspicious ? "corr-card is-flagged" : "corr-card";
+        card.innerHTML =
+          '<div class="corr-comp">' +
+          '<span class="corr-del">' + escapeHtml(c.original) + "</span>" +
+          '<span class="corr-arrow">&#10132;</span>' +
+          '<span class="corr-add">' + escapeHtml(c.corrected) + "</span>" +
+          "</div>" +
+          '<div class="corr-rule">' +
+          escapeHtml(c.suspicious ? (c.suspicious_reason || "Possible word replacement — verify against your source.") : c.rule) +
+          "</div>";
+        grammarCorrectionsList.appendChild(card);
+      });
+    }
+
+    // ── Optimize: single-shot pipeline call via Code.js's runOptimize ──
+    // Apps Script's UrlFetchApp has no incremental-read API, so unlike the
+    // extension/web app this can't stream — the full NDJSON body arrives at
+    // once (already split into events by Code.js) and every stage card is
+    // rendered together here, not progressively.
+    function optimizeStageList() {
+      const stages = ["grammar"];
+      if (optimizeOptions.restyle) stages.push("style");
+      stages.push("headline");
+      if (optimizeOptions.summarize) stages.push("summary");
+      return stages;
+    }
+
+    function runOptimize() {
+      btnProcessAction.disabled = true;
+      btnProcessAction.classList.add("loading");
+      resultContainer.classList.add("hidden");
+      optimizeResultsContainer.classList.remove("hidden");
+      optimizeResultsContainer.innerHTML =
+        '<div class="optimize-stage-card"><div class="optimize-stage-body">' +
+        '<div class="shimmer-line" style="width:90%"></div><div class="shimmer-line" style="width:70%"></div><div class="shimmer-line" style="width:50%"></div>' +
+        "</div></div>";
+
+      const body = {
+        text: activeSelection,
+        restyle: optimizeOptions.restyle,
+        tone: optimizeOptions.tone,
+        summarize: optimizeOptions.summarize,
+        length: optimizeOptions.length,
+        headline_count: activeSettings.defaultHeadlineCount,
+        headline_category: "General",
+        headline_length: "medium"
+      };
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          btnProcessAction.disabled = false;
+          btnProcessAction.classList.remove("loading");
+
+          if (!response || !response.success) {
+            optimizeResultsContainer.classList.add("hidden");
+            showBanner(bannerArea, response ? response.error : "Failed to connect to the API.", "error");
+            return;
+          }
+          renderOptimizeResults(response.events || []);
+        })
+        .withFailureHandler((err) => {
+          btnProcessAction.disabled = false;
+          btnProcessAction.classList.remove("loading");
+          optimizeResultsContainer.classList.add("hidden");
+          showBanner(bannerArea, "Apps Script error: " + err.toString(), "error");
+        })
+        .runOptimize(body);
+    }
+
+    function optimizeStageText(stage, data) {
+      if (!data) return "";
+      if (stage === "grammar") return data.corrected || "";
+      if (stage === "style") return data.rewritten || "";
+      if (stage === "headline") return (data.headlines || []).map((h, i) => (i + 1) + ". " + h).join("\n");
+      if (stage === "summary") return data.summary || "";
+      return "";
+    }
+
+    function renderOptimizeResults(events) {
+      const stages = optimizeStageList();
+      const byStage = {};
+      let finalText = activeSelection;
+      let pipelineError = null;
+
+      events.forEach((event) => {
+        if (event.stage === "pipeline") {
+          if (event.status === "done" && event.data) finalText = event.data.final_text || finalText;
+          if (event.status === "failed") pipelineError = event.error;
+          return;
+        }
+        byStage[event.stage] = event;
+      });
+
+      let html = "";
+      stages.forEach((id) => {
+        const event = byStage[id];
+        const status = event ? event.status : "skipped";
+        let bodyHtml = "";
+        let statusLabel = "Queued";
+
+        if (status === "done") {
+          statusLabel = "Done";
+          bodyHtml = escapeHtml(optimizeStageText(id, event.data)).replace(/\n/g, "<br>");
+        } else if (status === "skipped") {
+          statusLabel = "Skipped";
+          bodyHtml = escapeHtml(
+            event && event.reason === "disabled" ? "This tool is currently switched off." : "Skipped."
+          );
+        } else if (status === "failed") {
+          statusLabel = "Failed";
+          bodyHtml = escapeHtml((event && event.error) || "This stage failed.");
+        }
+
+        html +=
+          '<div class="optimize-stage-card" data-stage="' + id + '">' +
+          '<div class="optimize-stage-head">' + OPTIMIZE_STAGE_LABEL[id] +
+          '<span class="optimize-stage-status ' + status + '">' + statusLabel + "</span></div>" +
+          '<div class="optimize-stage-body"' + (status === "failed" ? ' style="color:var(--accent-hover)"' : "") + ">" + bodyHtml + "</div>" +
+          "</div>";
+      });
+
+      if (pipelineError) {
+        html +=
+          '<div class="banner banner-error">Pipeline error: ' + escapeHtml(pipelineError) + "</div>";
+      }
+
+      html +=
+        '<div class="result-insertion-buttons" style="border-top:none; padding-top:2px;">' +
+        '<button class="btn-primary" id="btn-optimize-replace" style="flex:2;">Replace Selection</button>' +
+        '<button class="btn-secondary" id="btn-optimize-copy" style="flex:1;">Copy</button>' +
+        "</div>";
+
+      optimizeResultsContainer.innerHTML = html;
+
+      const btnOptimizeReplace = document.getElementById("btn-optimize-replace");
+      const btnOptimizeCopy = document.getElementById("btn-optimize-copy");
+
+      btnOptimizeReplace.addEventListener("click", () => {
+        btnOptimizeReplace.disabled = true;
+        google.script.run
+          .withSuccessHandler(() => {
+            btnOptimizeReplace.disabled = false;
+            optimizeResultsContainer.classList.add("hidden");
+            refreshSelection();
+          })
+          .withFailureHandler((err) => {
+            btnOptimizeReplace.disabled = false;
+            showBanner(bannerArea, "Could not replace the selection: " + err, "error");
+          })
+          .replaceSelectedText(finalText);
+      });
+
+      btnOptimizeCopy.addEventListener("click", () => {
+        navigator.clipboard.writeText(finalText).then(() => {
+          btnOptimizeCopy.textContent = "Copied!";
+          setTimeout(() => { btnOptimizeCopy.textContent = "Copy"; }, 1500);
+        });
+      });
+    }
+
+    // ── Account / Auth ──
+    function refreshSession() {
+      google.script.run
+        .withSuccessHandler((response) => {
+          currentUser = response && response.user ? response.user : null;
+          applyAccountUI();
+        })
+        .withFailureHandler(() => {
+          currentUser = null;
+          applyAccountUI();
+        })
+        .getSession();
+    }
+
+    function applyAccountUI() {
+      if (currentUser) {
+        const initial = (currentUser.email || "?").charAt(0).toUpperCase();
+        accountAvatar.textContent = initial;
+        accountAvatarLg.textContent = initial;
+        accountStripEmail.textContent = currentUser.email;
+        accountCardEmail.textContent = currentUser.email;
+        accountStrip.classList.remove("hidden");
+        accountSignedIn.classList.remove("hidden");
+        accountSignedOut.classList.add("hidden");
+      } else {
+        accountStrip.classList.add("hidden");
+        accountSignedIn.classList.add("hidden");
+        accountSignedOut.classList.remove("hidden");
+        historyListContainer.innerHTML = '<div class="empty-state"><p>Sign in to see your history.</p></div>';
+      }
+    }
+
+    function setAuthMode(mode) {
+      authMode = mode;
+      btnAuthModeLogin.classList.toggle("active", mode === "login");
+      btnAuthModeSignup.classList.toggle("active", mode === "signup");
+      fieldFullName.classList.toggle("hidden", mode !== "signup");
+      btnAuthSubmit.textContent = mode === "signup" ? "Create Account" : "Sign In";
+      clearBanner(authBannerArea);
+    }
+
+    function setupAccountEvents() {
+      accountStrip.addEventListener("click", () => {
+        const accountBtn = document.querySelector(".nav-btn[data-panel='panel-account']");
+        if (accountBtn) accountBtn.click();
+      });
+
+      btnAuthModeLogin.addEventListener("click", () => setAuthMode("login"));
+      btnAuthModeSignup.addEventListener("click", () => setAuthMode("signup"));
+
+      formAuth.addEventListener("submit", (e) => {
+        e.preventDefault();
+        clearBanner(authBannerArea);
+
+        const email = inputEmail.value.trim();
+        const password = inputPassword.value;
+        if (!email || !password) return;
+
+        btnAuthSubmit.disabled = true;
+        btnAuthSubmit.classList.add("loading");
+
+        const onResult = (response) => {
+          btnAuthSubmit.disabled = false;
+          btnAuthSubmit.classList.remove("loading");
+
+          if (!response || !response.success) {
+            showBanner(authBannerArea, response ? response.error : "Could not connect to server.", "error");
+            return;
+          }
+
+          formAuth.reset();
+          currentUser = response.user;
+          applyAccountUI();
+        };
+        const onFailure = (err) => {
+          btnAuthSubmit.disabled = false;
+          btnAuthSubmit.classList.remove("loading");
+          showBanner(authBannerArea, "Apps Script error: " + err.toString(), "error");
+        };
+
+        if (authMode === "signup") {
+          google.script.run.withSuccessHandler(onResult).withFailureHandler(onFailure)
+            .signup(email, password, inputFullName.value.trim());
+        } else {
+          google.script.run.withSuccessHandler(onResult).withFailureHandler(onFailure)
+            .login(email, password);
+        }
+      });
+
+      btnForgotPassword.addEventListener("click", () => {
+        const email = inputEmail.value.trim();
+        if (!email) {
+          showBanner(authBannerArea, "Enter your email address above first.", "error");
+          return;
+        }
+        clearBanner(authBannerArea);
+        google.script.run
+          .withSuccessHandler(() => {
+            showBanner(authBannerArea, "If that address has an account, a reset link is on its way.", "success");
+          })
+          .withFailureHandler((err) => {
+            showBanner(authBannerArea, "Apps Script error: " + err.toString(), "error");
+          })
+          .requestPasswordReset(email);
+      });
+
+      btnSignOut.addEventListener("click", () => {
+        google.script.run
+          .withSuccessHandler(() => {
+            currentUser = null;
+            applyAccountUI();
+          })
+          .logout();
+      });
+    }
+
+    // ── History ──
+    function loadHistory() {
+      if (!currentUser) {
+        historyListContainer.innerHTML = '<div class="empty-state"><p>Sign in to see your history.</p></div>';
+        return;
+      }
+
+      historyListContainer.innerHTML = '<div class="empty-state"><p>Loading...</p></div>';
+
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (!response || !response.success) {
+            historyListContainer.innerHTML =
+              '<div class="empty-state"><p>Could not load history' + (response ? ": " + escapeHtml(response.error) : "") + "</p></div>";
+            return;
+          }
+          renderHistoryList((response.data && response.data.items) || []);
+          loadHistoryStats();
+        })
+        .withFailureHandler((err) => {
+          historyListContainer.innerHTML = '<div class="empty-state"><p>Apps Script error: ' + escapeHtml(err.toString()) + "</p></div>";
+        })
+        .getUnifiedHistory(50);
+    }
+
+    // Exact counts, not derived from the (at most 50-row) list above — a
+    // heavier user's totals would otherwise silently cap at the page size.
+    function loadHistoryStats() {
+      const statsEl = document.getElementById("history-stats-line");
+      if (!statsEl) return;
+      google.script.run
+        .withSuccessHandler((response) => {
+          if (!response || !response.success) return;
+          const stats = response.data;
+          statsEl.textContent = stats.total + " total run" + (stats.total === 1 ? "" : "s") +
+            " across " + Object.keys(stats.per_tool || {}).filter((t) => stats.per_tool[t] > 0).length + " tools";
+        })
+        .withFailureHandler(() => {})
+        .getHistoryStats();
+    }
+
+    function renderHistoryList(items) {
+      if (!items || items.length === 0) {
+        historyListContainer.innerHTML = '<div class="empty-state"><p>No activity yet.</p></div>';
+        return;
+      }
+
+      const labels = { grammar: "Grammar", headlines: "Headlines", rewriter: "Rewriter", summarizer: "Summarizer" };
+
+      let html = '<p id="history-stats-line" style="margin-bottom:10px;"></p><div class="history-list">';
+      items.forEach((item) => {
+        const label = labels[item.tool] || item.tool;
+        const time = formatTime(item.created_at);
+        html +=
+          '<div class="history-card">' +
+          '<div class="history-card-header">' +
+          '<span class="history-badge ' + escapeHtml(item.tool) + '">' + escapeHtml(label) + "</span>" +
+          '<span class="history-time">' + time + "</span>" +
+          "</div>" +
+          '<div class="history-snippet">' + escapeHtml(item.input_preview || "") + "</div>" +
+          '<div class="history-result">' + escapeHtml(item.output_preview || "") + "</div>" +
+          "</div>";
+      });
+      html += "</div>";
+      historyListContainer.innerHTML = html;
     }
 
     // ── Settings Form Submission ──
@@ -370,14 +816,14 @@
         };
 
         btnSaveSettings.disabled = true;
-        btnSaveSettings.textContent = "සුරකිමින්... (Saving)";
+        const originalText = btnSaveSettings.textContent;
+        btnSaveSettings.textContent = "Saving...";
 
         google.script.run
           .withSuccessHandler(() => {
             btnSaveSettings.disabled = false;
-            btnSaveSettings.textContent = "සුරැකිණි! (Saved)";
-            btnSaveSettings.style.background = "#10B981";
-            
+            btnSaveSettings.textContent = "Saved!";
+
             activeSettings = {
               ...activeSettings,
               apiHost: settings.apiHost,
@@ -386,17 +832,13 @@
               defaultHeadlineCount: parseInt(settings.defaultHeadlineCount, 10)
             };
 
-            setTimeout(() => {
-              btnSaveSettings.textContent = "සැකසුම් සුරකින්න";
-              btnSaveSettings.style.background = "";
-            }, 1500);
-
+            setTimeout(() => { btnSaveSettings.textContent = originalText; }, 1500);
             checkApiHealth();
           })
           .withFailureHandler((err) => {
             btnSaveSettings.disabled = false;
-            btnSaveSettings.textContent = "සුරැකීම අසාර්ථකයි";
-            alert("Error saving settings: " + err);
+            btnSaveSettings.textContent = originalText;
+            showBanner(bannerArea, "Error saving settings: " + err, "error");
           })
           .saveSettings(settings);
       });
@@ -404,12 +846,22 @@
 
     // ── Helper Utility Functions ──
     function escapeHtml(unsafe) {
-      return unsafe
+      return String(unsafe)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+    }
+
+    function formatTime(isoString) {
+      if (!isoString) return "";
+      try {
+        const d = new Date(isoString);
+        return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + " - " + d.toLocaleDateString([], { month: "short", day: "numeric" });
+      } catch (e) {
+        return "";
+      }
     }
   });
 </script>

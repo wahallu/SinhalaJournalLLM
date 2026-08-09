@@ -52,6 +52,26 @@ document.addEventListener("DOMContentLoaded", () => {
   const inputDefaultHeadlines = document.getElementById("input-default-headlines");
   const btnSaveSettings = document.getElementById("btn-save-settings");
 
+  // Account Tab
+  const accountStrip = document.getElementById("account-strip");
+  const accountAvatar = document.getElementById("account-avatar");
+  const accountStripEmail = document.getElementById("account-strip-email");
+  const accountSignedIn = document.getElementById("account-signed-in");
+  const accountSignedOut = document.getElementById("account-signed-out");
+  const accountAvatarLg = document.getElementById("account-avatar-lg");
+  const accountCardEmail = document.getElementById("account-card-email");
+  const btnSignOut = document.getElementById("btn-sign-out");
+  const btnAuthModeLogin = document.getElementById("btn-auth-mode-login");
+  const btnAuthModeSignup = document.getElementById("btn-auth-mode-signup");
+  const authError = document.getElementById("auth-error");
+  const formAuth = document.getElementById("form-auth");
+  const fieldFullName = document.getElementById("field-full-name");
+  const inputFullName = document.getElementById("input-full-name");
+  const inputEmail = document.getElementById("input-email");
+  const inputPassword = document.getElementById("input-password");
+  const btnAuthSubmit = document.getElementById("btn-auth-submit");
+  const btnGoogleSignin = document.getElementById("btn-google-signin");
+
   // ── Safe Chrome API Wrappers (for Web Previews) ──
   const isExtensionContext = typeof chrome !== "undefined" && chrome.storage && chrome.storage.local;
 
@@ -86,39 +106,187 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  // ── Message dispatch. In the real extension this always goes through
+  // background.js (the only context with a CORS exemption for the API
+  // host). Outside the extension (a direct HTML preview) it falls back to
+  // fetching straight from the page and a localStorage-backed session, so
+  // the popup never crashes when opened as a plain file — Google Sign-In is
+  // the one thing that structurally cannot work there. ──
   const sendMessage = (message, callback) => {
     if (isExtensionContext && chrome.runtime && chrome.runtime.sendMessage) {
       chrome.runtime.sendMessage(message, callback);
-    } else {
-      // Fallback: Direct API request if previewed as standard page
-      const apiHost = extensionSettings.apiHost || "https://sinhalajournalllm.onrender.com/api/v1";
-      const url = `${apiHost}${message.endpoint}`;
-      
-      fetch(url, {
-        method: message.method || "POST",
+      return;
+    }
+
+    const apiHost = extensionSettings.apiHost || "https://sinhalajournalllm.onrender.com/api/v1";
+
+    if (message.action === "getSession") {
+      const token = localStorage.getItem("sinai_preview_access_token");
+      let user = null;
+      if (token) {
+        try {
+          user = JSON.parse(localStorage.getItem("sinai_preview_user") || "null");
+        } catch {
+          user = null;
+        }
+      }
+      callback({ success: true, data: { user } });
+      return;
+    }
+
+    if (message.action === "logout") {
+      localStorage.removeItem("sinai_preview_access_token");
+      localStorage.removeItem("sinai_preview_user");
+      callback({ success: true });
+      return;
+    }
+
+    if (message.action === "googleAuth") {
+      callback({ success: false, error: "Google sign-in requires the installed extension." });
+      return;
+    }
+
+    if (message.action === "login" || message.action === "signup") {
+      const path = message.action === "login" ? "/auth/login" : "/auth/signup";
+      const payload =
+        message.action === "login"
+          ? { email: message.email, password: message.password }
+          : { email: message.email, password: message.password, full_name: message.fullName || null };
+
+      fetch(`${apiHost}${path}`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: message.body ? JSON.stringify(message.body) : undefined
+        body: JSON.stringify(payload)
       })
         .then(async (res) => {
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.detail || err.message || `HTTP ${res.status}`);
-          }
-          return res.json();
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.detail || data.message || `HTTP ${res.status}`);
+          return data;
         })
         .then((data) => {
-          callback({ success: true, data });
-          saveToFallbackHistory(message.endpoint, message.body, data);
+          localStorage.setItem("sinai_preview_access_token", data.access_token);
+          localStorage.setItem("sinai_preview_user", JSON.stringify(data.user));
+          callback({ success: true, data: { user: data.user } });
         })
-        .catch((err) => {
-          callback({ success: false, error: err.message });
-        });
+        .catch((err) => callback({ success: false, error: err.message }));
+      return;
     }
+
+    // Fallback: Direct API request if previewed as standard page
+    const url = `${apiHost}${message.endpoint}`;
+
+    fetch(url, {
+      method: message.method || "POST",
+      headers: { "Content-Type": "application/json" },
+      body: message.body ? JSON.stringify(message.body) : undefined
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || err.message || `HTTP ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        callback({ success: true, data });
+        saveToFallbackHistory(message.endpoint, message.body, data);
+      })
+      .catch((err) => {
+        callback({ success: false, error: err.message });
+      });
   };
+
+  /**
+   * Open a stream for POST /optimize. `onEvent` fires once per NDJSON
+   * object; `onDone`/`onError` fire exactly once, at the end.
+   *
+   * Real extension: a long-lived Port to background.js, which does the
+   * actual fetch (only it gets a CORS exemption via host_permissions).
+   * Preview fallback: fetch directly, reusing the same NDJSON line-buffering
+   * web-app's services/api.js uses (a chunk boundary can land mid-line and
+   * mid-UTF-8-sequence — Sinhala is 3 bytes/char).
+   */
+  function openOptimizeStream(body, onEvent, onDone, onError) {
+    if (isExtensionContext && chrome.runtime && chrome.runtime.connect) {
+      const port = chrome.runtime.connect({ name: "optimizeStream" });
+      let finished = false;
+
+      port.onMessage.addListener((message) => {
+        if (message.type === "event") {
+          onEvent(message.data);
+        } else if (message.type === "done") {
+          finished = true;
+          onDone();
+        } else if (message.type === "error") {
+          finished = true;
+          onError(message.error);
+        }
+        // "heartbeat" needs no handling — it only exists to keep the
+        // service worker alive while a stage is still running.
+      });
+
+      port.onDisconnect.addListener(() => {
+        if (!finished) {
+          finished = true;
+          onError("Connection to the extension background was lost.");
+        }
+      });
+
+      port.postMessage({ action: "startOptimize", body });
+      return {
+        close: () => {
+          try {
+            port.disconnect();
+          } catch {}
+        }
+      };
+    }
+
+    const apiHost = extensionSettings.apiHost || "https://sinhalajournalllm.onrender.com/api/v1";
+    const controller = new AbortController();
+
+    fetch(`${apiHost}/optimize`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || err.message || `HTTP ${res.status}`);
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        const drain = (flush) => {
+          const lines = buffer.split("\n");
+          buffer = flush ? "" : lines.pop();
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed) onEvent(JSON.parse(trimmed));
+          }
+        };
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          drain(false);
+        }
+        buffer += decoder.decode();
+        drain(true);
+        onDone();
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") onError(err.message);
+      });
+
+    return { close: () => controller.abort() };
+  }
 
   function saveToFallbackHistory(endpoint, requestBody, responseData) {
     if (isExtensionContext) return; // background.js already handles this in extension
-    
+
     let type = "grammar";
     let snippet = requestBody.text;
     let resultSummary = "";
@@ -175,6 +343,14 @@ document.addEventListener("DOMContentLoaded", () => {
     length: "medium"
   };
   let detectedArticle = null; // { text, title, hostname }
+  let currentUser = null; // { id, email, ... } | null
+  let authMode = "login"; // "login" | "signup"
+
+  // How old an in-progress run can be before the restore-on-open logic gives
+  // up waiting on it and treats it as abandoned, rather than showing "still
+  // processing" forever if background.js never got to write a final result
+  // (e.g. the service worker itself was killed mid-run).
+  const RUN_STALE_MS = 5 * 60 * 1000;
 
   // Matches the web app's per-tool action labels and the content-script
   // card — "Run" told the user nothing about what was about to happen.
@@ -192,8 +368,12 @@ document.addEventListener("DOMContentLoaded", () => {
   setupToolEvents();
   setupSettingsEvents();
   setupHistoryEvents();
+  setupAccountEvents();
   checkApiHealth();
   fetchPageArticle();
+  refreshSession();
+  setupPersistedRunSync();
+  restoreRunState();
 
   // ── Tab Navigation ──
   function setupNavigation() {
@@ -217,6 +397,8 @@ document.addEventListener("DOMContentLoaded", () => {
           renderHistoryList();
         } else if (targetPanelId === "panel-dashboard") {
           updateDashboardStats();
+        } else if (targetPanelId === "panel-account") {
+          refreshSession();
         }
       });
     });
@@ -257,6 +439,122 @@ document.addEventListener("DOMContentLoaded", () => {
     toolTextareaInput.dispatchEvent(new Event("input"));
     toolTextareaInput.focus();
   });
+
+  // ── Account / Auth ──
+  function refreshSession() {
+    sendMessage({ action: "getSession" }, (response) => {
+      currentUser = response && response.success ? response.data.user : null;
+      applyAccountUI();
+    });
+  }
+
+  function applyAccountUI() {
+    if (currentUser) {
+      const initial = (currentUser.email || "?").charAt(0);
+      accountAvatar.textContent = initial;
+      accountAvatarLg.textContent = initial;
+      accountStripEmail.textContent = currentUser.email;
+      accountCardEmail.textContent = currentUser.email;
+      accountStrip.classList.remove("hidden");
+      accountSignedIn.classList.remove("hidden");
+      accountSignedOut.classList.add("hidden");
+    } else {
+      accountStrip.classList.add("hidden");
+      accountSignedIn.classList.add("hidden");
+      accountSignedOut.classList.remove("hidden");
+    }
+  }
+
+  function setAuthMode(mode) {
+    authMode = mode;
+    btnAuthModeLogin.classList.toggle("active", mode === "login");
+    btnAuthModeSignup.classList.toggle("active", mode === "signup");
+    fieldFullName.classList.toggle("hidden", mode !== "signup");
+    inputPassword.setAttribute("autocomplete", mode === "signup" ? "new-password" : "current-password");
+    btnAuthSubmit.textContent = mode === "signup" ? "Create Account" : "Sign In";
+    authError.classList.add("hidden");
+  }
+
+  function showAuthError(msg) {
+    authError.textContent = msg;
+    authError.classList.remove("hidden");
+  }
+
+  function refreshDashboardAndHistoryFromServer() {
+    updateDashboardStats();
+    renderHistoryList();
+  }
+
+  function setupAccountEvents() {
+    accountStrip.addEventListener("click", () => {
+      document.querySelector(".nav-item[data-target='panel-account']").click();
+    });
+
+    btnAuthModeLogin.addEventListener("click", () => setAuthMode("login"));
+    btnAuthModeSignup.addEventListener("click", () => setAuthMode("signup"));
+
+    formAuth.addEventListener("submit", (e) => {
+      e.preventDefault();
+      authError.classList.add("hidden");
+
+      const email = inputEmail.value.trim();
+      const password = inputPassword.value;
+      if (!email || !password) return;
+
+      btnAuthSubmit.disabled = true;
+      btnAuthSubmit.classList.add("loading");
+
+      const message =
+        authMode === "signup"
+          ? { action: "signup", email, password, fullName: inputFullName.value.trim() }
+          : { action: "login", email, password };
+
+      sendMessage(message, (response) => {
+        btnAuthSubmit.disabled = false;
+        btnAuthSubmit.classList.remove("loading");
+
+        if (!response || !response.success) {
+          showAuthError(response ? response.error : "Could not connect to server.");
+          return;
+        }
+
+        formAuth.reset();
+        currentUser = response.data.user;
+        applyAccountUI();
+        refreshDashboardAndHistoryFromServer();
+      });
+    });
+
+    btnGoogleSignin.addEventListener("click", () => {
+      authError.classList.add("hidden");
+      btnGoogleSignin.disabled = true;
+      const originalHtml = btnGoogleSignin.innerHTML;
+      btnGoogleSignin.textContent = "Opening Google sign-in…";
+
+      sendMessage({ action: "googleAuth" }, (response) => {
+        btnGoogleSignin.disabled = false;
+        btnGoogleSignin.innerHTML = originalHtml;
+
+        if (!response || !response.success) {
+          showAuthError(response ? response.error : "Google sign-in failed.");
+          return;
+        }
+
+        currentUser = response.data.user;
+        applyAccountUI();
+        refreshDashboardAndHistoryFromServer();
+      });
+    });
+
+    btnSignOut.addEventListener("click", () => {
+      sendMessage({ action: "logout" }, () => {
+        currentUser = null;
+        applyAccountUI();
+        renderHistoryList();
+        updateDashboardStats();
+      });
+    });
+  }
 
   // ── Settings Management ──
   function loadSettingsAndData() {
@@ -304,7 +602,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       storage.set(updated, () => {
         extensionSettings = { ...extensionSettings, ...updated };
-        
+
         // Show success visual feedback on button
         const originalText = btnSaveSettings.textContent;
         btnSaveSettings.textContent = "Saved!";
@@ -332,7 +630,7 @@ document.addEventListener("DOMContentLoaded", () => {
       checkApiHealth((connected) => {
         btnTestConnection.textContent = originalText;
         btnTestConnection.disabled = false;
-        
+
         if (connected) {
           btnTestConnection.style.borderColor = "#10B981";
           btnTestConnection.style.color = "#10B981";
@@ -489,11 +787,6 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      btnProcessTool.disabled = true;
-      btnProcessTool.classList.add("loading");
-      toolResultContainer.classList.add("hidden");
-      grammarCorrectionsList.classList.add("hidden");
-
       let endpoint = "/grammar/check";
       let body = { text: inputVal };
 
@@ -508,26 +801,70 @@ document.addEventListener("DOMContentLoaded", () => {
         body = { text: inputVal, length: activeToolState.length };
       }
 
-      sendMessage(
-        {
-          action: "callApi",
-          endpoint,
-          body,
-          method: "POST"
-        },
-        (response) => {
-          btnProcessTool.disabled = false;
-          btnProcessTool.classList.remove("loading");
+      setToolProcessingUI(true);
 
-          if (!response || !response.success) {
-            showError(response ? response.error : "Failed to connect to server.");
-            return;
-          }
+      // In the real extension, background.js runs this to completion and
+      // persists the result regardless of whether the popup is still open —
+      // a browser_action popup is destroyed on every blur (switching tabs
+      // closes it entirely), so this callback firing is a nice-to-have, not
+      // the source of truth. chrome.storage.onChanged (setupPersistedRunSync
+      // below) is what actually renders the result, whether the popup
+      // stayed open or was closed and reopened mid-run.
+      if (isExtensionContext && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ action: "runTool", tool: activeToolState.tool, endpoint, body }, () => {});
+        return;
+      }
 
-          renderToolResult(activeToolState.tool, response.data);
+      // Preview fallback — no popup-lifetime concerns outside the extension.
+      sendMessage({ action: "callApi", endpoint, body, method: "POST" }, (response) => {
+        setToolProcessingUI(false);
+        if (!response || !response.success) {
+          showError(response ? response.error : "Failed to connect to server.");
+          return;
         }
-      );
+        renderToolResult(activeToolState.tool, response.data);
+        scrollToResult();
+      });
     });
+  }
+
+  function setToolProcessingUI(isProcessing) {
+    btnProcessTool.disabled = isProcessing || toolTextareaInput.value.trim().length === 0;
+    btnProcessTool.classList.toggle("loading", isProcessing);
+    if (isProcessing) {
+      toolResultContainer.classList.add("hidden");
+      grammarCorrectionsList.classList.add("hidden");
+    }
+  }
+
+  function scrollToResult() {
+    toolResultContainer.classList.remove("hidden");
+    requestAnimationFrame(() => {
+      toolResultContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }
+
+  /** Renders a persisted single-tool run — used both for a live completion
+   *  (via chrome.storage.onChanged) and for restoring one on popup reopen. */
+  function applySingleToolResult(result) {
+    if (!result) return;
+    if (activeToolState.tool !== result.tool) {
+      selectActiveTool.value = result.tool;
+      selectActiveTool.dispatchEvent(new Event("change"));
+    }
+    toolTextareaInput.value = result.input;
+    toolTextareaInput.dispatchEvent(new Event("input"));
+    setToolProcessingUI(false);
+
+    if (result.error) {
+      showError(result.error);
+    } else {
+      renderToolResult(result.tool, result.data);
+    }
+
+    const toolsNav = document.querySelector(".nav-item[data-target='panel-tools']");
+    if (toolsNav && !toolsNav.classList.contains("active")) toolsNav.click();
+    scrollToResult();
   }
 
   // ── Render Tool Output ──
@@ -538,7 +875,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (tool === "grammar") {
       toolResultOutput.textContent = data.corrected;
-      
+
       if (data.corrections && data.corrections.length > 0) {
         grammarCorrectionsList.classList.remove("hidden");
 
@@ -584,14 +921,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const ol = document.createElement("ol");
       ol.style.paddingLeft = "20px";
       ol.style.margin = "0";
-      
+
       data.headlines.forEach((h) => {
         const li = document.createElement("li");
         li.textContent = h;
         li.style.marginBottom = "8px";
         ol.appendChild(li);
       });
-      
+
       toolResultOutput.innerHTML = "";
       toolResultOutput.appendChild(ol);
     } else if (tool === "rewriter") {
@@ -608,24 +945,12 @@ document.addEventListener("DOMContentLoaded", () => {
     toolResultOutput.innerHTML = `<span style="color: #EF4444; font-weight: 500;">ERROR: ${escapeHtml(msg)}</span><br><span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; display: block;">Check that the API service is running and review your Settings.</span>`;
   }
 
-  // ── Optimize: client-side orchestration of the four existing endpoints ──
-  // Same behavior as the content-script card (see content.js) — there is no
-  // dedicated /optimize backend route. Grammar and headlines always run;
-  // restyle and summary are opt-in, and both run against the final
-  // (possibly restyled) text so they match the article's eventual tone.
+  // ── Optimize: real streaming pipeline via POST /optimize ──
+  // One backend call, streamed as NDJSON — see background.js's
+  // "optimizeStream" Port handler. Replaces the old client-side chain of
+  // four separate tool calls: that predated /optimize existing and could
+  // drift from the server's own pipeline ordering/validation.
   const OPTIMIZE_STAGE_LABEL = { grammar: "Grammar", style: "Style", headline: "Headlines", summary: "Summary" };
-
-  function callApiPromise(endpoint, body) {
-    return new Promise((resolve, reject) => {
-      sendMessage({ action: "callApi", endpoint, body, method: "POST" }, (response) => {
-        if (!response || !response.success) {
-          reject(new Error(response ? response.error : "Failed to connect to server."));
-          return;
-        }
-        resolve(response.data);
-      });
-    });
-  }
 
   function optimizeStageList() {
     const stages = ["grammar"];
@@ -660,7 +985,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!statusEl) return;
     statusEl.className = `optimize-stage-card-status ${status}`;
     statusEl.textContent =
-      status === "running" ? "Running" : status === "done" ? "Done" : status === "failed" ? "Failed" : "Queued";
+      status === "running" ? "Running" :
+      status === "done" ? "Done" :
+      status === "failed" ? "Failed" :
+      status === "skipped" ? "Skipped" : "Queued";
     const bodyEl = optimizeResultsContainer.querySelector(`.optimize-stage-card[data-stage="${id}"] [data-role="body"]`);
     if (status === "running" && bodyEl) {
       bodyEl.innerHTML = `<div class="optimize-shimmer-line" style="width:88%"></div><div class="optimize-shimmer-line" style="width:65%"></div>`;
@@ -674,60 +1002,223 @@ document.addEventListener("DOMContentLoaded", () => {
     bodyEl.style.color = isError ? "var(--accent-hover)" : "";
   }
 
-  async function runOptimizeInPopup(inputVal) {
-    const stages = optimizeStageList();
-    renderOptimizeSkeleton(stages);
+  /** Pulls the field each stage's own response shape carries the result in. */
+  function optimizeStageText(stage, data) {
+    if (!data) return "";
+    if (stage === "grammar") return data.corrected || "";
+    if (stage === "style") return data.rewritten || "";
+    if (stage === "headline") return (data.headlines || []).map((h, i) => `${i + 1}. ${h}`).join("\n");
+    if (stage === "summary") return data.summary || "";
+    return "";
+  }
+
+  function runOptimizeInPopup(inputVal) {
+    const body = {
+      text: inputVal,
+      restyle: optimizeState.restyle,
+      tone: optimizeState.tone,
+      summarize: optimizeState.summarize,
+      length: optimizeState.length,
+      headline_count: extensionSettings.defaultHeadlineCount,
+      headline_category: "General",
+      headline_length: "medium"
+    };
+
+    renderOptimizeSkeleton(optimizeStageList());
     btnProcessTool.disabled = true;
     btnProcessTool.classList.add("loading");
+    scrollToResult();
 
-    let workingText = inputVal;
+    // Real extension: background.js runs the whole pipeline and persists
+    // progress to chrome.storage.local as each stage lands — see the big
+    // comment on setupPersistedRunSync below for why (a popup is destroyed
+    // on every blur, unlike content.js's inline card).
+    if (isExtensionContext && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ action: "runOptimizeTracked", body }, () => {});
+      return;
+    }
+
+    // Preview fallback — direct stream, no popup-lifetime concerns outside
+    // the extension.
+    const stages = optimizeStageList();
     let finalText = inputVal;
+    const seenStages = new Set();
 
-    try {
-      setOptimizeStageStatus("grammar", "running");
-      const grammarData = await callApiPromise("/grammar/check", { text: workingText });
-      workingText = grammarData.corrected;
-      finalText = workingText;
-      setOptimizeStageStatus("grammar", "done");
-      setOptimizeStageResult("grammar", grammarData.corrected);
+    openOptimizeStream(
+      body,
+      (event) => {
+        if (event.stage === "pipeline") {
+          if (event.status === "done" && event.data) {
+            finalText = event.data.final_text || finalText;
+          }
+          return;
+        }
 
-      if (optimizeState.restyle) {
-        setOptimizeStageStatus("style", "running");
-        const styleData = await callApiPromise("/rewrite", { text: workingText, tone: optimizeState.tone });
-        workingText = styleData.rewritten;
-        finalText = workingText;
-        setOptimizeStageStatus("style", "done");
-        setOptimizeStageResult("style", styleData.rewritten);
+        seenStages.add(event.stage);
+
+        if (event.status === "running") {
+          setOptimizeStageStatus(event.stage, "running");
+        } else if (event.status === "done") {
+          setOptimizeStageStatus(event.stage, "done");
+          setOptimizeStageResult(event.stage, optimizeStageText(event.stage, event.data));
+        } else if (event.status === "skipped") {
+          setOptimizeStageStatus(event.stage, "skipped");
+          setOptimizeStageResult(
+            event.stage,
+            event.reason === "disabled" ? "This tool is currently switched off." : "Skipped."
+          );
+        } else if (event.status === "failed") {
+          setOptimizeStageStatus(event.stage, "failed");
+          setOptimizeStageResult(event.stage, event.error || "This stage failed.", true);
+        }
+      },
+      () => {
+        btnProcessTool.disabled = false;
+        btnProcessTool.classList.remove("loading");
+        toolResultOutput.textContent = finalText;
+        scrollToResult();
+      },
+      (errorMessage) => {
+        btnProcessTool.disabled = false;
+        btnProcessTool.classList.remove("loading");
+        stages.forEach((id) => {
+          if (!seenStages.has(id)) {
+            setOptimizeStageStatus(id, "failed");
+            setOptimizeStageResult(id, errorMessage, true);
+          }
+        });
       }
+    );
+  }
 
-      setOptimizeStageStatus("headline", "running");
-      const headlineData = await callApiPromise("/headlines/generate", {
-        text: workingText,
-        count: extensionSettings.defaultHeadlineCount
-      });
-      setOptimizeStageStatus("headline", "done");
-      setOptimizeStageResult("headline", headlineData.headlines.map((h, i) => `${i + 1}. ${h}`).join("\n"));
+  /** Renders a persisted Optimize run's full state — used both for live
+   *  progress (via chrome.storage.onChanged) and for restoring one on popup
+   *  reopen, so the two cases share one rendering path. */
+  function applyOptimizeState(run) {
+    if (!run) return;
 
-      if (optimizeState.summarize) {
-        setOptimizeStageStatus("summary", "running");
-        const summaryData = await callApiPromise("/summarize", { text: workingText, length: optimizeState.length });
-        setOptimizeStageStatus("summary", "done");
-        setOptimizeStageResult("summary", summaryData.summary);
+    if (activeToolState.tool !== "optimize") {
+      selectActiveTool.value = "optimize";
+      selectActiveTool.dispatchEvent(new Event("change"));
+    }
+    toolTextareaInput.value = run.input;
+    toolTextareaInput.dispatchEvent(new Event("input"));
+
+    renderOptimizeSkeleton(run.stageIds);
+    run.stageIds.forEach((id) => {
+      const stage = run.stages[id];
+      if (!stage || stage.status === "pending") return; // skeleton already shows "Queued"
+
+      setOptimizeStageStatus(id, stage.status);
+      if (stage.status === "done") {
+        setOptimizeStageResult(id, optimizeStageText(id, stage.data));
+      } else if (stage.status === "skipped") {
+        setOptimizeStageResult(id, stage.reason === "disabled" ? "This tool is currently switched off." : "Skipped.");
+      } else if (stage.status === "failed") {
+        setOptimizeStageResult(id, stage.error || "This stage failed.", true);
       }
-    } catch (err) {
-      stages.forEach((id) => {
-        const statusEl = optimizeResultsContainer.querySelector(`.optimize-stage-card[data-stage="${id}"] [data-role="status"]`);
-        if (statusEl && (statusEl.textContent === "Queued" || statusEl.textContent === "Running")) {
+    });
+
+    if (!run.done) {
+      btnProcessTool.disabled = true;
+      btnProcessTool.classList.add("loading");
+      return;
+    }
+
+    btnProcessTool.disabled = false;
+    btnProcessTool.classList.remove("loading");
+    toolResultOutput.textContent = run.finalText || run.input;
+
+    if (run.error) {
+      // A pipeline-level failure, not a single stage — surface it on
+      // whatever stages never got to report their own outcome.
+      run.stageIds.forEach((id) => {
+        const stage = run.stages[id];
+        if (!stage || stage.status === "pending" || stage.status === "running") {
           setOptimizeStageStatus(id, "failed");
-          setOptimizeStageResult(id, err.message, true);
+          setOptimizeStageResult(id, run.error, true);
         }
       });
-    } finally {
-      btnProcessTool.disabled = false;
-      btnProcessTool.classList.remove("loading");
-      // Kept in sync (though hidden behind the stage cards) so Copy works.
-      toolResultOutput.textContent = finalText;
     }
+
+    const toolsNav = document.querySelector(".nav-item[data-target='panel-tools']");
+    if (toolsNav && !toolsNav.classList.contains("active")) toolsNav.click();
+    scrollToResult();
+  }
+
+  // ── Persisted-run sync: source of truth is chrome.storage.local ──
+  // A browser_action popup is destroyed on every blur (switching tabs closes
+  // it entirely, not just backgrounds it), so anything only held in this
+  // script's memory is gone the instant the user looks away mid-run.
+  // background.js keeps executing regardless and writes progress/results to
+  // storage; this listener renders them live whenever this popup instance
+  // happens to be open, and restoreRunState() (below) covers the case where
+  // it wasn't.
+  function setupPersistedRunSync() {
+    if (!isExtensionContext || !chrome.storage || !chrome.storage.onChanged) return;
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "local") return;
+
+      if (changes.sinai_active_run && changes.sinai_active_run.newValue) {
+        const active = changes.sinai_active_run.newValue;
+        if (activeToolState.tool !== active.tool) {
+          selectActiveTool.value = active.tool;
+          selectActiveTool.dispatchEvent(new Event("change"));
+        }
+        toolTextareaInput.value = active.input;
+        toolTextareaInput.dispatchEvent(new Event("input"));
+        setToolProcessingUI(true);
+      }
+
+      if (changes.sinai_last_result && changes.sinai_last_result.newValue) {
+        applySingleToolResult(changes.sinai_last_result.newValue);
+      }
+
+      if (changes.sinai_optimize_run && changes.sinai_optimize_run.newValue) {
+        applyOptimizeState(changes.sinai_optimize_run.newValue);
+      }
+    });
+  }
+
+  /** Restores whatever the last (or still in-flight) run was when this
+   *  popup instance opens — covers both "reopened after it finished" and
+   *  "reopened while it's still running". */
+  function restoreRunState() {
+    if (!isExtensionContext) return;
+
+    storage.get(["sinai_active_run", "sinai_last_result", "sinai_optimize_run"], (data) => {
+      const { sinai_active_run, sinai_last_result, sinai_optimize_run } = data;
+
+      if (sinai_optimize_run) {
+        const stillRunning = !sinai_optimize_run.done;
+        const stale = stillRunning && Date.now() - sinai_optimize_run.startedAt > RUN_STALE_MS;
+        if (!stale) {
+          applyOptimizeState(sinai_optimize_run);
+          return;
+        }
+      }
+
+      const activeIsCurrent =
+        sinai_active_run && (!sinai_last_result || sinai_last_result.runId !== sinai_active_run.runId);
+      const activeIsStale =
+        sinai_active_run && Date.now() - sinai_active_run.startedAt > RUN_STALE_MS;
+
+      if (activeIsCurrent && !activeIsStale) {
+        if (activeToolState.tool !== sinai_active_run.tool) {
+          selectActiveTool.value = sinai_active_run.tool;
+          selectActiveTool.dispatchEvent(new Event("change"));
+        }
+        toolTextareaInput.value = sinai_active_run.input;
+        toolTextareaInput.dispatchEvent(new Event("input"));
+        setToolProcessingUI(true);
+        return;
+      }
+
+      if (sinai_last_result) {
+        applySingleToolResult(sinai_last_result);
+      }
+    });
   }
 
   // ── History Listing ──
@@ -741,39 +1232,63 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderHistoryList() {
-    storage.get(["history"], (data) => {
-      const list = data.history || [];
-      historyItemsContainer.innerHTML = "";
+    if (currentUser) {
+      sendMessage({ action: "callApi", endpoint: "/history?limit=50", method: "GET" }, (response) => {
+        if (response && response.success) {
+          const normalized = (response.data.items || []).map((item) => ({
+            id: item.id,
+            type: item.tool,
+            timestamp: item.created_at,
+            original: item.input_preview,
+            result: item.output_preview
+          }));
+          renderHistoryCards(normalized, false);
+        } else {
+          // Offline/failed — fall back to the local mirror rather than an empty list.
+          storage.get(["history"], (data) => renderHistoryCards(data.history || [], true));
+        }
+      });
+      return;
+    }
+    storage.get(["history"], (data) => renderHistoryCards(data.history || [], true));
+  }
 
-      if (list.length === 0) {
-        historyItemsContainer.innerHTML = `
-          <div class="empty-state">
-            <p>No recent activity.</p>
-          </div>
-        `;
-        return;
-      }
+  /** `clickable`: local items carry full (untruncated) original text and can be
+   *  re-opened in the editor; server items are truncated previews and are not. */
+  function renderHistoryCards(list, clickable) {
+    historyItemsContainer.innerHTML = "";
 
-      list.forEach((item) => {
-        const card = document.createElement("div");
-        card.className = "history-card";
-        
-        let typeLabel = "Grammar";
-        if (item.type === "headlines") typeLabel = "Headlines";
-        if (item.type === "rewriter") typeLabel = "Rewriter";
-        if (item.type === "summarizer") typeLabel = "Summarizer";
+    if (list.length === 0) {
+      historyItemsContainer.innerHTML = `
+        <div class="empty-state">
+          <p>No recent activity.</p>
+        </div>
+      `;
+      return;
+    }
 
-        const timeString = formatTime(item.timestamp);
+    list.forEach((item) => {
+      const card = document.createElement("div");
+      card.className = clickable ? "history-card is-clickable" : "history-card";
 
-        card.innerHTML = `
-          <div class="history-card-header">
-            <span class="history-badge ${item.type}">${typeLabel}</span>
-            <span class="history-time">${timeString}</span>
-          </div>
-          <div class="history-snippet" title="${escapeHtml(item.original)}">Original: ${escapeHtml(item.original)}</div>
-          <div class="history-result" title="${escapeHtml(item.result)}">Result: ${escapeHtml(item.result)}</div>
-        `;
-        
+      let typeLabel = "Grammar";
+      if (item.type === "headlines") typeLabel = "Headlines";
+      if (item.type === "rewriter") typeLabel = "Rewriter";
+      if (item.type === "summarizer") typeLabel = "Summarizer";
+      if (item.type === "optimize") typeLabel = "Optimize";
+
+      const timeString = formatTime(item.timestamp);
+
+      card.innerHTML = `
+        <div class="history-card-header">
+          <span class="history-badge ${item.type}">${typeLabel}</span>
+          <span class="history-time">${timeString}</span>
+        </div>
+        <div class="history-snippet" title="${escapeHtml(item.original || "")}">Original: ${escapeHtml(item.original || "")}</div>
+        <div class="history-result" title="${escapeHtml(item.result || "")}">Result: ${escapeHtml(item.result || "")}</div>
+      `;
+
+      if (clickable) {
         card.addEventListener("click", () => {
           selectActiveTool.value = item.type;
           selectActiveTool.dispatchEvent(new Event("change"));
@@ -781,25 +1296,39 @@ document.addEventListener("DOMContentLoaded", () => {
           toolTextareaInput.dispatchEvent(new Event("input"));
           document.querySelector(".nav-item[data-target='panel-tools']").click();
         });
+      }
 
-        historyItemsContainer.appendChild(card);
-      });
+      historyItemsContainer.appendChild(card);
     });
   }
 
   // ── Dashboard Stats ──
   function updateDashboardStats(historyCache) {
-    if (historyCache) {
-      applyStats(historyCache);
-    } else {
-      storage.get(["history"], (data) => {
-        applyStats(data.history || []);
+    if (currentUser) {
+      sendMessage({ action: "callApi", endpoint: "/history/stats", method: "GET" }, (response) => {
+        if (response && response.success) {
+          statTotalChecks.textContent = response.data.total || 0;
+          statToolsUsed.textContent = Object.keys(response.data.per_tool || {}).length;
+        } else {
+          applyLocalStats();
+        }
       });
+      return;
+    }
+    applyLocalStats();
+
+    function applyLocalStats() {
+      if (historyCache) {
+        applyStats(historyCache);
+      } else {
+        storage.get(["history"], (data) => {
+          applyStats(data.history || []);
+        });
+      }
     }
 
     function applyStats(list) {
       statTotalChecks.textContent = list.length;
-      
       const uniqueTools = new Set(list.map(h => h.type));
       statToolsUsed.textContent = uniqueTools.size;
     }

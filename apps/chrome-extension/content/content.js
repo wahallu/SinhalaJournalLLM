@@ -85,6 +85,26 @@
       font-display: swap;
     }
 
+    /* Satoshi (UI chrome) — same face as web-app/index.html and the popup,
+       via Fontshare's CDN. Hardcoded font URLs rather than an @import: an
+       @import inside a shadow-root <style> is unreliable, since it depends
+       on being fetched and applied before first paint the same way the
+       inline styles here already are (see file header comment). */
+    @font-face {
+      font-family: 'Satoshi';
+      src: url('https://cdn.fontshare.com/wf/TTX2Z3BF3P6Y5BQT3IV2VNOK6FL22KUT/7QYRJOI3JIMYHGY6CH7SOIFRQLZOLNJ6/KFIAZD4RUMEZIYV6FQ3T3GP5PDBDB6JY.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Satoshi';
+      src: url('https://cdn.fontshare.com/wf/LAFFD4SDUCDVQEXFPDC7C53EQ4ZELWQI/PXCT3G6LO6ICM5I3NTYENYPWJAECAWDD/GHM6WVH6MILNYOOCXHXB5GTSGNTMGXZR.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
     .hidden { display: none !important; }
 
     /* ── Badge — the floating trigger that appears on selection ── */
@@ -328,7 +348,8 @@
     .optimize-stage-status.done { color: #059669; }
     .optimize-stage-status.running { color: #ab1112; }
     .optimize-stage-status.failed { color: #ab1112; }
-    .optimize-stage-status.pending { color: #a6a2a2; }
+    .optimize-stage-status.pending,
+    .optimize-stage-status.skipped { color: #a6a2a2; }
     .optimize-stage-body {
       padding: 8px 10px;
       font-size: 12.5px;
@@ -952,12 +973,11 @@
     }
   }
 
-  // ── Optimize: client-side orchestration of the four existing endpoints ──
-  // There is no dedicated /optimize backend route — this chains the same
-  // calls the four tools already make, exactly like the web app's Optimize
-  // Article feature: grammar and headlines always run; restyle and summary
-  // are opt-in, and headlines/summary are generated from the final
-  // (possibly restyled) text so they match the article's eventual tone.
+  // ── Optimize: real streaming pipeline via POST /optimize ──
+  // One backend call, streamed as NDJSON, mirroring web-app's Optimize
+  // Article. Replaces the old client-side chain of four separate tool
+  // calls, which predated /optimize existing and could drift from the
+  // server's own pipeline ordering/validation.
   const OPTIMIZE_STAGE_META = {
     grammar: "Grammar",
     style: "Style",
@@ -997,11 +1017,59 @@
     const el = optimizeResultsEl.querySelector(`.optimize-stage[data-stage="${id}"] [data-role="status"]`);
     if (!el) return;
     el.className = `optimize-stage-status ${status}`;
-    el.textContent = status === "running" ? "Running" : status === "done" ? "Done" : status === "failed" ? "Failed" : "Queued";
+    el.textContent =
+      status === "running" ? "Running" :
+      status === "done" ? "Done" :
+      status === "failed" ? "Failed" :
+      status === "skipped" ? "Skipped" : "Queued";
     const body = optimizeResultsEl.querySelector(`.optimize-stage[data-stage="${id}"] [data-role="body"]`);
     if (status === "running" && body) {
       body.innerHTML = `<div class="sinai-shimmer-line" style="width:90%"></div><div class="sinai-shimmer-line" style="width:70%"></div>`;
     }
+  }
+
+  /** Pulls the field each stage's own response shape carries the result in. */
+  function optimizeStageText(stage, data) {
+    if (!data) return "";
+    if (stage === "grammar") return data.corrected || "";
+    if (stage === "style") return data.rewritten || "";
+    if (stage === "headline") return (data.headlines || []).map((h, i) => `${i + 1}. ${h}`).join("\n");
+    if (stage === "summary") return data.summary || "";
+    return "";
+  }
+
+  /**
+   * Open a stream for POST /optimize over a long-lived Port to background.js
+   * (only it gets a CORS exemption via host_permissions — see callApi
+   * above). `onEvent` fires once per NDJSON object; `onDone`/`onError` fire
+   * exactly once, at the end.
+   */
+  function openOptimizeStream(body, onEvent, onDone, onError) {
+    const port = chrome.runtime.connect({ name: "optimizeStream" });
+    let finished = false;
+
+    port.onMessage.addListener((message) => {
+      if (message.type === "event") {
+        onEvent(message.data);
+      } else if (message.type === "done") {
+        finished = true;
+        onDone();
+      } else if (message.type === "error") {
+        finished = true;
+        onError(message.error);
+      }
+      // "heartbeat" needs no handling — it only keeps the service worker
+      // alive while a stage is still running.
+    });
+
+    port.onDisconnect.addListener(() => {
+      if (!finished) {
+        finished = true;
+        onError("Connection to the extension background was lost.");
+      }
+    });
+
+    port.postMessage({ action: "startOptimize", body });
   }
 
   function setStageResult(id, text, isError) {
@@ -1012,63 +1080,71 @@
     body.style.color = isError ? "#ab1112" : "";
   }
 
-  async function runOptimize() {
+  function runOptimize() {
     const stages = optimizeStages();
     renderOptimizeSkeleton(stages);
     btnProcess.disabled = true;
     btnProcess.classList.add("loading");
 
-    let workingText = activeSelectionText;
-    let finalResult = { corrected: activeSelectionText };
+    let finalText = activeSelectionText;
+    const seenStages = new Set();
 
-    try {
-      setStageStatus("grammar", "running");
-      const grammarData = await callApi("/grammar/check", { text: workingText });
-      workingText = grammarData.corrected;
-      finalResult = grammarData;
-      setStageStatus("grammar", "done");
-      setStageResult("grammar", grammarData.corrected);
+    const body = {
+      text: activeSelectionText,
+      restyle: optimizeOptions.restyle,
+      tone: optimizeOptions.tone,
+      summarize: optimizeOptions.summarize,
+      length: optimizeOptions.length,
+      headline_count: apiSettings.defaultHeadlineCount,
+      headline_category: "General",
+      headline_length: "medium"
+    };
 
-      if (optimizeOptions.restyle) {
-        setStageStatus("style", "running");
-        const styleData = await callApi("/rewrite", { text: workingText, tone: optimizeOptions.tone });
-        workingText = styleData.rewritten;
-        setStageStatus("style", "done");
-        setStageResult("style", styleData.rewritten);
+    openOptimizeStream(
+      body,
+      (event) => {
+        if (event.stage === "pipeline") {
+          if (event.status === "done" && event.data) {
+            finalText = event.data.final_text || finalText;
+          }
+          return;
+        }
+
+        seenStages.add(event.stage);
+
+        if (event.status === "running") {
+          setStageStatus(event.stage, "running");
+        } else if (event.status === "done") {
+          setStageStatus(event.stage, "done");
+          setStageResult(event.stage, optimizeStageText(event.stage, event.data));
+        } else if (event.status === "skipped") {
+          setStageStatus(event.stage, "skipped");
+          setStageResult(
+            event.stage,
+            event.reason === "disabled" ? "This tool is currently switched off." : "Skipped."
+          );
+        } else if (event.status === "failed") {
+          setStageStatus(event.stage, "failed");
+          setStageResult(event.stage, event.error || "This stage failed.", true);
+        }
+      },
+      () => {
+        btnProcess.disabled = false;
+        btnProcess.classList.remove("loading");
+        outputText.textContent = finalText;
+        outputText.className = "output-text hidden"; // kept in sync for Copy/Apply, not shown — the stage cards are the visible result
+      },
+      (errorMessage) => {
+        btnProcess.disabled = false;
+        btnProcess.classList.remove("loading");
+        stages.forEach((id) => {
+          if (!seenStages.has(id)) {
+            setStageStatus(id, "failed");
+            setStageResult(id, errorMessage, true);
+          }
+        });
       }
-
-      setStageStatus("headline", "running");
-      const headlineData = await callApi("/headlines/generate", {
-        text: workingText,
-        count: apiSettings.defaultHeadlineCount
-      });
-      setStageStatus("headline", "done");
-      setStageResult("headline", headlineData.headlines.map((h, i) => `${i + 1}. ${h}`).join("\n"));
-
-      if (optimizeOptions.summarize) {
-        setStageStatus("summary", "running");
-        const summaryData = await callApi("/summarize", { text: workingText, length: optimizeOptions.length });
-        setStageStatus("summary", "done");
-        setStageResult("summary", summaryData.summary);
-      }
-
-      // Apply/Copy act on the final processed article text, not any one stage.
-      finalResult = { corrected: workingText };
-    } catch (err) {
-      const remaining = stages.filter((id) => {
-        const status = optimizeResultsEl.querySelector(`.optimize-stage[data-stage="${id}"] [data-role="status"]`);
-        return status && (status.textContent === "Queued" || status.textContent === "Running");
-      });
-      remaining.forEach((id) => {
-        setStageStatus(id, "failed");
-        setStageResult(id, err.message, true);
-      });
-    } finally {
-      btnProcess.disabled = false;
-      btnProcess.classList.remove("loading");
-      outputText.textContent = finalResult.corrected;
-      outputText.className = "output-text hidden"; // kept in sync for Copy/Apply, not shown — the stage cards are the visible result
-    }
+    );
   }
 
   // ── Copy Result ──

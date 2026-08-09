@@ -22,7 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnTest = document.getElementById("options-btn-test");
   const btnSave = document.getElementById("options-btn-save");
   const btnReset = document.getElementById("options-btn-reset");
-  
+  const resetBtnDefaultLabel = btnReset.textContent;
+
   const statusBadge = document.getElementById("options-status-badge");
   const statusDot = statusBadge.querySelector(".status-dot");
   const statusText = statusBadge.querySelector(".status-text");
@@ -116,18 +117,38 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
+  // Two-click inline confirm rather than a native confirm() dialog, matching
+  // the app's no-native-dialogs convention: first click arms it and shows a
+  // "click again" state that disarms itself after a few seconds; only the
+  // second click within that window actually resets.
+  let resetArmed = false;
+  let resetArmedTimeout = null;
+
+  function disarmReset() {
+    resetArmed = false;
+    clearTimeout(resetArmedTimeout);
+    btnReset.textContent = resetBtnDefaultLabel;
+    btnReset.classList.remove("btn-confirm-armed");
+  }
+
   function resetToDefaults() {
-    if (confirm("ඔබට සියලු සැකසුම් පෙරනිමි තත්වයට පත් කිරීමට අවශ්‍යද? (Reset all settings to defaults?)")) {
-      storage.set(DEFAULT_SETTINGS, () => {
-        loadSettings();
-        
-        const originalText = btnReset.textContent;
-        btnReset.textContent = "Reset Done";
-        setTimeout(() => {
-          btnReset.textContent = originalText;
-        }, 1500);
-      });
+    if (!resetArmed) {
+      resetArmed = true;
+      btnReset.textContent = "Click again to confirm";
+      btnReset.classList.add("btn-confirm-armed");
+      resetArmedTimeout = setTimeout(disarmReset, 3000);
+      return;
     }
+
+    disarmReset();
+    storage.set(DEFAULT_SETTINGS, () => {
+      loadSettings();
+
+      btnReset.textContent = "Reset Done";
+      setTimeout(() => {
+        btnReset.textContent = resetBtnDefaultLabel;
+      }, 1500);
+    });
   }
 
   function checkApiHealth(apiHost) {

@@ -1,13 +1,15 @@
 {
   "manifest_version": 3,
   "name": "SinAI — SinhalaJournal LLM Assistant",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Real-time Sinhala grammar checking, headlines generation, rewriting, and summarization directly in your browser.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAu/FwqGZoao5AixmNB0Cgz84Fk0Kj/40ACTWiX47Rw3AXHqjrFrFVf+0jkGhj8oiY9sObdEAIAf0Qn7F5VBBDdlB2X6MxS2i9LpFzjdT+4oP0JHyPdBuAP1NbJlotACKzjx7vuRUTka2BinoXz7CDR0HXQDyBL85mJCosa0FdqyeyDZo/CU9pKTCUzAvrRzfjCArdZ2v89qumLZ4TBEVTJ5yjGGbCz6LloUO4Lrt02Q/bn80q2MB7H2pxRkdjz7ZjBNdzW8iy4Kq6QF5asVM9Chu3mF8UB6l8DJ/QLxxyArevNuH/iRj1oZ8PAzx25vH7BFxoCaFEaaNnhxs7u82qxwIDAQAB",
   "permissions": [
     "activeTab",
     "storage",
     "contextMenus",
-    "clipboardWrite"
+    "clipboardWrite",
+    "identity"
   ],
   "host_permissions": [
     "http://localhost/*",

@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <base target="_top">
-  <!-- Google Fonts for branding and readability -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- UI chrome is English (below) and uses Satoshi/Gwen — matching the web
+       app and the extension; Noto Sans Sinhala is only for actual Sinhala
+       content (selection preview, tool output, history). -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
   <?!= include('SidebarStyles'); ?>
 </head>
 <body>
@@ -12,65 +15,57 @@
     <!-- Header -->
     <header class="sidebar-header">
       <div class="brand-area">
-        <!-- SVG Icon embedded directly since local files are not hosted in Apps Script -->
-        <svg viewBox="0 0 128 128" class="brand-logo">
-          <defs>
-            <linearGradient id="logoBg" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#E63946" />
-              <stop offset="100%" stop-color="#9E0F19" />
-            </linearGradient>
-            <linearGradient id="logoAcc" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#FFFFFF" />
-              <stop offset="100%" stop-color="#FFE3E5" />
-            </linearGradient>
-          </defs>
-          <rect x="0" y="0" width="128" height="128" rx="28" fill="url(#logoBg)" />
-          <path d="M 42,72 C 42,55 58,45 74,48 C 85,50 90,60 88,72 C 86,84 76,88 64,88 C 52,88 44,80 44,72 C 44,66 50,60 58,62 C 64,63 68,68 67,73 C 66,78 62,81 58,80 C 55,79 53,76 54,73" fill="none" stroke="url(#logoAcc)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M 74,47 C 74,32 58,26 48,34" fill="none" stroke="url(#logoAcc)" stroke-width="7" stroke-linecap="round" />
-          <path d="M 88,38 L 91,42 L 95,43 L 91,44 L 90,48 L 87,44 L 83,43 L 87,42 Z" fill="#FFFFFF" />
-        </svg>
+        <img src="data:image/png;base64,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" alt="SinAi" class="brand-logo">
         <div class="brand-info">
-          <h1>SinAI</h1>
+          <h1>SinAi</h1>
           <span class="sub-brand">Docs Assistant</span>
         </div>
       </div>
-      <div class="api-status-badge" id="sidebar-api-status">
+      <div class="api-status-badge" id="sidebar-api-status" title="Click for details">
         <span class="status-dot warning"></span>
         <span class="status-text">Checking</span>
       </div>
     </header>
 
+    <!-- Signed-in strip — hidden until a session exists -->
+    <div class="account-strip hidden" id="account-strip">
+      <span class="account-avatar" id="account-avatar"></span>
+      <span class="account-email" id="account-strip-email"></span>
+    </div>
+
     <!-- Navigation Tabs -->
     <nav class="sidebar-nav">
       <button class="nav-btn active" data-panel="panel-tools">Tools</button>
+      <button class="nav-btn" data-panel="panel-account">Account</button>
+      <button class="nav-btn" data-panel="panel-history">History</button>
       <button class="nav-btn" data-panel="panel-settings">Settings</button>
-      <button class="nav-btn" data-panel="panel-help">Help</button>
     </nav>
 
     <!-- Main Content Panels -->
     <main class="sidebar-main">
-      
+
       <!-- 1. TOOLS PANEL -->
       <section id="panel-tools" class="sidebar-panel active">
         <div class="selection-tracker">
           <div class="tracker-header">
-            <span class="tracker-title">තෝරාගත් පෙළ (Selection)</span>
-            <button class="btn-icon" id="btn-refresh-selection" title="ලිපියේ තෝරාගත් කොටස නැවත ලබාගන්න">
+            <span class="tracker-title">Selection</span>
+            <button class="btn-icon" id="btn-refresh-selection" title="Re-read the document's current selection">
               <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
             </button>
           </div>
           <div class="tracker-preview placeholder" id="selection-preview-box">
-            කරුණාකර Google Document එකෙහි වචන කිහිපයක් තෝරා Refresh කරන්න...
+            Select some text in the document, then press refresh.
           </div>
         </div>
 
         <div class="field-group">
-          <label for="select-tool-mode" class="field-label">ක්‍රියාව (Select Action)</label>
+          <label for="select-tool-mode" class="field-label">Tool</label>
           <select id="select-tool-mode" class="sidebar-select">
-            <option value="grammar">Grammar Checker (ව්‍යාකරණ)</option>
-            <option value="headlines">Headline Generator (සිරස්තල)</option>
-            <option value="rewriter">Style Rewriter (ශෛලිය)</option>
-            <option value="summarizer">News Summarizer (සාරාංශය)</option>
+            <option value="grammar">Grammar Checker</option>
+            <option value="headlines">Headline Generator</option>
+            <option value="rewriter">Style Rewriter</option>
+            <option value="summarizer">News Summarizer</option>
+            <option value="optimize">Optimize Article</option>
           </select>
         </div>
 
@@ -78,111 +73,193 @@
         <div class="options-wrapper">
           <!-- Style Option -->
           <div id="sub-options-style" class="sub-option-row hidden">
-            <span class="sub-label">ශෛලිය:</span>
+            <span class="sub-label">Tone:</span>
             <div class="option-segmented">
-              <button class="seg-item active" data-value="formal">නිල</button>
-              <button class="seg-item" data-value="sports">ක්‍රීඩා</button>
-              <button class="seg-item" data-value="youth">තරුණ</button>
-              <button class="seg-item" data-value="editorial">සංස්කාරකීය</button>
-              <button class="seg-item" data-value="feature">විශේෂාංග</button>
+              <button class="seg-item active" data-value="formal">Formal</button>
+              <button class="seg-item" data-value="sports">Sports</button>
+              <button class="seg-item" data-value="youth">Youth</button>
+              <button class="seg-item" data-value="editorial">Editorial</button>
+              <button class="seg-item" data-value="feature">Feature</button>
             </div>
           </div>
           <!-- Summary Option -->
           <div id="sub-options-summary" class="sub-option-row hidden">
-            <span class="sub-label">දිග:</span>
+            <span class="sub-label">Length:</span>
             <div class="option-segmented">
-              <button class="seg-item" data-value="short">කෙටි</button>
-              <button class="seg-item active" data-value="medium">මධ්‍යම</button>
-              <button class="seg-item" data-value="long">දීර්ඝ</button>
+              <button class="seg-item" data-value="short">Short</button>
+              <button class="seg-item active" data-value="medium">Medium</button>
+              <button class="seg-item" data-value="long">Long</button>
+            </div>
+          </div>
+          <!-- Optimize Options: grammar + headlines always run; these two
+               extra stages are opt-in, matching the web app and extension. -->
+          <div id="sub-options-optimize" class="hidden" style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display:flex; align-items:center; gap:7px; font-size:0.78rem; font-weight:500; color:var(--text); cursor:pointer;">
+              <input type="checkbox" id="optimize-toggle-restyle" style="accent-color:var(--accent); width:14px; height:14px; cursor:pointer;">
+              Also rewrite style
+            </label>
+            <div class="option-segmented hidden" id="optimize-tone-control" style="margin-left: 20px;">
+              <button class="seg-item active" data-value="formal">Formal</button>
+              <button class="seg-item" data-value="sports">Sports</button>
+              <button class="seg-item" data-value="youth">Youth</button>
+              <button class="seg-item" data-value="editorial">Editorial</button>
+              <button class="seg-item" data-value="feature">Feature</button>
+            </div>
+            <label style="display:flex; align-items:center; gap:7px; font-size:0.78rem; font-weight:500; color:var(--text); cursor:pointer;">
+              <input type="checkbox" id="optimize-toggle-summarize" style="accent-color:var(--accent); width:14px; height:14px; cursor:pointer;">
+              Also write summary
+            </label>
+            <div class="option-segmented hidden" id="optimize-length-control" style="margin-left: 20px;">
+              <button class="seg-item" data-value="short">Short</button>
+              <button class="seg-item active" data-value="medium">Medium</button>
+              <button class="seg-item" data-value="long">Long</button>
             </div>
           </div>
         </div>
 
-        <button id="btn-process-action" class="btn-primary w-full" disabled>ක්‍රියාත්මක කරන්න (Analyze)</button>
+        <button id="btn-process-action" class="btn-primary w-full" disabled>Correct</button>
 
-        <!-- Result Container -->
+        <div id="banner-area"></div>
+
+        <!-- Result Container (single-tool) -->
         <div id="result-container" class="result-box hidden">
           <div class="result-header">
-            <h3>ප්‍රතිඵලය (Result)</h3>
-            <div class="result-actions">
-              <button id="btn-copy-result" class="btn-icon" title="Copy to Clipboard">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12V1z"/></svg>
-              </button>
-            </div>
+            <h3>Result</h3>
+            <button id="btn-copy-result" class="btn-icon" title="Copy to clipboard">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M19 21H8V7h11m0-2H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2m-3-4H4a2 2 0 0 0-2 2v14h2V3h12V1z"/></svg>
+            </button>
           </div>
-          
+
           <div id="result-output-text" class="result-output"></div>
-          
-          <!-- Detailed explanations for Grammar errors -->
+
+          <!-- Detailed explanations for Grammar errors, incl. suspicious-word guard -->
           <div id="grammar-corrections-list" class="corrections-wrapper hidden"></div>
 
           <div class="result-insertion-buttons">
-            <button id="btn-apply-replace" class="btn-primary" style="flex: 2;">තෝරාගත් පෙළ වෙනස් කරන්න</button>
-            <button id="btn-apply-insert" class="btn-secondary" style="flex: 1; min-width: 80px;">ඇතුළත් කරන්න</button>
+            <button id="btn-apply-replace" class="btn-primary" style="flex: 2;">Replace Selection</button>
+            <button id="btn-apply-insert" class="btn-secondary" style="flex: 1; min-width: 80px;">Insert</button>
           </div>
+        </div>
+
+        <!-- Result Container (Optimize — one card per stage) -->
+        <div id="optimize-results" class="optimize-results hidden"></div>
+      </section>
+
+      <!-- 2. ACCOUNT PANEL -->
+      <section id="panel-account" class="sidebar-panel">
+        <!-- Signed-in view -->
+        <div id="account-signed-in" class="hidden">
+          <div class="account-card">
+            <span class="account-avatar-lg" id="account-avatar-lg"></span>
+            <div class="account-card-body">
+              <p class="account-card-email" id="account-card-email"></p>
+              <p class="account-card-hint">Signed in — history syncs across devices</p>
+            </div>
+          </div>
+          <button id="btn-sign-out" class="btn-secondary w-full">Sign Out</button>
+        </div>
+
+        <!-- Signed-out view -->
+        <div id="account-signed-out">
+          <div class="auth-intro">
+            <h2>Sign in to SinAi</h2>
+            <p>Sync your history across the web app, the extension, and this add-on.</p>
+          </div>
+
+          <div class="auth-mode-toggle">
+            <button class="seg-item active" id="btn-auth-mode-login" data-mode="login">Sign In</button>
+            <button class="seg-item" id="btn-auth-mode-signup" data-mode="signup">Sign Up</button>
+          </div>
+
+          <div id="auth-banner-area"></div>
+
+          <form id="form-auth" class="auth-form">
+            <div class="field-group hidden" id="field-full-name">
+              <label for="input-full-name" class="field-label">Full name (optional)</label>
+              <input type="text" id="input-full-name" class="sidebar-input" placeholder="Your name">
+            </div>
+            <div class="field-group">
+              <label for="input-email" class="field-label">Email</label>
+              <input type="email" id="input-email" class="sidebar-input" placeholder="you@example.com" required>
+            </div>
+            <div class="field-group">
+              <label for="input-password" class="field-label">Password</label>
+              <input type="password" id="input-password" class="sidebar-input" placeholder="••••••••" required minlength="8">
+            </div>
+            <button type="submit" id="btn-auth-submit" class="btn-primary w-full">Sign In</button>
+          </form>
+
+          <div class="auth-link-row">
+            <button class="link-btn" id="btn-forgot-password">Forgot password?</button>
+          </div>
+
+          <div class="auth-divider"><span>Google Sign-In is not available in this add-on</span></div>
+          <p style="text-align:center; font-size: 0.68rem;">Google's sign-in flow can't run inside a Docs sidebar — use the web app or the browser extension to sign in with Google, then sign in here with email/password.</p>
         </div>
       </section>
 
-      <!-- 2. SETTINGS PANEL -->
+      <!-- 3. HISTORY PANEL -->
+      <section id="panel-history" class="sidebar-panel">
+        <h2>Recent activity</h2>
+        <div id="history-list-container">
+          <div class="empty-state"><p>Sign in to see your history.</p></div>
+        </div>
+      </section>
+
+      <!-- 4. SETTINGS PANEL -->
       <section id="panel-settings" class="sidebar-panel">
-        <h2>සැකසුම් (Settings)</h2>
-        
+        <h2>Settings</h2>
+
         <div class="settings-form">
           <div class="form-group">
             <label for="input-api-host" class="field-label">API Base URL</label>
             <input type="text" id="input-api-host" class="sidebar-input" placeholder="https://sinhalajournalllm.onrender.com/api/v1">
-            <p class="field-help">Google Apps Script සේවාදායකයේ සිට API වෙත සම්බන්ධ වීමට අවශ්‍ය ප්‍රවේශ ලිපිනය.</p>
+            <p class="field-help">Address the Apps Script server connects to. Change this only for local development.</p>
           </div>
 
           <div class="form-group">
-            <label for="select-default-tone" class="field-label">පෙරනිමි ශෛලිය (Default Tone)</label>
+            <label for="select-default-tone" class="field-label">Default Style Tone</label>
             <select id="select-default-tone" class="sidebar-select">
-              <option value="formal">Formal (නිල)</option>
-              <option value="sports">Sports (ක්‍රීඩා)</option>
-              <option value="youth">Youth (තරුණ)</option>
-              <option value="editorial">Editorial (සංස්කාරකීය)</option>
-              <option value="feature">Feature (විශේෂාංග)</option>
+              <option value="formal">Formal</option>
+              <option value="sports">Sports</option>
+              <option value="youth">Youth</option>
+              <option value="editorial">Editorial</option>
+              <option value="feature">Feature</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="select-default-length" class="field-label">පෙරනිමි සාරාංශ ප්‍රමාණය (Default Length)</label>
+            <label for="select-default-length" class="field-label">Default Summary Length</label>
             <select id="select-default-length" class="sidebar-select">
-              <option value="short">Short (කෙටි)</option>
-              <option value="medium">Medium (මධ්‍යම)</option>
-              <option value="long">Long (දීර්ඝ)</option>
+              <option value="short">Short</option>
+              <option value="medium">Medium</option>
+              <option value="long">Long</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="input-default-headlines" class="field-label">පෙරනිමි සිරස්තල ගණන (Headline Count)</label>
+            <label for="input-default-headlines" class="field-label">Default Headline Count</label>
             <input type="number" id="input-default-headlines" class="sidebar-input" min="1" max="10" value="5">
           </div>
 
-          <button id="btn-save-settings" class="btn-primary w-full">සැකසුම් සුරකින්න</button>
+          <button id="btn-save-settings" class="btn-primary w-full">Save Settings</button>
         </div>
-      </section>
 
-      <!-- 3. HELP PANEL -->
-      <section id="panel-help" class="sidebar-panel">
-        <h2>උදව් සහ උපදෙස් (Help)</h2>
-        
-        <div class="help-card">
-          <h3>භාවිතා කරන ආකාරය:</h3>
+        <div class="help-card" style="margin-top: 20px;">
+          <h3>How to use</h3>
           <ol>
-            <li>ලිපියෙහි සංස්කරණය කිරීමට අවශ්‍ය වාක්‍යය හෝ ඡේදය **හයිලයිට් (Highlight)** කරන්න.</li>
-            <li>සහායකයාගේ **තෝරාගත් පෙළ (Selection)** කොටසෙහි ඇති **Refresh (🔄)** බොත්තම ඔබන්න.</li>
-            <li>භාවිතා කිරීමට බලාපොරොත්තු වන මෙවලම තෝරා **ක්‍රියාත්මක කරන්න** බොත්තම ඔබන්න.</li>
-            <li>ප්‍රතිඵලය සෑහීමකට පත්වේ නම්, **තෝරාගත් පෙළ වෙනස් කරන්න** බොත්තම මඟින් ලිපියෙහි මුල් වචන වෙනුවට නව වචන ආදේශ කරන්න.</li>
-            <li>සිරස්තල හෝ සාරාංශ ලිපියෙහි කර්සරය (Cursor) පවතින ස්ථානයෙන් ඇතුළත් කිරීමට **ඇතුළත් කරන්න** බොත්තම ඔබන්න.</li>
+            <li>Highlight a sentence or paragraph in the document.</li>
+            <li>Press the refresh button next to <strong>Selection</strong> above.</li>
+            <li>Pick a tool and press its action button.</li>
+            <li>Use <strong>Replace Selection</strong> to swap the highlighted text, or <strong>Insert</strong> to drop the result in at the cursor.</li>
           </ol>
         </div>
 
-        <div class="help-card" style="margin-top: 14px;">
-          <h3>දේශීය සර්වර් (Localhost) පරීක්ෂාව:</h3>
-          <p>Google සේවාදායකයේ සිට ඔබේ පරිගණකයේ ක්‍රියාත්මක වන local backend එක (`http://localhost:8000`) ඍජුව සම්බන්ධ කරගත නොහැක.</p>
-          <p>එබැවින් local backend පරීක්ෂා කිරීමට **ngrok** වැනි මෙවලමක් භාවිතයෙන් පොදු URL එකක් (Public tunnel) සාදා එය settings හි ඇතුළත් කරන්න:</p>
-          <code style="display:block; padding: 6px; background: rgba(255,255,255,0.06); font-family: monospace; border-radius: 4px; font-size: 0.72rem; margin-top: 6px; color: #FFE3E5;">ngrok http 8000</code>
+        <div class="help-card" style="margin-top: 12px;">
+          <h3>Testing a local backend</h3>
+          <p>Apps Script's servers can't reach a backend running on your own computer (<code style="display:inline; padding:1px 4px;">http://localhost:8000</code>) directly.</p>
+          <p style="margin-top: 6px;">Use a tunnel like <strong>ngrok</strong> to get a public URL, then paste it into API Base URL above:</p>
+          <code>ngrok http 8000</code>
         </div>
       </section>
 

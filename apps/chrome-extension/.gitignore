@@ -1,0 +1,4 @@
+# Private key used only to derive a stable extension ID for local/dev
+# loading (see manifest.json's "key" field, which holds the *public* half).
+# Never commit the private key itself.
+ext-key.pem

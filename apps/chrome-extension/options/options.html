@@ -7,6 +7,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Satoshi (UI chrome) — same source as web-app/index.html and the popup.
+       Without this, --font-sans's 'Satoshi' reference silently falls back
+       to system-ui. -->
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet">
   <style>
     @font-face {
       font-family: 'Gwen';
@@ -198,6 +202,17 @@
     .btn-secondary:hover {
       background: #f8f7f7;
       border-color: #d2cfcf;
+    }
+
+    .btn-confirm-armed {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #991b1b;
+    }
+
+    .btn-confirm-armed:hover {
+      background: #fecaca;
+      border-color: #f87171;
     }
 
     .help-text {
