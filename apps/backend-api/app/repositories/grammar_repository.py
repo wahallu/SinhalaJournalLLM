@@ -19,7 +19,6 @@ async def get_correction_by_id(
     correction_id: UUID,
     *,
     user_id: str | None = None,
-    user_token: str | None = None,
 ) -> dict[str, Any] | None:
     """
     Fetch a single correction by its UUID, scoped to its owner.
@@ -29,7 +28,7 @@ async def get_correction_by_id(
     across users deliberately.
     """
     return await fetch_by_id(
-        TABLE, str(correction_id), user_id=user_id, user_token=user_token
+        TABLE, str(correction_id), user_id=user_id
     )
 
 
@@ -38,7 +37,6 @@ async def get_corrections(
     page: int = 1,
     page_size: int = 20,
     user_id: str | None = None,
-    user_token: str | None = None,
 ) -> tuple[list[dict[str, Any]], int]:
     """Paginated correction history, newest first: (records, total)."""
-    return await fetch_page(TABLE, page=page, page_size=page_size, user_id=user_id, user_token=user_token)
+    return await fetch_page(TABLE, page=page, page_size=page_size, user_id=user_id)

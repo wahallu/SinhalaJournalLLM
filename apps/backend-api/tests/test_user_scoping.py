@@ -162,35 +162,58 @@ async def test_unified_history_is_isolated_between_users(fake_supabase):
     "/api/v1/rewrite/history",
 ])
 @pytest.mark.asyncio
-async def test_each_history_read_uses_the_caller_scoped_client(
+async def test_each_history_read_filters_by_the_calling_user(
     fake_supabase, monkeypatch, endpoint
 ):
     """
-    Every user-facing history read must go through the RLS-enforcing client,
-    not the service-role one.
+    Every user-facing history read must filter on the caller's user_id.
 
-    Parametrized per endpoint on purpose: asserting across all of them at once
-    would still pass when a single route quietly reverted to the service-role
-    client, because the others would keep the assertion satisfied.
+    This replaces an assertion that each read built a PostgREST client from
+    the caller's JWT so Row Level Security would isolate them. That is no
+    longer true and must not be restored: the self-hosted auth migration
+    dropped every RLS policy (they keyed off auth.uid(), which only a
+    Supabase-issued token populates) and left RLS enabled with none, so a
+    caller-scoped client reads zero rows. That is exactly what took the
+    dashboard's history and stats to empty while this suite stayed green —
+    the old test passed only because it monkeypatched the broken client
+    factory out and handed back a working fake.
 
-    The service-role client bypasses Row Level Security entirely, so such a
-    revert loses the database-level guarantee while every filtering test keeps
-    passing — the explicit filters would simply be doing all the work.
+    So the explicit filter is now the whole of the isolation guarantee,
+    which makes it worth asserting directly against the query the
+    repository actually issued rather than inferring it from the response.
+
+    Parametrized per endpoint on purpose: asserting across all of them at
+    once would still pass if a single route dropped its filter, because the
+    others would keep the assertion satisfied.
     """
-    seen_tokens = []
+    issued: list[tuple[str, object]] = []
+    original_table = fake_supabase.table
 
-    async def _spy(jwt: str):
-        seen_tokens.append(jwt)
-        return fake_supabase
+    def _spy_table(name: str):
+        query = original_table(name)
+        issued.append((name, query))
+        return query
 
-    monkeypatch.setattr("app.core.user_client.user_postgrest", _spy)
+    monkeypatch.setattr(fake_supabase, "table", _spy_table)
 
     async with _client() as c:
         response = await c.get(endpoint, headers=_auth(USER_A))
 
     assert response.status_code == 200
-    assert seen_tokens, f"{endpoint} did not build a caller-scoped client"
-    assert all(t == _token(USER_A) for t in seen_tokens)
+
+    # profiles is read by the auth dependency and is keyed by `id`, not
+    # `user_id` — only the four history tables are in scope here.
+    history_tables = {
+        "grammar_corrections", "headline_generations", "style_rewrites", "summaries",
+    }
+    touched = [(name, q) for name, q in issued if name in history_tables]
+    assert touched, f"{endpoint} read no history table at all"
+    for name, query in touched:
+        assert ("user_id", USER_A) in query._filters, (
+            f"{endpoint} queried {name} without scoping it to the caller — "
+            f"filters were {query._filters}. Running as service role, this "
+            f"returns every user's rows."
+        )
 
 
 @pytest.mark.asyncio

@@ -66,7 +66,7 @@ async def style_history_endpoint(
     """
     Retrieve the caller's paginated style rewrite history, newest first.
     """
-    records, total = await get_rewrites(page=page, page_size=page_size, user_id=user.id, user_token=user.token)
+    records, total = await get_rewrites(page=page, page_size=page_size, user_id=user.id)
     items = [
         StyleHistoryItem(
             id=str(r["id"]),

@@ -58,7 +58,7 @@ def _preview(value: str | None) -> str:
     return value[:_PREVIEW_CHARS]
 
 
-async def list_recent(limit: int = 50, *, user_id: str | None = None, user_token: str | None = None) -> list[dict[str, Any]]:
+async def list_recent(limit: int = 50, *, user_id: str | None = None) -> list[dict[str, Any]]:
     """
     Newest `limit` items across every tool, shaped as:
         {id, tool, input_preview, output_preview, detail, created_at}
@@ -69,7 +69,7 @@ async def list_recent(limit: int = 50, *, user_id: str | None = None, user_token
     async def _load(tool: str) -> list[dict[str, Any]]:
         table, input_column, extract_output = _SOURCES[tool]
         try:
-            rows = await fetch_recent(table, limit, user_id=user_id, user_token=user_token)
+            rows = await fetch_recent(table, limit, user_id=user_id)
         except Exception:
             logger.exception("History: failed to read %s — skipping", table)
             return []
@@ -151,7 +151,7 @@ async def list_all_recent(limit: int = 100) -> list[dict[str, Any]]:
 
 
 async def usage_stats(
-    *, user_id: str | None = None, user_token: str | None = None
+    *, user_id: str | None = None
 ) -> dict[str, Any]:
     """
     Exact run counts for one caller: total, today, this week, and per tool.
@@ -176,7 +176,7 @@ async def usage_stats(
         table, _, _ = _SOURCES[tool]
         try:
             return await count_rows(
-                table, user_id=user_id, user_token=user_token, since=since
+                table, user_id=user_id, since=since
             )
         except Exception:
             logger.exception("Stats: failed to count %s — reporting 0", table)

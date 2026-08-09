@@ -79,7 +79,7 @@ async def unified_history_endpoint(
     user: AuthUser = Depends(require_user),
 ):
     """Newest activity for the caller across grammar, headlines, rewriter, and summarizer."""
-    items = await list_recent(limit, user_id=user.id, user_token=user.token)
+    items = await list_recent(limit, user_id=user.id)
     return UnifiedHistoryResponse(items=[HistoryItem(**item) for item in items])
 
 
@@ -91,4 +91,4 @@ async def usage_stats_endpoint(user: AuthUser = Depends(require_user)):
     The dashboard cannot compute these from /history: that returns at most
     `limit` rows, so every tile derived from it saturated at the page size.
     """
-    return UsageStatsResponse(**await usage_stats(user_id=user.id, user_token=user.token))
+    return UsageStatsResponse(**await usage_stats(user_id=user.id))
