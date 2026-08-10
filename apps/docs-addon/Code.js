@@ -6,13 +6,8 @@
 // ── Lifecycle Hook: Document Opened ──
 function onOpen(e) {
   try {
-    // 1. Top-level menu (appears next to "Extensions" on the main toolbar - works immediately)
-    DocumentApp.getUi()
-      .createMenu("SinAI Assistant")
-      .addItem("Open Assistant", "showSidebar")
-      .addToUi();
 
-    // 2. Add-on menu (appears under Extensions -> Add-ons)
+    // Add-on menu (appears under Extensions -> Add-ons)
     DocumentApp.getUi()
       .createAddonMenu()
       .addItem("Open Assistant", "showSidebar")
@@ -20,6 +15,10 @@ function onOpen(e) {
   } catch (err) {
     Logger.log("UI context not available (normal in editor run): " + err.message);
   }
+}
+
+function onInstall(e) {
+  onOpen(e);
 }
 
 // ── Render Sidebar ──
