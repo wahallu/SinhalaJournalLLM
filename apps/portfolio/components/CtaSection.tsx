@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { ArrowUpRight, Sparkles, Code2 } from "lucide-react";
 
 export default function CtaSection() {
@@ -8,9 +9,13 @@ export default function CtaSection() {
     <section className="py-20 sm:py-28 md:py-40 px-4 sm:px-6 lg:px-12 max-w-[1560px] mx-auto bg-[#FAF9F5]">
       <div className="max-w-4xl mx-auto flex flex-col items-center text-center">
         {/* Brand Icon Mark */}
-        <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-[#cd191a] to-[#8d1213] flex items-center justify-center mb-6 sm:mb-8 shadow-xl shadow-[#cd191a]/20">
-          <span className="text-white font-display font-bold text-lg sm:text-2xl leading-none">S</span>
-        </div>
+        <Image
+          src="/brand/web-app-manifest-192x192.png"
+          alt="SinAi Logo"
+          width={56}
+          height={56}
+          className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl shadow-xl shadow-[#cd191a]/25 mb-6 sm:mb-8 object-cover"
+        />
 
         {/* Big Impact Headline */}
         <h2 className="font-display text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-[#181818] tracking-tight leading-[1.1] sm:leading-[1.08] mb-6 sm:mb-8 text-balance">

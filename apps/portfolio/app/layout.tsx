@@ -34,9 +34,9 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "SinAi Research & Engineering Group" }],
   icons: {
-    icon: "/brand/logored.svg",
-    shortcut: "/brand/logored.svg",
-    apple: "/brand/logored.svg",
+    icon: "/brand/web-app-manifest-192x192.png",
+    shortcut: "/brand/web-app-manifest-192x192.png",
+    apple: "/brand/web-app-manifest-192x192.png",
   },
   openGraph: {
     title: "SinAi — The Intelligent Foundation for Sinhala Journalism & Writing",
@@ -65,7 +65,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${jakartaSans.variable} ${notoSinhala.variable}`}>
       <head>
-        <link rel="icon" href="/brand/logored.svg" type="image/svg+xml" />
+        <link rel="icon" href="/brand/web-app-manifest-192x192.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link

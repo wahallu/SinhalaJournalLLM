@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowUpRight, Sparkles, Menu, X, BookOpen, Layers, Cpu } from "lucide-react";
 
 export default function Navbar() {
@@ -25,9 +26,13 @@ export default function Navbar() {
       >
         {/* Left: Brand Identity */}
         <Link href="#hero" className="flex items-center gap-1.5 sm:gap-2.5 pl-1 group">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-[#cd191a] to-[#ab1112] flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-300 shrink-0">
-            <span className="text-white font-bold text-xs sm:text-sm leading-none font-display">S</span>
-          </div>
+          <Image
+            src="/brand/web-app-manifest-192x192.png"
+            alt="SinAi Logo"
+            width={32}
+            height={32}
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md group-hover:scale-105 transition-transform duration-300 shrink-0 object-cover"
+          />
           <div className="flex items-center gap-1 sm:gap-1.5">
             <span className="text-white font-display text-base sm:text-lg font-bold tracking-tight">SinAi</span>
             <span className="hidden xs:inline text-[8px] sm:text-[9px] uppercase tracking-widest px-1 sm:px-1.5 py-0.5 rounded bg-white/10 text-white/70 font-semibold border border-white/10">

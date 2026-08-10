@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Sparkles, BookOpen } from "lucide-react";
 
 export default function Footer() {
@@ -12,9 +13,13 @@ export default function Footer() {
           {/* Brand Column (2 cols wide on lg) */}
           <div className="sm:col-span-2 flex flex-col gap-4 sm:gap-6">
             <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[#cd191a] to-[#8d1213] flex items-center justify-center shadow-md">
-                <span className="text-white font-display font-bold text-lg sm:text-xl leading-none">S</span>
-              </div>
+              <Image
+                src="/brand/web-app-manifest-192x192.png"
+                alt="SinAi Logo"
+                width={36}
+                height={36}
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl shadow-md object-cover"
+              />
               <span className="font-display text-xl sm:text-2xl font-bold tracking-tight text-white">
                 SinAi
               </span>
