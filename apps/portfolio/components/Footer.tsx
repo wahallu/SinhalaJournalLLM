@@ -130,15 +130,30 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 4: Documentation */}
+          {/* Column 4: Documentation & Support */}
           <div>
             <h4 className="text-[11px] sm:text-xs font-bold text-white uppercase tracking-widest mb-3 sm:mb-5">
-              Documentation
+              Support &amp; Legal
             </h4>
             <ul className="space-y-2 sm:space-y-3 text-[11px] sm:text-xs text-white/60">
               <li>
-                <Link href="#benchmarks" className="hover:text-white transition-colors">
-                  Model Benchmark Reports
+                <Link href="/privacy" className="hover:text-white transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-white transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link href="/support" className="hover:text-white transition-colors">
+                  Support &amp; Setup Guide
+                </Link>
+              </li>
+              <li>
+                <Link href="/support#report-issue" className="hover:text-white transition-colors">
+                  Report an Issue
                 </Link>
               </li>
               <li>
@@ -157,7 +172,21 @@ export default function Footer() {
 
         {/* Bottom Copyright Bar */}
         <div className="pt-6 sm:pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-white/40 text-center sm:text-left">
-          <p>© 2026 SinAi Research &amp; Engineering Group. All rights reserved.</p>
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-4">
+            <p>© 2026 SinAi Research &amp; Engineering Group.</p>
+            <span>•</span>
+            <Link href="/privacy" className="hover:text-white transition-colors">
+              Privacy
+            </Link>
+            <span>•</span>
+            <Link href="/terms" className="hover:text-white transition-colors">
+              Terms
+            </Link>
+            <span>•</span>
+            <Link href="/support" className="hover:text-white transition-colors">
+              Support
+            </Link>
+          </div>
           <div className="flex items-center gap-3 sm:gap-6">
             <span>Built for Sri Lankan Journalism</span>
             <span>•</span>
