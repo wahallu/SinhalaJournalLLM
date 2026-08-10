@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
   ChevronDown, ChevronUp, Trophy, AlertTriangle, Sparkles,
-  Camera, RefreshCw, Loader2, ImageOff, Edit3, FileSearch,
-  Wand2, Download, ExternalLink, ImageIcon,
+  Camera, RefreshCw, ImageOff, Edit3, FileSearch,
+  Wand2, Download, ExternalLink, ImageIcon, Clock, X,
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
@@ -55,6 +55,10 @@ function VisualPromptModule({ headline, articleText }) {
   const [imageData, setImageData] = useState(null);   // base64 data URL
   const [imgLoading, setImgLoading] = useState(false);
   const [imgError, setImgError] = useState(null);
+  // Image generation is not launched yet — the button surfaces a notice
+  // instead of calling the API. handleGenerateImage is left in place so
+  // flipping this back on later is a one-line change.
+  const [comingSoon, setComingSoon] = useState(false);
 
   const generate = (cancelledRef) => {
     if (!articleText) return;
@@ -64,6 +68,7 @@ function VisualPromptModule({ headline, articleText }) {
     // Clear previous image when regenerating the prompt
     setImageData(null);
     setImgError(null);
+    setComingSoon(false);
     generateVisualPrompt(articleText, headline)
       .then((res) => { if (!cancelledRef?.cancelled) setPrompt(res.visual_prompt || ''); })
       .catch((err) => { if (!cancelledRef?.cancelled) setError(err.message || 'Failed to generate visual prompt'); })
@@ -149,14 +154,29 @@ function VisualPromptModule({ headline, articleText }) {
                   <ActionButton
                     variant="primary"
                     size="sm"
-                    icon={imgLoading ? Loader2 : Wand2}
-                    onClick={handleGenerateImage}
-                    disabled={imgLoading}
+                    icon={Wand2}
+                    onClick={() => setComingSoon(true)}
                   >
-                    {imgLoading ? 'Generating…' : 'Generate image'}
+                    Generate image
                   </ActionButton>
                 )}
               </div>
+
+              {comingSoon && (
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 rounded-lg border border-amber-200/70">
+                  <Clock size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                  <p className="flex-1 text-[12px] text-amber-800 font-medium">
+                    Image generation — Coming soon
+                  </p>
+                  <button
+                    onClick={() => setComingSoon(false)}
+                    aria-label="Dismiss"
+                    className="text-amber-500 hover:text-amber-700 cursor-pointer shrink-0"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* ── Image column ── */}
@@ -187,7 +207,7 @@ function VisualPromptModule({ headline, articleText }) {
                   <button
                     onClick={handleGenerateImage}
                     className="absolute inset-x-0 bottom-0 py-1.5 text-[11px] font-medium text-white
-                      bg-ink-950/55 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      bg-ink-950/55 dark:bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                   >
                     ↺ Generate a different image
                   </button>
@@ -253,7 +273,7 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
         <span className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.14em]">
           Generating headlines
         </span>
-        <Card className="px-5 py-4 space-y-3 bg-ink-950 border-ink-950">
+        <Card className="px-5 py-4 space-y-3 bg-ink-950 dark:bg-[#161112] border-ink-950 dark:border-[#161112]">
           <Skeleton className="h-3 w-24 !bg-white/10" style={{ background: 'rgba(255,255,255,0.08)', animation: 'none' }} />
           <Skeleton className="h-5" style={{ width: '85%', background: 'rgba(255,255,255,0.12)', animation: 'none' }} />
         </Card>
@@ -306,7 +326,7 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
     <div id="headline-output" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
       {/* Best headline — hero card */}
       {output.best_headline && (
-        <div className="relative overflow-hidden px-5 py-4.5 bg-ink-950 rounded-2xl shadow-pop">
+        <div className="relative overflow-hidden px-5 py-4.5 bg-ink-950 dark:bg-[#161112] rounded-2xl shadow-pop">
           <div
             className="pointer-events-none absolute inset-0"
             style={{ background: 'radial-gradient(24rem 10rem at 90% -30%, rgba(205,25,26,0.4), transparent 60%)' }}

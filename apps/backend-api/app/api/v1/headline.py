@@ -47,6 +47,7 @@ async def generate_headlines_endpoint(
     result = await generate_headlines(
         payload.text, payload.count, category=payload.category,
         length=payload.length, user_id=user.id if user else None,
+        adapter=payload.adapter,
     )
     latency_ms = int((time.perf_counter() - started) * 1000)
 

@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Eraser, Play } from 'lucide-react';
 import ActionButton from '../ui/ActionButton';
 import CopyButton from '../ui/CopyButton';
+import Dropdown from '../ui/Dropdown';
 import EditorToolbar from './EditorToolbar';
 import ConfirmModal from '../ui/ConfirmModal';
+import { HEADLINE_MODELS } from '../../lib/toolOptions';
 
 // Matches max_length on every tool request schema in apps/backend-api
 // (grammar.py, style.py, summarizer.py, headline.py). The client used to
@@ -33,7 +35,7 @@ export default function Editor({
   return (
     <div
       className={`
-        relative flex flex-col min-h-0 flex-1 rounded-2xl border bg-white transition-all duration-200
+        relative flex flex-col min-h-0 flex-1 rounded-2xl border bg-white dark:bg-ink-50 transition-all duration-200
         ${focused
           ? 'border-brand-400 shadow-[0_0_0_3px_rgba(205,25,26,0.07)]'
           : 'border-ink-200/80 shadow-card hover:border-ink-300'}
@@ -78,6 +80,15 @@ export default function Editor({
           <ActionButton id="btn-clear" size="sm" variant="ghost" icon={Eraser} onClick={() => setShowClearConfirm(true)} disabled={loading || !value}>
             Clear
           </ActionButton>
+          {tool === 'headlines' && (
+            <Dropdown
+              id="headline-model"
+              label="Model"
+              options={HEADLINE_MODELS}
+              value={settings.headlineModel}
+              onChange={(v) => onSettingsChange({ ...settings, headlineModel: v })}
+            />
+          )}
           <ActionButton
             id="btn-run"
             size="md"

@@ -133,7 +133,7 @@ export default function HistoryPage({ onRerun, onBack }) {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search inputs and results…"
           aria-label="Search history"
-          className="w-full pl-9.5 pr-4 py-2.5 text-[13.5px] border border-ink-200 rounded-xl bg-white
+          className="w-full pl-9.5 pr-4 py-2.5 text-[13.5px] border border-ink-200 rounded-xl bg-white dark:bg-ink-50
             placeholder:text-ink-400 transition-all duration-150
             focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]"
         />
@@ -150,8 +150,8 @@ export default function HistoryPage({ onRerun, onBack }) {
             className={`px-3.5 py-1.5 rounded-full text-[12.5px] font-semibold whitespace-nowrap cursor-pointer
               transition-all duration-150 border
               ${filter === id
-                ? 'bg-ink-900 text-white border-ink-900'
-                : 'text-ink-500 bg-white hover:text-ink-800 hover:bg-ink-50 border-ink-200'}`}
+                ? 'bg-ink-900 dark:bg-brand-600 text-white border-ink-900 dark:border-brand-600'
+                : 'text-ink-500 bg-white dark:bg-ink-50 hover:text-ink-800 hover:bg-ink-50 dark:hover:bg-ink-100 border-ink-200'}`}
           >
             {label}
           </button>

@@ -10,6 +10,9 @@
     "https://www.googleapis.com/auth/script.container.ui",
     "https://www.googleapis.com/auth/script.external_request"
   ],
+  "urlFetchWhitelist": [
+    "https://sinhalajournalllm.onrender.com/"
+  ],
   "addOns": {
     "common": {
       "name": "SinAI Document Assistant",

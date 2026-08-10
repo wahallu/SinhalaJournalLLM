@@ -25,7 +25,7 @@ export function OptionChips({ label, options, value, onChange, columns = 3 }) {
                 transition-all duration-150 border
                 ${active
                   ? 'bg-brand-600 text-white border-brand-600 shadow-sm shadow-brand-600/20'
-                  : 'bg-white text-ink-600 border-ink-200 hover:border-ink-300 hover:bg-ink-50'}`}
+                  : 'bg-white dark:bg-ink-50 text-ink-600 border-ink-200 hover:border-ink-300 hover:bg-ink-50 dark:hover:bg-ink-100'}`}
             >
               {opt.label}
             </button>
@@ -57,7 +57,7 @@ export function OptionCards({ label, options, value, onChange }) {
                 transition-all duration-150 border
                 ${active
                   ? 'bg-brand-50 border-brand-200 shadow-sm shadow-brand-600/5'
-                  : 'bg-white border-ink-200/80 hover:border-ink-300 hover:bg-ink-50'}`}
+                  : 'bg-white dark:bg-ink-50 border-ink-200/80 hover:border-ink-300 hover:bg-ink-50 dark:hover:bg-ink-100'}`}
             >
               <span className="flex items-center gap-2.5">
                 <span

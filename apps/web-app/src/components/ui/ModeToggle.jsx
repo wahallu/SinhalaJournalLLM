@@ -53,7 +53,7 @@ export default function ModeToggle({
             className={`inline-flex items-center gap-1 rounded-md px-2 py-[3px] text-[11px] font-semibold
               transition-colors ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}
               ${selected
-                ? 'bg-white text-ink-800 shadow-[0_1px_2px_rgba(22,17,18,0.10)]'
+                ? 'bg-white dark:bg-ink-100 text-ink-800 shadow-[0_1px_2px_rgba(22,17,18,0.10)]'
                 : `text-ink-500 ${disabled ? '' : 'hover:text-ink-700'}`}`}
           >
             <Icon size={11} strokeWidth={2.25} />

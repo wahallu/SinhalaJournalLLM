@@ -162,7 +162,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 bg-ink-950/50 backdrop-blur-[2px] z-40 lg:hidden"
+          className="fixed inset-0 bg-ink-950/50 dark:bg-black/60 backdrop-blur-[2px] z-40 lg:hidden"
           onClick={onToggle}
           aria-hidden="true"
         />
@@ -189,7 +189,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
         aria-label="Primary navigation"
         className={`
           fixed lg:relative inset-y-0 left-0 lg:h-full z-50 lg:z-auto overflow-hidden
-          ${collapsed ? 'w-[4.75rem]' : 'w-[17rem]'} bg-[#F5F4F4] border-r border-ink-100
+          ${collapsed ? 'w-[4.75rem]' : 'w-[17rem]'} bg-canvas border-r border-ink-100
           flex flex-col shrink-0
           transition-all duration-200 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
@@ -232,7 +232,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
               aria-label="Expand sidebar"
               /* Bordered, not shadow-only: the shell is white again, so a
                  plain white tile needs an edge to read against it. */
-              className="relative w-9 h-9 rounded-xl bg-white border border-ink-100 shadow-card
+              className="relative w-9 h-9 rounded-xl bg-white dark:bg-ink-50 border border-ink-100 shadow-card
                 flex items-center justify-center shrink-0 cursor-pointer
                 transition-colors duration-150 hover:bg-brand-50"
             >
@@ -349,7 +349,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
                 <>
                   <div className="fixed inset-0 z-50" onClick={() => setProfileOpen(false)} />
                   <div className={`absolute ${collapsed ? 'left-full ml-2 w-48' : 'left-3.5 right-3.5'} bottom-[4.25rem] z-50
-                    bg-white rounded-xl shadow-pop py-1.5 border border-ink-200/80
+                    bg-white dark:bg-ink-50 rounded-xl shadow-pop py-1.5 border border-ink-200/80
                     animate-in fade-in slide-in-from-bottom-1 duration-150`}>
                     {[
                       { id: 'profile-view-btn', label: 'View profile', icon: User, tool: 'profile' },
@@ -387,7 +387,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
               className={`
                 w-full flex items-center gap-2.5 rounded-xl cursor-pointer border border-ink-200
                 ${collapsed ? 'justify-center px-0 py-2.5' : 'px-2.5 py-2.5'}
-                bg-white hover:bg-ink-50 hover:border-ink-300 transition-colors duration-150
+                bg-white dark:bg-ink-50 hover:bg-ink-50 dark:hover:bg-ink-100 hover:border-ink-300 transition-colors duration-150
               `}
             >
               <LogIn size={16} className="text-ink-500 shrink-0" />
