@@ -7,7 +7,6 @@ import {
   FileSpreadsheet,
   ArrowUpRight,
   CheckCircle2,
-  Sparkles,
 } from "lucide-react";
 
 interface EcosystemItem {
@@ -28,20 +27,20 @@ const ECOSYSTEM_DATA: EcosystemItem[] = [
   {
     id: "webapp",
     title: "SinAi Web App",
-    category: "Writing Studio & Playground",
+    category: "Writing Studio & Workspace",
     badge: "Flagship Workspace",
     icon: <Laptop className="w-4 h-4 sm:w-5 sm:h-5 text-[#cd191a]" />,
-    headline: "The complete two-pane editorial studio and live interactive playground.",
+    headline: "The complete two-pane editorial studio and live interactive workspace.",
     description:
       "A distraction-free web workspace engineered for journalists and writers. Features split-screen comparison, live character-capped textareas, syntactic diff highlighting, tone selection, and persistent cross-device history.",
     highlights: [
       "Two-pane editor with instant syntactic diff highlighting",
       "Saved cross-device history with Postgres Row-Level Security",
       "Interactive 5-tone register rewriting and abstractive summaries",
-      "Anonymous trial mode with salted IP rate limits",
+      "Salted IP rate limits and secure authentication",
     ],
-    ctaLabel: "Launch Web App Playground",
-    ctaUrl: "http://localhost:5173",
+    ctaLabel: "Try SinAi Workspace",
+    ctaUrl: "https://chat.sin-ai.app",
     techStack: ["React 19", "Vite", "Tailwind CSS", "Supabase Auth", "Radix UI"],
   },
   {

@@ -17,13 +17,14 @@ const notoSinhala = Noto_Sans_Sinhala({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://sin-ai.app"),
   title: "SinAi — The Intelligent Foundation for Sinhala Journalism & Writing",
   description:
-    "An advanced AI writing and editorial intelligence platform powered by specialized LoRA-adapted Large Language Models (SinLLaMA). Features real-time grammar checking, journalistic headline generation, 5-tone rewriting, and news summarization.",
+    "An advanced AI writing and editorial intelligence platform powered by specialized Large Language Models for Sinhala journalism (Sinhala Journal LLM). Features real-time grammar checking, journalistic headline generation, 5-tone rewriting, and news summarization.",
   keywords: [
     "Sinhala LLM",
     "SinAi",
-    "SinLLaMA",
+    "Sinhala Journal LLM",
     "Sinhala NLP",
     "Journalism AI",
     "Sinhala Grammar Checker",
@@ -40,9 +41,9 @@ export const metadata: Metadata = {
   openGraph: {
     title: "SinAi — The Intelligent Foundation for Sinhala Journalism & Writing",
     description:
-      "Domain-adapted Sinhala AI Assistant and Writing Workspace. Transforming newsroom workflows with precision linguistic intelligence.",
-    url: "https://sinai.ai",
-    siteName: "SinAi Research Project",
+      "Domain-adapted Sinhala AI Assistant and Writing Workspace (Sinhala Journal LLM). Transforming newsroom workflows with precision linguistic intelligence.",
+    url: "https://sin-ai.app",
+    siteName: "SinAi (Sinhala Journal LLM)",
     images: [
       {
         url: "/brand/hero.png",

@@ -21,7 +21,7 @@ export default function Footer() {
             </div>
 
             <p className="text-xs sm:text-sm text-white/60 max-w-sm leading-relaxed">
-              The domain-adapted AI writing &amp; journalistic intelligence ecosystem for the Sinhala language. Powered by SinLLaMA and specialized task LoRA adapters.
+              The domain-adapted AI writing &amp; journalistic intelligence ecosystem for the Sinhala language. Powered by the Sinhala Journal LLM research project and specialized task LoRA adapters.
             </p>
 
             <div className="flex gap-2.5 sm:gap-3 pt-1 sm:pt-2">
@@ -37,11 +37,11 @@ export default function Footer() {
                 </svg>
               </a>
               <a
-                href="http://localhost:5173"
+                href="https://chat.sin-ai.app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/15 flex items-center justify-center hover:bg-[#cd191a] hover:border-[#cd191a] transition-all text-white/80 hover:text-white"
-                aria-label="Web App Workspace"
+                aria-label="Try SinAi Workspace"
               >
                 <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </a>
@@ -65,12 +65,12 @@ export default function Footer() {
             <ul className="space-y-2 sm:space-y-3 text-[11px] sm:text-xs text-white/60">
               <li>
                 <a
-                  href="http://localhost:5173"
+                  href="https://chat.sin-ai.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-white transition-colors"
                 >
-                  Web App Playground
+                  SinAi Workspace
                 </a>
               </li>
               <li>
@@ -104,27 +104,27 @@ export default function Footer() {
             <ul className="space-y-2 sm:space-y-3 text-[11px] sm:text-xs text-white/60">
               <li>
                 <Link href="#research" className="hover:text-white transition-colors">
-                  SinLLaMA Base Model
+                  Sinhala Journal Base Model
                 </Link>
               </li>
               <li>
                 <Link href="#capabilities" className="hover:text-white transition-colors">
-                  grammar_sinllama_v13
+                  grammar_v13
                 </Link>
               </li>
               <li>
                 <Link href="#capabilities" className="hover:text-white transition-colors">
-                  headline_sinllama_v17
+                  headline_v17
                 </Link>
               </li>
               <li>
                 <Link href="#capabilities" className="hover:text-white transition-colors">
-                  style_sinllama_v07
+                  style_v07
                 </Link>
               </li>
               <li>
                 <Link href="#capabilities" className="hover:text-white transition-colors">
-                  summarization_sinllama_v04
+                  summarization_v04
                 </Link>
               </li>
             </ul>
@@ -190,7 +190,7 @@ export default function Footer() {
           <div className="flex items-center gap-3 sm:gap-6">
             <span>Built for Sri Lankan Journalism</span>
             <span>•</span>
-            <span className="text-[#cd191a] font-bold">SinLLaMA 2.4</span>
+            <span className="text-[#cd191a] font-bold">SinAi 2.4</span>
           </div>
         </div>
       </div>

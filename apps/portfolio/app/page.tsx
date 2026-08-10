@@ -31,7 +31,7 @@ export default function Home() {
         {/* 4. Manifesto Section with Celestial Geometric Vector Rings */}
         <Manifesto />
 
-        {/* 5. SinLLaMA Foundation Model & Enterprise Architecture Deep Dive */}
+        {/* 5. Sinhala Journal LLM Foundation Model & Enterprise Architecture Deep Dive */}
         <ResearchShowcase />
 
         {/* 6. Live In-Page Interactive Tool Simulator (Grammar, Headlines, Style, Summary) */}

@@ -1,95 +1,70 @@
 "use client";
 
 import React from "react";
-import { Cpu, Zap, CheckCircle2, Shield, Globe, Award, Sparkles } from "lucide-react";
+import { Sparkles, Shield, Award, Newspaper, BookOpen, Layers } from "lucide-react";
 
 export default function TrustStrip() {
   const stats = [
     {
-      icon: <Cpu className="w-4 h-4 text-[#cd191a]" />,
-      title: "SinLLaMA Domain Base",
-      desc: "Custom-adapted Sinhala Tokenizer & Weights",
+      icon: <Layers className="w-4 h-4 text-[#cd191a]" />,
+      title: "Sinhala Journal Foundation",
+      desc: "Trained on millions of journalistic tokens",
     },
     {
-      icon: <Zap className="w-4 h-4 text-[#cd191a]" />,
+      icon: <Award className="w-4 h-4 text-[#cd191a]" />,
       title: "4 Specialized LoRA Adapters",
-      desc: "Grammar v13, Headline v17, Style v07, Summary v04",
-    },
-    {
-      icon: <CheckCircle2 className="w-4 h-4 text-[#cd191a]" />,
-      title: "10,000 Character Context",
-      desc: "Full long-form news investigative articles",
-    },
-    {
-      icon: <Globe className="w-4 h-4 text-[#cd191a]" />,
-      title: "Dual Typography Engine",
-      desc: "Native Unicode & Legacy UBIN16S Newsroom fonts",
+      desc: "Grammar, Headlines, Style & Summary",
     },
     {
       icon: <Shield className="w-4 h-4 text-[#cd191a]" />,
-      title: "Enterprise Row-Level Security",
-      desc: "Supabase JWTs, PostgREST RLS, zero data leakage",
+      title: "Newsroom Data Privacy",
+      desc: "Row-Level Security & Encrypted Gateway",
+    },
+    {
+      icon: <Newspaper className="w-4 h-4 text-[#cd191a]" />,
+      title: "10,000 Char Context",
+      desc: "Full long-form news article processing",
     },
     {
       icon: <Sparkles className="w-4 h-4 text-[#cd191a]" />,
-      title: "Sub-Second Inferences",
-      desc: "Optimized GPU model serving with vLLM / PyTorch",
+      title: "Sub-800ms Latency",
+      desc: "Instant GPU acceleration for breaking news",
+    },
+    {
+      icon: <BookOpen className="w-4 h-4 text-[#cd191a]" />,
+      title: "Legacy Font Transcoder",
+      desc: "Built-in UBIN/FM ASCII newsroom support",
     },
   ];
 
-  const newsrooms = [
-    "National Newspapers",
-    "Digital News Portals",
-    "Broadcast Journalists",
-    "Academic Linguistics Labs",
-    "Editorial Desks",
-    "Independent Columnists",
-    "Publishing Houses",
-  ];
-
   return (
-    <section className="py-12 border-y border-[#D9D7D0]/60 bg-[#FAF9F5] overflow-hidden">
-      <div className="max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-12">
-        {/* Top Mini Label */}
-        <div className="text-center mb-6">
-          <p className="text-xs uppercase tracking-widest text-[#8C8880] font-bold">
-            Pioneering Sinhala Language Intelligence & Newsroom Architecture
-          </p>
-        </div>
+    <div className="w-full bg-[#181818] py-6 sm:py-8 border-y border-white/10 overflow-hidden relative select-none">
+      {/* Subtle edge fades */}
+      <div className="absolute left-0 top-0 bottom-0 w-12 sm:w-24 bg-gradient-to-r from-[#181818] to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-12 sm:w-24 bg-gradient-to-l from-[#181818] to-transparent z-10 pointer-events-none" />
 
-        {/* Marquee 1: Model & Architecture Strengths */}
-        <div className="marquee-container mb-8">
-          <div className="animate-marquee flex items-center gap-8">
-            {stats.concat(stats).map((item, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-3.5 px-5 py-3 rounded-2xl bg-white border border-[#D9D7D0]/80 shadow-sm shrink-0 hover:border-[#cd191a]/40 transition-colors"
-              >
-                <div className="p-2 rounded-xl bg-[#cd191a]/10 shrink-0">{item.icon}</div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-[#181818] tracking-tight">{item.title}</span>
-                  <span className="text-[11px] text-[#8C8880] font-medium">{item.desc}</span>
-                </div>
-              </div>
-            ))}
+      {/* Marquee Track (CSS animated in globals.css) */}
+      <div className="flex w-max animate-marquee gap-8 sm:gap-12 items-center">
+        {/* Double array to make seamless loop */}
+        {[...stats, ...stats].map((stat, idx) => (
+          <div
+            key={idx}
+            className="flex items-center gap-3 bg-white/5 border border-white/10 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full shrink-0 hover:bg-white/10 transition-colors"
+          >
+            <div className="p-1.5 rounded-full bg-white/10 flex items-center justify-center">
+              {stat.icon}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-white text-xs sm:text-sm font-bold tracking-tight">
+                {stat.title}
+              </span>
+              <span className="text-white/60 text-[10px] sm:text-xs">
+                {stat.desc}
+              </span>
+            </div>
           </div>
-        </div>
-
-        {/* Marquee 2: Media and Newsroom Adoption Tags */}
-        <div className="marquee-container" style={{ direction: "rtl" }}>
-          <div className="animate-marquee flex items-center gap-6">
-            {newsrooms.concat(newsrooms).map((outlet, idx) => (
-              <div
-                key={idx}
-                className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#F0EFEB] border border-[#D9D7D0] text-[#615e58] text-xs font-bold uppercase tracking-wider shrink-0"
-              >
-                <span className="w-1.5 h-1.5 rounded-full bg-[#cd191a]" />
-                <span>{outlet}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
-    </section>
+    </div>
   );
 }

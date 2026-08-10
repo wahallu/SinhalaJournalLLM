@@ -24,13 +24,13 @@ export default function CtaSection() {
         {/* Dual Actions */}
         <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto px-2">
           <a
-            href="http://localhost:5173"
+            href="https://chat.sin-ai.app"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#181818] hover:bg-[#cd191a] text-white px-5 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-xs sm:text-sm uppercase tracking-wider shadow-2xl hover:shadow-[#cd191a]/35 transition-all duration-300 hover:scale-105 active:scale-95"
           >
             <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#ff8a8a]" />
-            <span>Launch Web App Playground</span>
+            <span>Try SinAi Workspace</span>
             <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </a>
 

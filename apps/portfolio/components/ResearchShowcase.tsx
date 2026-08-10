@@ -18,11 +18,11 @@ export default function ResearchShowcase() {
           Architected for linguistic precision and enterprise scale.
         </h2>
         <p className="text-xs sm:text-base md:text-lg text-[#615e58] leading-relaxed">
-          Behind SinAi is a purpose-built domain foundation model fine-tuned on millions of Sinhala journalistic tokens, paired with high-throughput infrastructure.
+          Behind SinAi is the Sinhala Journal LLM research foundation fine-tuned on millions of authentic Sinhala journalistic tokens, paired with high-throughput infrastructure.
         </p>
       </div>
 
-      {/* Deep Dive 1: The SinLLaMA Foundation & LoRA Adapters */}
+      {/* Deep Dive 1: The Sinhala Journal Foundation & LoRA Adapters */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-20 items-center mb-16 sm:mb-28">
         {/* Left: Interactive Visual Diagram */}
         <div className="bg-gradient-to-br from-[#F0EFEB] to-[#E9E8E4] rounded-2xl sm:rounded-[36px] p-4 sm:p-8 md:p-10 border border-[#D9D7D0] shadow-md flex flex-col justify-center min-h-[380px] sm:min-h-[460px] relative overflow-hidden">
@@ -31,7 +31,7 @@ export default function ResearchShowcase() {
               <div className="flex items-center gap-2">
                 <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-[#cd191a]" />
                 <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#181818]">
-                  SinLLaMA-merged-base
+                  SinhalaJournal-Base
                 </span>
               </div>
               <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-[#cd191a]/10 text-[#cd191a] px-2 py-0.5 rounded-full">
@@ -46,7 +46,7 @@ export default function ResearchShowcase() {
                   <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-[#cd191a] shrink-0" />
                   <div>
                     <span className="text-[11px] sm:text-xs font-bold text-[#181818] block font-mono">
-                      grammar_sinllama_v13
+                      grammar_v13
                     </span>
                     <span className="text-[10px] sm:text-[11px] text-[#8C8880]">
                       Inflection &amp; Subject-Verb Agreement
@@ -61,7 +61,7 @@ export default function ResearchShowcase() {
                   <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-[#ff4b2b] shrink-0" />
                   <div>
                     <span className="text-[11px] sm:text-xs font-bold text-[#181818] block font-mono">
-                      headline_sinllama_v17
+                      headline_v17
                     </span>
                     <span className="text-[10px] sm:text-[11px] text-[#8C8880]">
                       Front-Page Journalistic Angles &amp; Tickers
@@ -76,7 +76,7 @@ export default function ResearchShowcase() {
                   <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-[#8A2387] shrink-0" />
                   <div>
                     <span className="text-[11px] sm:text-xs font-bold text-[#181818] block font-mono">
-                      style_sinllama_v07
+                      style_v07
                     </span>
                     <span className="text-[10px] sm:text-[11px] text-[#8C8880]">
                       5-Tone Register Transfer (Formal, Casual)
@@ -91,7 +91,7 @@ export default function ResearchShowcase() {
                   <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-[#F27121] shrink-0" />
                   <div>
                     <span className="text-[11px] sm:text-xs font-bold text-[#181818] block font-mono">
-                      summarization_sinllama_v04
+                      summarization_v04
                     </span>
                     <span className="text-[10px] sm:text-[11px] text-[#8C8880]">
                       Abstractive News Condensation &amp; Bullets
@@ -118,7 +118,7 @@ export default function ResearchShowcase() {
                 Domain-Adapted Sinhala Tokenizer
               </h4>
               <p className="text-xs sm:text-sm text-[#615e58] leading-relaxed">
-                Standard tokenizers excessively fragment Sinhala unicode combining characters, multiplying token counts and degrading context. SinLLaMA preserves full morpheme integrity.
+                Standard tokenizers excessively fragment Sinhala unicode combining characters, multiplying token counts and degrading context. Our domain model preserves full morpheme integrity.
               </p>
             </div>
 
@@ -168,7 +168,7 @@ export default function ResearchShowcase() {
                 Privacy-Preserving Hashed Telemetry
               </h4>
               <p className="text-xs sm:text-sm text-[#615e58] leading-relaxed">
-                Anonymous and trial callers are rate-limited via salted cryptographic hashes (`sha256(ip + salt)`). Raw IP addresses and article contents are never stored on unauthenticated sessions.
+                Anonymous callers are rate-limited via salted cryptographic hashes (`sha256(ip + salt)`). Raw IP addresses and article contents are never stored on unauthenticated sessions.
               </p>
             </div>
 
@@ -177,7 +177,7 @@ export default function ResearchShowcase() {
                 Reliable Model Gateway &amp; Failover
               </h4>
               <p className="text-xs sm:text-sm text-[#615e58] leading-relaxed">
-                Built-in automatic fallback routing between SinLLaMA GPU clusters and secondary endpoints for high availability during breaking news cycles.
+                Built-in automatic fallback routing between dedicated GPU clusters and secondary endpoints for high availability during breaking news cycles.
               </p>
             </div>
           </div>

@@ -193,7 +193,7 @@ export default function SupportCenter() {
               </a>
 
               <a
-                href="mailto:support@sinai.ai"
+                href="mailto:support@sin-ai.app"
                 className="p-4 rounded-xl bg-[#FAF9F5] border border-[#D9D7D0] hover:border-[#cd191a] transition-all flex flex-col justify-between group"
               >
                 <div>
@@ -201,11 +201,11 @@ export default function SupportCenter() {
                     Direct Email Support
                   </span>
                   <p className="text-[11px] sm:text-xs text-[#615e58]">
-                    Reach our core engineering and computational linguistics team at support@sinai.ai.
+                    Reach our core engineering and computational linguistics team at support@sin-ai.app.
                   </p>
                 </div>
                 <div className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[#cd191a] mt-3">
-                  <span>support@sinai.ai</span>
+                  <span>support@sin-ai.app</span>
                   <Mail className="w-3.5 h-3.5" />
                 </div>
               </a>

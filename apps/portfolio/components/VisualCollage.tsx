@@ -67,7 +67,7 @@ export default function VisualCollage() {
           </div>
 
           <div className="flex items-center justify-between text-[11px] sm:text-xs pt-2 border-t border-[#D9D7D0]/40">
-            <span className="text-[#8C8880] font-medium">Adapter: grammar_sinllama_v13</span>
+            <span className="text-[#8C8880] font-medium">Adapter: grammar_v13</span>
             <span className="font-bold text-[#cd191a]">99.4% Precision</span>
           </div>
         </div>
@@ -180,7 +180,7 @@ export default function VisualCollage() {
           </div>
         </div>
 
-        {/* Card 4: Multi-Surface Ecosystem Sync (Focused only on client apps) */}
+        {/* Card 4: Multi-Surface Ecosystem Sync */}
         <div className="bg-white/80 backdrop-blur-xl border border-[#D9D7D0] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-[0_16px_40px_rgba(0,0,0,0.06)] hover:border-[#cd191a]/40 transition-all duration-300">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div className="flex items-center gap-2">
@@ -213,7 +213,7 @@ export default function VisualCollage() {
             <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-[#F0EFEB] border border-[#D9D7D0]/50 text-[11px] sm:text-xs">
               <span className="font-semibold text-[#181818]">1. SinAi Web App</span>
               <span className="text-[9px] sm:text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 sm:px-2 py-0.5 rounded-full">
-                Playground
+                Workspace
               </span>
             </div>
             <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-[#F0EFEB] border border-[#D9D7D0]/50 text-[11px] sm:text-xs">

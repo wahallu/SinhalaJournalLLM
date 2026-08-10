@@ -142,10 +142,10 @@ export default function Hero() {
         <div className="inline-flex items-center gap-1.5 sm:gap-2.5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white border border-[#D9D7D0] shadow-sm hover:border-[#cd191a]/40 transition-all duration-300">
           <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#cd191a] animate-pulse shrink-0" />
           <span className="text-[10px] sm:text-xs font-semibold text-[#1B1B1B] tracking-wide uppercase">
-            SinLLaMA 2.4 Research
+            Sinhala Journal LLM 2.4
           </span>
           <span className="text-xs text-[#8C8880]">•</span>
-          <span className="text-[10px] sm:text-xs font-medium text-[#8C8880]">Specialized Sinhala AI</span>
+          <span className="text-[10px] sm:text-xs font-medium text-[#8C8880]">Domain-Adapted AI</span>
         </div>
       </div>
 
@@ -164,13 +164,13 @@ export default function Hero() {
       {/* Call to Actions */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-20 px-2">
         <a
-          href="http://localhost:5173"
+          href="https://chat.sin-ai.app"
           target="_blank"
           rel="noopener noreferrer"
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#181818] hover:bg-[#cd191a] text-white px-5 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-xs sm:text-sm uppercase tracking-wider shadow-xl hover:shadow-[#cd191a]/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
         >
           <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#ff8a8a]" />
-          <span>Launch Web App Playground</span>
+          <span>Try SinAi Workspace</span>
           <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </a>
 
@@ -178,7 +178,7 @@ export default function Hero() {
           href="#playground-simulator"
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-[#F0EFEB] text-[#1B1B1B] border border-[#D9D7D0] px-5 sm:px-7 py-3 sm:py-4 rounded-full font-bold text-xs sm:text-sm uppercase tracking-wider transition-all duration-200 shadow-sm"
         >
-          <span>Try Interactive Demo</span>
+          <span>Explore Features</span>
         </a>
       </div>
 
@@ -192,7 +192,7 @@ export default function Hero() {
             <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#22c55e]/80" />
             <span className="ml-2 sm:ml-3 text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-[#8C8880] flex items-center gap-1">
               <Cpu className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#cd191a]" />
-              <span>Studio Workspace</span>
+              <span>SinAi Studio Workspace</span>
             </span>
           </div>
 
@@ -343,12 +343,12 @@ export default function Hero() {
               </div>
 
               <a
-                href="http://localhost:5173"
+                href="https://chat.sin-ai.app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold text-[#ff8a8a] hover:text-white uppercase tracking-wider transition-colors"
               >
-                <span>Full Workspace</span>
+                <span>Try SinAi</span>
                 <ArrowUpRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </a>
             </div>
