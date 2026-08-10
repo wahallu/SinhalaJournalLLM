@@ -49,7 +49,7 @@ export const HEADLINE_MODELS = [
   { id: 'headline_sinllama_v19', label: 'හංස 3.0' },
 ];
 
-export const DEFAULT_HEADLINE_MODEL = 'headline_sinllama_v19';
+export const DEFAULT_HEADLINE_MODEL = 'headline_sinllama_v17';
 
 /**
  * Which dropdowns each tool shows in its editor toolbar, keyed by the
