@@ -338,7 +338,7 @@ export default function InteractivePlayground() {
             </div>
 
             <div className="text-[11px] sm:text-xs text-[#8C8880] font-medium">
-              <span>{inputText.length} Chars</span> • <span>SinAi 2.4 (Sinhala Journal LLM)</span>
+              <span>{inputText.length} Chars</span> • <span>SinAi Beta (Sinhala Journal LLM)</span>
             </div>
           </div>
 

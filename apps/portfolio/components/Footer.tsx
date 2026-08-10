@@ -190,7 +190,7 @@ export default function Footer() {
           <div className="flex items-center gap-3 sm:gap-6">
             <span>Built for Sri Lankan Journalism</span>
             <span>•</span>
-            <span className="text-[#cd191a] font-bold">SinAi 2.4</span>
+            <span className="text-[#cd191a] font-bold">SinAi Beta</span>
           </div>
         </div>
       </div>

@@ -31,7 +31,7 @@ export default function Navbar() {
           <div className="flex items-center gap-1 sm:gap-1.5">
             <span className="text-white font-display text-base sm:text-lg font-bold tracking-tight">SinAi</span>
             <span className="hidden xs:inline text-[8px] sm:text-[9px] uppercase tracking-widest px-1 sm:px-1.5 py-0.5 rounded bg-white/10 text-white/70 font-semibold border border-white/10">
-              v2.4
+              Beta
             </span>
           </div>
         </Link>

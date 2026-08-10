@@ -142,7 +142,7 @@ export default function Hero() {
         <div className="inline-flex items-center gap-1.5 sm:gap-2.5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white border border-[#D9D7D0] shadow-sm hover:border-[#cd191a]/40 transition-all duration-300">
           <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#cd191a] animate-pulse shrink-0" />
           <span className="text-[10px] sm:text-xs font-semibold text-[#1B1B1B] tracking-wide uppercase">
-            Sinhala Journal LLM 2.4
+            Sinhala Journal LLM Beta
           </span>
           <span className="text-xs text-[#8C8880]">•</span>
           <span className="text-[10px] sm:text-xs font-medium text-[#8C8880]">Domain-Adapted AI</span>

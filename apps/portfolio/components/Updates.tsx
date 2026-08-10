@@ -15,7 +15,7 @@ export default function Updates() {
     {
       tag: "Release Notes",
       date: "August 2026",
-      title: "Announcing SinAi 2.4: Sub-Second Latency & Multi-LoRA Swapping",
+      title: "Announcing SinAi Beta: Sub-Second Latency & Multi-LoRA Swapping",
       desc: "Deploying upgraded grammar_v13 and headline_v17 adapters with Postgres Row-Level Security across our client apps.",
       link: "https://github.com/wahallu/SinhalaJournalLLM",
     },
