@@ -102,6 +102,7 @@ async def model_generate(
     category: str | None = None,
     variation_hint: str | None = None,
     num_candidates: int = 1,
+    adapter: str | None = None,
 ) -> GatewayResult:
     """
     Run one inference through the provider chain.
@@ -123,6 +124,11 @@ async def model_generate(
                         call, surfaced on the result as
                         meta["candidates"]. openrouter and mock ignore it and
                         always return exactly one.
+        adapter:        sinllama only — a specific adapter/version to run,
+                        overriding the admin's `adapters.{task}` runtime
+                        setting for this one call. Callers pass this for a
+                        user-facing model picker; leave unset to keep using
+                        the admin-configured default.
     """
     if task not in TASKS:
         raise ValueError(f"Unknown task {task!r}; expected one of {TASKS}")
@@ -143,7 +149,7 @@ async def model_generate(
             if provider == "sinllama":
                 result_text, meta = await _via_sinllama(
                     task, text, resolved_style, resolved_length, resolved_category, variation_hint,
-                    num_candidates=num_candidates,
+                    num_candidates=num_candidates, adapter=adapter,
                 )
             elif provider == "openrouter":
                 result_text, meta = await _via_openrouter(
@@ -186,6 +192,7 @@ async def _via_sinllama(
     variation_hint: str | None,
     *,
     num_candidates: int = 1,
+    adapter: str | None = None,
 ) -> tuple[str, dict]:
     """
     Build the request per the serve_sinai.py contract. Raw text lets the
@@ -202,7 +209,12 @@ async def _via_sinllama(
     else:
         prompt = text
 
-    adapter = str(await runtime_settings.get(f"adapters.{task}") or "").strip()
+    # A caller-supplied adapter (the headline model picker) wins over the
+    # admin's global `adapters.{task}` runtime setting; neither set means
+    # "let the server use its task default".
+    adapter = (adapter or "").strip()
+    if not adapter:
+        adapter = str(await runtime_settings.get(f"adapters.{task}") or "").strip()
 
     try:
         data = await sinllama_generate(

@@ -39,6 +39,18 @@ export const HEADLINE_COUNTS = [
   { id: 7, label: '7 headlines' },
 ];
 
+// `id` is the exact adapter folder name the inference server discovers under
+// models/adapters/ (see SinAI-Training/work/serve_sinai.py's
+// find_latest_adapters()/discover_adapters()) — it goes straight into the
+// `adapter` field on the headline request, so it must match byte-for-byte.
+export const HEADLINE_MODELS = [
+  { id: 'headline_sinllama_v17', label: 'ගිරා 1.7' },
+  { id: 'headline_sinllama_v18', label: 'සැලලිහිණි 2.0' },
+  { id: 'headline_sinllama_v19', label: 'හංස 3.0' },
+];
+
+export const DEFAULT_HEADLINE_MODEL = 'headline_sinllama_v19';
+
 /**
  * Which dropdowns each tool shows in its editor toolbar, keyed by the
  * settings field each one drives.
