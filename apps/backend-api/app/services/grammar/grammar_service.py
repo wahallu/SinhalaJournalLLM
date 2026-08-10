@@ -20,6 +20,7 @@ customer-facing pass.
 
 import logging
 from difflib import SequenceMatcher
+from typing import TYPE_CHECKING
 
 from app.core import runtime_settings
 from app.core.model_gateway import add_tokens, model_generate
@@ -34,6 +35,9 @@ from app.services.grammar import sentence_final
 from app.services.grammar.substitution_guard import inspect_substitution
 from app.services.grammar import lexicon
 from app.services.grammar.chunking import chunk_text
+
+if TYPE_CHECKING:
+    from app.core.research import Actor
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +178,11 @@ def _pick_consensus(candidates: list[str]) -> str:
     return cleaned[best_index]
 
 
-async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckResponse:
+async def check_grammar(
+    text: str,
+    user_id: str | None = None,
+    actor: "Actor | None" = None,
+) -> GrammarCheckResponse:
     """
     Correct Sinhala text, derive per-word corrections, persist for a known
     caller, and return.
@@ -247,7 +255,7 @@ async def check_grammar(text: str, user_id: str | None = None) -> GrammarCheckRe
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
     }
-    saved = await persist_if_owned(save_correction, record, user_id)
+    saved = await persist_if_owned(save_correction, record, user_id, actor)
 
     # Run on the CORRECTED text, not the input: anything the model already
     # fixed should not be flagged again, and a word it introduced is worth

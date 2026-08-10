@@ -27,6 +27,15 @@ ANONYMOUS_OK = {
     # Composes the four writing tools and applies the same anonymous limit
     # once for the whole run — see test_optimize.py.
     "/api/v1/optimize",
+    # Research telemetry, and the one entry here that is NOT an inference
+    # path: it reaches no model and costs nothing to serve. It has to be
+    # anonymous because the study runs almost entirely anonymously — gating it
+    # would collect accept/reject data from only the handful of students who
+    # sign in, which is the population least representative of the rest.
+    # Abuse ceiling is a junk row: the payload is length-capped, the batch is
+    # capped at MAX_EVENTS, and `kind`/`action` are closed sets checked in the
+    # endpoint and again by a database CHECK constraint.
+    "/api/v1/events/suggestions",
 }
 
 

@@ -87,7 +87,9 @@ class _FakeQuery:
         self._on_conflict: str = "id"
 
     # ── builders ──
-    def insert(self, record: dict):
+    def insert(self, record: dict | list[dict]):
+        # PostgREST accepts a list for a batch insert, which the research
+        # event writer uses to avoid a round trip per event.
         self._operation = "insert"
         self._payload = record
         return self
@@ -164,16 +166,22 @@ class _FakeQuery:
             # the app_users row it just created, and a fake that reassigned
             # that id would leave the two tables silently unlinked while the
             # insert still appeared to succeed.
-            record = {
-                "id": str(uuid.uuid4()),
-                "created_at": datetime.now(timezone.utc).isoformat(),
-                **self._payload,
-            }
-            rows.append(record)
-            # A copy, like a real PostgREST response — returning the stored
-            # dict lets a caller mutate the store by accident and hides
+            payload = (
+                self._payload if isinstance(self._payload, list) else [self._payload]
+            )
+            inserted = []
+            for item in payload:
+                record = {
+                    "id": str(uuid.uuid4()),
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    **item,
+                }
+                rows.append(record)
+                inserted.append(dict(record))
+            # Copies, like a real PostgREST response — returning the stored
+            # dicts lets a caller mutate the store by accident and hides
             # aliasing bugs that only appear against the real client.
-            return SimpleNamespace(data=[dict(record)], count=None)
+            return SimpleNamespace(data=inserted, count=None)
 
         if self._operation == "upsert":
             conflict_key = self._on_conflict

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, FileSearch, ArrowRight } from 'lucide-react';
 import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
@@ -5,6 +6,7 @@ import { SkeletonLines } from './ui/Skeleton';
 import { CorrectedText, CorrectionsList, SuggestionsList } from './CorrectionsView';
 import { useResolvedText } from '../lib/suggestions';
 import { useSuggestionMode } from '../lib/suggestionMode';
+import { useSuggestionTelemetry } from '../lib/useSuggestionTelemetry';
 
 /* Stable identities for the "not present" case. A fresh [] each render would
    change the hook's dependencies every time and recompute for nothing. */
@@ -54,11 +56,26 @@ export default function OutputPanel({ output, loading, error, type, input, summa
   const grammarSuggestions = output?.suggestions ?? NO_SUGGESTIONS;
   const [mode] = useSuggestionMode();
   const grammarCorrections = output?.corrections ?? NO_SUGGESTIONS;
+
+  /* Research instrumentation. Which changes a journalist takes is the study's
+     ground truth — see lib/useSuggestionTelemetry.js. Wired in two steps
+     because the hook needs the edits the resolver builds, and the resolver
+     needs the callback the hook returns. */
+  const [pendingEdits, setPendingEdits] = useState(NO_SUGGESTIONS);
+  const { onDecision } = useSuggestionTelemetry({
+    runId: output?.id,
+    edits: pendingEdits,
+    tool: 'grammar',
+  });
   const resolved = useResolvedText(grammarSource, {
     corrections: grammarCorrections,
     suggestions: grammarSuggestions,
     autoApply: mode === 'auto',
+    onDecision,
   });
+  useEffect(() => {
+    setPendingEdits(resolved.edits);
+  }, [resolved.edits]);
 
   if (loading) {
     return (

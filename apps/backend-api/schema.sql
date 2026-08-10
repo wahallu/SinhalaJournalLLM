@@ -441,3 +441,71 @@ drop trigger if exists on_profile_update on profiles;
 create trigger on_profile_update
     before update on profiles
     for each row execute function public.guard_profile_privileges();
+
+-- ─────────────────────────────────────────────────────────────────────────
+-- Research instrumentation (added 2026-08-10)
+--
+-- The tool is being given to university journalism students via WhatsApp, so
+-- almost every session is anonymous and there is no recruitment step in which
+-- a participant code could be handed out. Runs are therefore grouped by a
+-- device id: a UUID the browser generates on first visit and keeps in
+-- localStorage, sent as the X-Anon-Id header.
+--
+-- Deliberately NOT grouped by IP. Sri Lankan mobile carriers use CGNAT and a
+-- campus network is one NAT address, so IP both over-merges (a whole class
+-- becomes one "user") and under-merges (wifi -> 4G -> home splits one student
+-- into three). ip_hash stays exactly where it was, feeding rate limiting only.
+--
+-- A device id is not a person: it does not survive a cleared browser, and a
+-- shared machine merges its users. Good enough to group a work session, and
+-- the analysis must not claim more than that.
+-- ─────────────────────────────────────────────────────────────────────────
+
+alter table request_telemetry     add column if not exists anon_id    text;
+alter table request_telemetry     add column if not exists session_id text;
+alter table grammar_corrections   add column if not exists anon_id    text;
+alter table grammar_corrections   add column if not exists session_id text;
+alter table headline_generations  add column if not exists anon_id    text;
+alter table headline_generations  add column if not exists session_id text;
+alter table style_rewrites        add column if not exists anon_id    text;
+alter table style_rewrites        add column if not exists session_id text;
+alter table summaries             add column if not exists anon_id    text;
+alter table summaries             add column if not exists session_id text;
+
+create index if not exists idx_telemetry_anon on request_telemetry    (anon_id, created_at desc);
+create index if not exists idx_grammar_anon   on grammar_corrections  (anon_id, created_at desc);
+create index if not exists idx_headline_anon  on headline_generations (anon_id, created_at desc);
+create index if not exists idx_style_anon     on style_rewrites       (anon_id, created_at desc);
+create index if not exists idx_summaries_anon on summaries            (anon_id, created_at desc);
+
+-- Which corrections and spelling suggestions a journalist actually took.
+--
+-- This is the point of the whole exercise. Raw input/output says what the
+-- model did, not whether it was right, and finding out costs hand-labelling.
+-- An accept/reject click is ground truth the moment it happens: every rejected
+-- dictionary flag is a measured false positive, and every reverted correction
+-- is the over-correction failure mode this project spent v17-v18 removing.
+--
+-- `kind` distinguishes an edit the model applied ('correction') from an
+-- advisory lexicon flag ('suggestion'), because their precision is measured
+-- separately and only the latter is expected to be noisy.
+create table if not exists suggestion_events (
+    id          uuid primary key default gen_random_uuid(),
+    run_id      uuid,
+    user_id     uuid references auth.users(id) on delete set null,
+    anon_id     text,
+    session_id  text,
+    tool        text not null,
+    kind        text not null check (kind in ('correction', 'suggestion')),
+    action      text not null check (action in ('shown', 'accepted', 'rejected')),
+    original    text,
+    proposed    text,
+    rule        text,
+    position    integer,
+    adapter     text,
+    created_at  timestamptz not null default now()
+);
+
+create index if not exists idx_sugg_run     on suggestion_events (run_id);
+create index if not exists idx_sugg_anon    on suggestion_events (anon_id, created_at desc);
+create index if not exists idx_sugg_action  on suggestion_events (tool, kind, action);

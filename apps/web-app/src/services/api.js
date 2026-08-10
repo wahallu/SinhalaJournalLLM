@@ -6,6 +6,7 @@
 import {
   DEFAULT_API_BASE, getAccessToken, getApiBase, refreshAccessToken,
 } from '../auth/authClient';
+import { researchHeaders } from '../lib/research';
 
 export { DEFAULT_API_BASE };
 
@@ -26,7 +27,11 @@ async function request(endpoint, body = null, method = 'POST') {
   const send = (token) => {
     const options = {
       method,
-      headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+      headers: {
+        'Content-Type': 'application/json',
+        ...researchHeaders(),
+        ...authHeaders(token),
+      },
     };
     if (body !== null && method !== 'GET') {
       options.body = JSON.stringify(body);
@@ -64,7 +69,11 @@ async function streamRequest(endpoint, body, onEvent, { signal } = {}) {
   const send = (token) =>
     fetch(`${getApiBase()}${endpoint}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+      headers: {
+        'Content-Type': 'application/json',
+        ...researchHeaders(),
+        ...authHeaders(token),
+      },
       body: JSON.stringify(body),
       signal,
     });
@@ -292,6 +301,22 @@ export function setMyCategory(categoryId) {
 // Response: { items: [{ id, tool, input_preview, output_preview, detail, created_at }] }
 export function getUnifiedHistory(limit = 50) {
   return request(`/history?limit=${limit}`, null, 'GET');
+}
+
+/**
+ * Report which proposed changes the journalist took.
+ *
+ * The study's most valuable signal: input/output says what the model did, not
+ * whether it was right, and an accept/reject click is ground truth for free.
+ *
+ * Deliberately swallows every error and never returns a rejected promise. This
+ * is research telemetry riding along behind someone's actual work — a failed
+ * analytics write must be invisible, not a console full of red or a retry
+ * storm while they are mid-article.
+ */
+export function recordSuggestionEvents(events) {
+  if (!events?.length) return Promise.resolve(null);
+  return request('/events/suggestions', { events }).catch(() => null);
 }
 
 // Exact run counts for the dashboard tiles. Deliberately not derived from

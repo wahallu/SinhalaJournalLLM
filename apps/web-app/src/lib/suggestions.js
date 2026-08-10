@@ -198,7 +198,10 @@ export function resolveEdits(text, edits, activeKeys = EMPTY) {
  * reader can still accept a rename per-word, which is the only way it can now
  * happen at all.
  */
-export function useResolvedText(text, { corrections, suggestions, autoApply = false } = {}) {
+export function useResolvedText(
+  text,
+  { corrections, suggestions, autoApply = false, onDecision } = {}
+) {
   const edits = useMemo(
     () => buildEdits(text ?? '', { corrections, suggestions }),
     [text, corrections, suggestions]
@@ -218,24 +221,42 @@ export function useResolvedText(text, { corrections, suggestions, autoApply = fa
     setActive(initial);
   }
 
+  /* Every flip is reported once, outside the setState updater. React may call
+     an updater twice in StrictMode and again when it replays a render, so
+     reporting from inside it would double-count exactly the numbers the study
+     depends on. */
+  const report = useCallback((key, accepted) => {
+    if (!onDecision) return;
+    const edit = edits.find((e) => e.key === key);
+    if (edit) onDecision(edit, accepted);
+  }, [edits, onDecision]);
+
   const toggle = useCallback((key) => {
+    // Decided from the committed state, which a click handler always sees, so
+    // the reported direction cannot disagree with what the user saw. The
+    // updater still derives from `prev` so concurrent updates merge correctly.
+    const accepted = !active.has(key);
     setActive((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+      if (accepted) next.add(key);
+      else next.delete(key);
       return next;
     });
-  }, []);
+    report(key, accepted);
+  }, [active, report]);
 
   /* Suggestions only. Names are already active and "apply all" must never be
      a route to accepting a batch of renames without looking at them. */
   const applyAllSuggestions = useCallback(() => {
+    const newly = edits.filter((e) => e.kind === 'suggestion' && !active.has(e.key));
+    if (!newly.length) return;
     setActive((prev) => {
       const next = new Set(prev);
-      edits.forEach((e) => { if (e.kind === 'suggestion') next.add(e.key); });
+      newly.forEach((e) => next.add(e.key));
       return next;
     });
-  }, [edits]);
+    newly.forEach((e) => report(e.key, true));
+  }, [edits, active, report]);
 
   const resolved = useMemo(() => resolveEdits(text ?? '', edits, active), [text, edits, active]);
 
@@ -245,6 +266,8 @@ export function useResolvedText(text, { corrections, suggestions, autoApply = fa
     /** Text with active edits applied — what Copy and any downstream step use. */
     text: resolved.text,
     marks: resolved.marks,
+    /** Everything offered this run, for the study's `shown` denominator. */
+    edits,
     activeKeys: active,
     toggle,
     applyAllSuggestions,

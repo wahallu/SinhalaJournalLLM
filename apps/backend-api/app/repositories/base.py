@@ -13,11 +13,14 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
 from app.core.database import get_supabase
+
+if TYPE_CHECKING:  # avoids a cycle: research imports schemas, not repositories
+    from app.core.research import Actor
 
 logger = logging.getLogger(__name__)
 
@@ -135,15 +138,27 @@ async def persist_if_owned(
     save: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]],
     record: dict[str, Any],
     user_id: str | None,
+    actor: "Actor | None" = None,
 ) -> dict[str, Any]:
     """
-    Persist `record` against `user_id`, or return an unsaved response-shaped
-    record when the caller is anonymous.
+    Persist `record` against whoever made the request, or return an unsaved
+    response-shaped record when there is nobody to attribute it to.
 
-    "Login to save": anonymous runs leave no row, so `user_id IS NULL` in the
-    history tables keeps meaning "pre-auth legacy data" and nothing else.
-    The returned shape is identical either way — clients cannot tell.
+    Originally this saved for signed-in callers only — "login to save", with
+    anonymous runs leaving no row at all. The research study changed that: the
+    tool reaches journalism students through a WhatsApp group, so almost every
+    run is anonymous, and dropping those rows would discard the entire dataset
+    the study exists to collect. An anonymous run is now saved against its
+    device id (see core/research.py).
+
+    `user_id IS NULL AND anon_id IS NULL` therefore still means "pre-auth
+    legacy data" and nothing else, which keeps the older rows interpretable.
+
+    The returned shape is identical in every case — clients cannot tell
+    whether a row was written.
     """
+    if actor is not None and actor.is_known:
+        return await save({**record, **actor.stamp()})
     if user_id is None:
         return _synthetic_record(record)
     return await save({**record, "user_id": user_id})

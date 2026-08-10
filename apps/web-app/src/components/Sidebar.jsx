@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, SpellCheck, Newspaper, PenLine, FileText,
   History, Settings, ChevronLeft, ChevronRight, User, Zap, X,
-  LogIn, LogOut,
+  LogIn, LogOut, Megaphone, ArrowUpRight,
 } from 'lucide-react';
 import DotField from './DotField';
 import { useAuth } from '../auth/useAuth';
@@ -45,6 +45,66 @@ const BOTTOM_NAV = [
   { id: 'history', label: 'History', icon: History },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
+
+const FEEDBACK_URL = 'https://forms.gle/uD3tXZ4nEL11k6uA6';
+
+/**
+ * Promo card for the feedback form.
+ *
+ * Deliberately the loudest thing in the sidebar — brand red against the grey
+ * shell, with a slow sheen — because the study depends on students actually
+ * filling it in, and a quiet nav row would not get clicked. Sits above History
+ * rather than at the very bottom, where it would read as a footer.
+ *
+ * Opens in a new tab: losing a half-corrected article to a navigation away is
+ * exactly the annoyance that stops someone leaving feedback at all.
+ */
+function FeedbackPromo({ collapsed }) {
+  if (collapsed) {
+    return (
+      <a
+        href={FEEDBACK_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Give us your feedback"
+        className="feedback-promo relative flex items-center justify-center w-full py-2.5 mb-1.5
+                   rounded-lg bg-brand-600 text-white hover:bg-brand-700
+                   transition-colors duration-150 overflow-hidden"
+      >
+        <Megaphone size={17} strokeWidth={2} className="shrink-0" />
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={FEEDBACK_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="feedback-promo group relative block mb-2 px-3 py-2.5 rounded-lg
+                 bg-gradient-to-br from-brand-600 to-brand-700 text-white
+                 shadow-card overflow-hidden"
+    >
+      <div className="relative z-10 flex items-start gap-2.5">
+        <Megaphone size={16} strokeWidth={2.2} className="shrink-0 mt-[3px]" />
+        <div className="min-w-0">
+          <div className="flex items-center gap-1 text-[13px] font-semibold leading-tight">
+            <span className="truncate">Give us your feedback</span>
+            <ArrowUpRight
+              size={13}
+              strokeWidth={2.5}
+              className="shrink-0 opacity-70 transition-transform duration-150
+                         group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            />
+          </div>
+          <p className="mt-0.5 text-[11.5px] leading-snug text-white/75">
+            Takes a minute
+          </p>
+        </div>
+      </div>
+    </a>
+  );
+}
 
 export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpen, onToggle, collapsed, onCollapse }) {
   const [profileOpen, setProfileOpen] = useState(false);
@@ -249,6 +309,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
 
         {/* Bottom navigation */}
         <div className={`relative z-10 py-3 space-y-0.5 border-t border-ink-100 ${collapsed ? 'px-3' : 'px-3.5'}`}>
+          <FeedbackPromo collapsed={collapsed} />
           {BOTTOM_NAV.map(renderNavItem)}
         </div>
 

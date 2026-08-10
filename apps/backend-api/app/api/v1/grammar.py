@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.core.features import require_tool_enabled
 from app.core.deps import optional_user, require_user
 from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
+from app.core.research import actor_from
 from app.repositories.grammar_repository import (
     get_correction_by_id,
     get_corrections,
@@ -58,12 +59,18 @@ async def grammar_check_endpoint(
     """
     await enforce_anonymous_limit(request, user)
 
+    actor = actor_from(request, user)
+
     started = time.perf_counter()
-    result = await check_grammar(payload.text, user_id=user.id if user else None)
+    result = await check_grammar(
+        payload.text, user_id=user.id if user else None, actor=actor
+    )
     latency_ms = int((time.perf_counter() - started) * 1000)
 
     await record_request(
         user_id=user.id if user else None,
+        anon_id=actor.anon_id,
+        session_id=actor.session_id,
         endpoint="/api/v1/grammar/check",
         method="POST",
         tool="grammar",

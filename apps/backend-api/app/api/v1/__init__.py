@@ -7,6 +7,7 @@ from fastapi import APIRouter
 from app.api.v1.admin import router as admin_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.categories import router as categories_router
+from app.api.v1.events import router as events_router
 from app.api.v1.grammar import router as grammar_router
 from app.api.v1.headline import router as headline_router
 from app.api.v1.image_generation import router as image_generation_router
@@ -32,4 +33,6 @@ router.include_router(sinllama_router)
 router.include_router(meta_router)
 router.include_router(comparison_router)
 router.include_router(categories_router)
+# Research instrumentation: which suggestions journalists actually took.
+router.include_router(events_router)
 router.include_router(admin_router)
