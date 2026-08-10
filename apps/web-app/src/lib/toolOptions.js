@@ -39,16 +39,6 @@ export const HEADLINE_COUNTS = [
   { id: 7, label: '7 headlines' },
 ];
 
-export const HEADLINE_CATEGORIES = [
-  { id: 'General', label: 'General' },
-  { id: 'Politics', label: 'Politics' },
-  { id: 'Business', label: 'Business' },
-  { id: 'Sports', label: 'Sports' },
-  { id: 'Entertainment', label: 'Entertainment' },
-  { id: 'Tech', label: 'Tech' },
-  { id: 'World', label: 'World' },
-];
-
 /**
  * Which dropdowns each tool shows in its editor toolbar, keyed by the
  * settings field each one drives.
@@ -70,7 +60,6 @@ export const TOOLBAR_CONTROLS = {
   headlines: [
     { key: 'headlineLength', label: 'Length', options: HEADLINE_LENGTHS_OPTIONS },
     { key: 'count', label: 'Count', options: HEADLINE_COUNTS },
-    { key: 'category', label: 'Category', options: HEADLINE_CATEGORIES },
   ],
   rewriter: [{ key: 'tone', label: 'Tone', options: TONES }],
   summarizer: [{ key: 'length', label: 'Length', options: LENGTHS }],
