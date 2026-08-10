@@ -32,6 +32,17 @@ class HeadlineRequest(BaseModel):
             "long (8-10). Unknown or omitted values resolve to medium."
         ),
     )
+    adapter: str | None = Field(
+        default=None,
+        max_length=128,
+        pattern=r"^[A-Za-z0-9._-]+$",
+        description=(
+            "Specific headline LoRA adapter/version to generate with "
+            "(e.g. headline_sinllama_v19). Omit to use the server's default. "
+            "The inference server rejects an unknown or wrong-task name; the "
+            "gateway falls back to the default rather than failing the request."
+        ),
+    )
 
 
 class HeadlineLengthInfo(BaseModel):
@@ -56,6 +67,11 @@ class HeadlineResponse(BaseModel):
     model_used: str | None = Field(
         default=None,
         description="Inference provider that produced this result",
+    )
+    adapter_used: str | None = Field(
+        default=None,
+        description="The specific headline adapter/version that actually ran "
+                    "(only set by the sinllama provider).",
     )
     created_at: datetime | None = Field(default=None)
     input_tokens: int | None = Field(

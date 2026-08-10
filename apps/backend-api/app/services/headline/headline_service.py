@@ -110,10 +110,15 @@ async def generate_headlines(
     category: str = "General",
     length: str | None = None,
     user_id: str | None = None,
+    adapter: str | None = None,
 ) -> HeadlineResponse:
     """
     Generate up to `count` distinct headline candidates inside the requested
     word band and persist them for a known caller.
+
+    `adapter` pins every call this request makes — the initial fan-out and
+    any length retries — to one specific headline model version, so a
+    candidate never mixes output from two adapters.
     """
     resolved_length = resolve_headline_length(length)
     band = HEADLINE_LENGTHS[resolved_length]
@@ -126,6 +131,7 @@ async def generate_headlines(
             category=category,
             length=resolved_length,
             variation_hint=hint or None,
+            adapter=adapter,
         )
 
     results = await asyncio.gather(
@@ -137,6 +143,7 @@ async def generate_headlines(
     # regenerated candidate keeps the angle its variation hint asked for.
     candidates: list[str | None] = []
     provider = None
+    adapter_used = None
     total_latency = 0
     # Summed across every call this request makes — the initial fan-out plus
     # each retry round — the same way latency already is.
@@ -148,6 +155,7 @@ async def generate_headlines(
             continue
         candidates.append(strip_headline_artifacts(outcome.text))
         provider = provider or outcome.provider
+        adapter_used = adapter_used or outcome.meta.get("adapter")
         total_latency += outcome.latency_ms
         input_tokens = add_tokens(input_tokens, outcome.meta.get("input_tokens"))
         output_tokens = add_tokens(output_tokens, outcome.meta.get("output_tokens"))
@@ -216,6 +224,7 @@ async def generate_headlines(
             max_words=band["max_words"],
         ),
         model_used=provider,
+        adapter_used=adapter_used,
         created_at=saved.get("created_at"),
         input_tokens=input_tokens,
         output_tokens=output_tokens,

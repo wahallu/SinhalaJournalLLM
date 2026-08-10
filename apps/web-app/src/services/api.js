@@ -126,8 +126,8 @@ export function getGrammarHistory(page = 1, pageSize = 20) {
 }
 
 // ── Headlines ──
-// Backend accepts { text, count, category, length }; `style` is still
-// unsupported server-side, so it's accepted here but not sent.
+// Backend accepts { text, count, category, length, adapter }; `style` is
+// still unsupported server-side, so it's accepted here but not sent.
 // The response is transformed into the richer shape HeadlineOutputPanel expects.
 
 // Word bands per length option. Only a fallback for labelling before a
@@ -145,6 +145,7 @@ export async function generateHeadlines(text, options = {}) {
     numCandidates,
     category = 'General',
     length = 'medium',
+    adapter,
   } = typeof options === 'object' && !Array.isArray(options) ? options : { count: options };
 
   const raw = await request('/headlines/generate', {
@@ -152,6 +153,7 @@ export async function generateHeadlines(text, options = {}) {
     count: numCandidates ?? count,
     category,
     length,
+    adapter: adapter || undefined,
   });
 
   const band = raw.length || HEADLINE_LENGTH_BANDS[length] || HEADLINE_LENGTH_BANDS.medium;

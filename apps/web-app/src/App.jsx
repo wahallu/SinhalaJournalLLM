@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-
 import { Menu, ArrowDownToLine } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import { TOOL_META } from './lib/toolMeta';
-import { SUMMARY_VIEWS } from './lib/toolOptions';
+import { SUMMARY_VIEWS, DEFAULT_HEADLINE_MODEL } from './lib/toolOptions';
 import ActionButton from './components/ui/ActionButton';
 import Dropdown from './components/ui/Dropdown';
 import Editor from './components/editor/Editor';
@@ -148,6 +148,7 @@ function loadDefaultSettings() {
     count: stored.headlineCount,
     category: 'General',
     headlineLength: 'medium',
+    headlineModel: DEFAULT_HEADLINE_MODEL,
     summaryView: 'paragraph',
     // Optimize's two opt-in stages. Session state rather than a stored
     // preference — they are per-article decisions, and SettingsPage does not
@@ -191,6 +192,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
             length: settings.headlineLength,
             numCandidates: settings.count,
             category: settings.category || 'General',
+            adapter: settings.headlineModel,
           })
         );
         break;

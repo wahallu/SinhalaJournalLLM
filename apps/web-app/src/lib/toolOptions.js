@@ -39,15 +39,17 @@ export const HEADLINE_COUNTS = [
   { id: 7, label: '7 headlines' },
 ];
 
-export const HEADLINE_CATEGORIES = [
-  { id: 'General', label: 'General' },
-  { id: 'Politics', label: 'Politics' },
-  { id: 'Business', label: 'Business' },
-  { id: 'Sports', label: 'Sports' },
-  { id: 'Entertainment', label: 'Entertainment' },
-  { id: 'Tech', label: 'Tech' },
-  { id: 'World', label: 'World' },
+// `id` is the exact adapter folder name the inference server discovers under
+// models/adapters/ (see SinAI-Training/work/serve_sinai.py's
+// find_latest_adapters()/discover_adapters()) — it goes straight into the
+// `adapter` field on the headline request, so it must match byte-for-byte.
+export const HEADLINE_MODELS = [
+  { id: 'headline_sinllama_v17', label: 'ගිරා 1.7' },
+  { id: 'headline_sinllama_v18', label: 'සැලලිහිණි 2.0' },
+  { id: 'headline_sinllama_v19', label: 'හංස 3.0' },
 ];
+
+export const DEFAULT_HEADLINE_MODEL = 'headline_sinllama_v17';
 
 /**
  * Which dropdowns each tool shows in its editor toolbar, keyed by the
@@ -70,7 +72,6 @@ export const TOOLBAR_CONTROLS = {
   headlines: [
     { key: 'headlineLength', label: 'Length', options: HEADLINE_LENGTHS_OPTIONS },
     { key: 'count', label: 'Count', options: HEADLINE_COUNTS },
-    { key: 'category', label: 'Category', options: HEADLINE_CATEGORIES },
   ],
   rewriter: [{ key: 'tone', label: 'Tone', options: TONES }],
   summarizer: [{ key: 'length', label: 'Length', options: LENGTHS }],
