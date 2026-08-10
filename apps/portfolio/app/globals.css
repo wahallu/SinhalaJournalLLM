@@ -1,26 +1,203 @@
 @import "tailwindcss";
 
+/* ── Gwen Editorial Serif Font Faces ── */
+@font-face {
+  font-family: 'Gwen';
+  src: url('/fonts/Gwen-Trial-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gwen';
+  src: url('/fonts/Gwen-Trial-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gwen';
+  src: url('/fonts/Gwen-Trial-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gwen';
+  src: url('/fonts/Gwen-Trial-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Legacy Sinhala Newsroom Font (UBIN16S) ── */
+@font-face {
+  font-family: 'UBIN16S';
+  src: url('/fonts/ubin16s.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+@theme {
+  --font-display: 'Gwen', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sinhala: 'Noto Sans Sinhala', 'Inter', system-ui, sans-serif;
+  --font-legacy-sinhala: 'UBIN16S', sans-serif;
+
+  --color-page-bg: #FAF9F5;
+  --color-panel-bg: #F0EFEB;
+  --color-soft-card: #E9E8E4;
+  --color-soft-card-2: #F4F3EF;
+  --color-white-card: #FFFDF8;
+  --color-text-main: #1B1B1B;
+  --color-text-muted: #8C8880;
+  --color-text-light: #BDBAB2;
+  --color-line: #D9D7D0;
+  --color-black-main: #181818;
+  --color-deep-black: #151515;
+
+  --color-crimson: #cd191a;
+  --color-crimson-dark: #b01e1f;
+  --color-crimson-deep: #8d1213;
+  --color-crimson-tint: #fdf3f2;
+  --color-crimson-light: #fce5e4;
+
+  --color-brand-50: #fdf3f2;
+  --color-brand-100: #fce5e4;
+  --color-brand-200: #f9cecd;
+  --color-brand-300: #f3a8a7;
+  --color-brand-400: #e97371;
+  --color-brand-500: #dc4341;
+  --color-brand-600: #cd191a;
+  --color-brand-700: #ab1112;
+  --color-brand-800: #8d1213;
+  --color-brand-900: #751516;
+  --color-brand-950: #400607;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --page-bg: #FAF9F5;
+  --text: #1B1B1B;
+  --muted: #8C8880;
+  --line: #D9D7D0;
+  --black: #181818;
+  --crimson: #cd191a;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--page-bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-sinhala {
+  font-family: var(--font-sinhala);
+}
+
+.font-legacy-sinhala {
+  font-family: var(--font-legacy-sinhala);
+}
+
+/* ── Custom Utilities & Glassmorphism ── */
+.glass-capsule {
+  background: rgba(24, 24, 24, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.glass-card {
+  background: rgba(255, 253, 248, 0.75);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(217, 215, 208, 0.6);
+}
+
+.glass-card-dark {
+  background: rgba(24, 24, 24, 0.7);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.glow-crimson {
+  box-shadow: 0 0 35px -5px rgba(205, 25, 26, 0.35);
+}
+
+.glow-subtle {
+  box-shadow: 0 12px 36px -8px rgba(27, 27, 27, 0.08);
+}
+
+.glow-card {
+  box-shadow: 0 16px 48px -12px rgba(205, 25, 26, 0.12), 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Marquee Animation ── */
+@keyframes marqueeScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(-50% - 24px)); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marqueeScroll 35s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+.marquee-container {
+  overflow: hidden;
+  width: 100%;
+  mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+/* ── Custom Scrollbar ── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FAF9F5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D9D7D0;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8C8880;
+}
+
+/* ── Ambient Radial Background ── */
+.bg-mesh-radial {
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(205, 25, 26, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(255, 75, 43, 0.03) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(240, 239, 235, 0.6) 0px, transparent 100%);
 }
