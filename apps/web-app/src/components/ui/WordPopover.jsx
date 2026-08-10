@@ -238,7 +238,7 @@ export default function WordPopover({ children, panel, className = '', ariaLabel
           >
             <div
               className="w-max max-w-[min(19rem,calc(100vw-1.25rem))] rounded-xl border border-ink-200
-                bg-white shadow-pop px-3.5 py-3 animate-pop-in"
+                bg-white dark:bg-ink-50 shadow-pop px-3.5 py-3 animate-pop-in"
             >
               {typeof panel === 'function' ? panel({ close: () => setOpen(false) }) : panel}
             </div>

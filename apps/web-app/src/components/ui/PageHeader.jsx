@@ -3,7 +3,7 @@ export default function PageHeader({ icon: Icon, title, description, badge, acti
     <header className={`flex flex-wrap items-start justify-between gap-4 mb-6 ${className}`}>
       <div className="flex items-start gap-3.5 min-w-0">
         {Icon && (
-          <div className="w-11 h-11 rounded-xl bg-white border border-ink-200/80 shadow-card flex items-center justify-center shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-white dark:bg-ink-50 border border-ink-200/80 shadow-card flex items-center justify-center shrink-0">
             <Icon size={20} className="text-brand-600" strokeWidth={2} />
           </div>
         )}

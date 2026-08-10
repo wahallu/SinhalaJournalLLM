@@ -307,7 +307,7 @@ export default function OptimizeResults({
           restyled text depending on which stages ran. */}
       {result && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 rounded-xl
-          bg-ink-950 text-white">
+          bg-ink-950 dark:bg-[#161112] text-white">
           <div className="min-w-0 flex-1">
             <p className="text-[12.5px] font-semibold">
               {changed ? 'Final text ready' : 'No changes were needed'}

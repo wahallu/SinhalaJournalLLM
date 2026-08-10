@@ -207,7 +207,7 @@ function VisualPromptModule({ headline, articleText }) {
                   <button
                     onClick={handleGenerateImage}
                     className="absolute inset-x-0 bottom-0 py-1.5 text-[11px] font-medium text-white
-                      bg-ink-950/55 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      bg-ink-950/55 dark:bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                   >
                     ↺ Generate a different image
                   </button>
@@ -273,7 +273,7 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
         <span className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.14em]">
           Generating headlines
         </span>
-        <Card className="px-5 py-4 space-y-3 bg-ink-950 border-ink-950">
+        <Card className="px-5 py-4 space-y-3 bg-ink-950 dark:bg-[#161112] border-ink-950 dark:border-[#161112]">
           <Skeleton className="h-3 w-24 !bg-white/10" style={{ background: 'rgba(255,255,255,0.08)', animation: 'none' }} />
           <Skeleton className="h-5" style={{ width: '85%', background: 'rgba(255,255,255,0.12)', animation: 'none' }} />
         </Card>
@@ -326,7 +326,7 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
     <div id="headline-output" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
       {/* Best headline — hero card */}
       {output.best_headline && (
-        <div className="relative overflow-hidden px-5 py-4.5 bg-ink-950 rounded-2xl shadow-pop">
+        <div className="relative overflow-hidden px-5 py-4.5 bg-ink-950 dark:bg-[#161112] rounded-2xl shadow-pop">
           <div
             className="pointer-events-none absolute inset-0"
             style={{ background: 'radial-gradient(24rem 10rem at 90% -30%, rgba(205,25,26,0.4), transparent 60%)' }}

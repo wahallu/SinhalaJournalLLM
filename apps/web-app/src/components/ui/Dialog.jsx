@@ -39,7 +39,7 @@ export default function Dialog({
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
         <RadixDialog.Overlay
-          className="fixed inset-0 z-[60] bg-ink-950/55 backdrop-blur-[3px]
+          className="fixed inset-0 z-[60] bg-ink-950/55 dark:bg-black/70 backdrop-blur-[3px]
             data-[state=open]:animate-in data-[state=open]:fade-in data-[state=open]:duration-150
             data-[state=closed]:animate-out data-[state=closed]:fade-out"
         />
@@ -49,7 +49,7 @@ export default function Dialog({
         <div className="fixed inset-0 z-[60] overflow-y-auto p-4 sm:p-6 flex items-start sm:items-center justify-center pointer-events-none">
           <RadixDialog.Content
             className={`pointer-events-auto relative w-full ${WIDTHS[size] ?? WIDTHS.sm} my-auto
-              bg-white rounded-2xl border border-ink-200/80 shadow-pop
+              bg-white dark:bg-ink-50 rounded-2xl border border-ink-200/80 shadow-pop
               focus:outline-none
               data-[state=open]:animate-in data-[state=open]:fade-in
               data-[state=open]:slide-in-from-bottom-2 data-[state=open]:duration-200

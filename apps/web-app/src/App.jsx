@@ -134,6 +134,13 @@ const MAX_WIDTHS = {
   plans: 'max-w-6xl',
 };
 
+const USER_THEME_KEY = 'sinai_theme';
+
+function getUserTheme(userId) {
+  if (!userId) return 'light';
+  return localStorage.getItem(`${USER_THEME_KEY}:${userId}`) === 'dark' ? 'dark' : 'light';
+}
+
 function loadDefaultSettings() {
   let stored = {};
   try {
@@ -306,10 +313,43 @@ function ToolRunner({ activeTool, settings, setSettings }) {
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const userId = user?.id;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [settings, setSettings] = useState(loadDefaultSettings);
+  const [themeOverride, setThemeOverride] = useState({ userId: null, theme: 'light' });
   const { features, defaults: globalDefaults } = usePlatformMeta();
+  const previewTheme = import.meta.env.DEV
+    ? new URLSearchParams(window.location.search).get('__previewTheme')
+    : null;
+
+  // Theme preferences are intentionally account-scoped. This keeps users on
+  // a shared browser from inheriting one another's choice while preserving a
+  // user's selection across refreshes and sign-ins on this device.
+  const theme = previewTheme === 'dark'
+    ? 'dark'
+    : (themeOverride.userId === userId ? themeOverride.theme : getUserTheme(userId));
+
+  // The user-facing app and admin console have separate appearance controls.
+  // Applying the class to <html> also themes portalled dialogs, while removing
+  // it on /admin prevents the user preference from overriding AdminLayout.
+  useEffect(() => {
+    const dark = theme === 'dark' && !location.pathname.startsWith('/admin');
+    document.documentElement.classList.toggle('dark', dark);
+    document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    themeColor?.setAttribute('content', dark ? '#161112' : '#f5f4f4');
+  }, [theme, location.pathname]);
+
+  const handleThemeChange = useCallback((nextTheme) => {
+    const resolved = nextTheme === 'dark' ? 'dark' : 'light';
+    setThemeOverride({ userId, theme: resolved });
+    if (userId) {
+      localStorage.setItem(`${USER_THEME_KEY}:${userId}`, resolved);
+    }
+  }, [userId]);
 
   // Precedence: the user's own choice, then the admin's global default, then
   // a hardcoded fallback. Derived rather than synced into state, so a change
@@ -444,7 +484,7 @@ function App() {
       <div className="flex-1 min-w-0 h-full flex flex-col">
         {/* Mobile top bar */}
         <header className="lg:hidden sticky top-0 z-30 h-14 shrink-0 flex items-center gap-3 px-4
-          bg-white/85 backdrop-blur border-b border-ink-200/70">
+          bg-white/85 dark:bg-ink-50/90 backdrop-blur border-b border-ink-200/70">
           <button
             id="sidebar-toggle"
             onClick={() => setSidebarOpen((v) => !v)}
@@ -479,7 +519,7 @@ function App() {
               {/* Personal routes need a session; the four tools above stay open
                   to anonymous visitors, who simply do not get results saved. */}
               <Route path="/history" element={<ProtectedRoute><HistoryPage onSelectTool={handleSelectTool} onRerun={handleQuickStart} onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><SettingsPage onBack={() => navigate('/dashboard')} onDefaultsChange={handleDefaultsChange} /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><SettingsPage onBack={() => navigate('/dashboard')} onDefaultsChange={handleDefaultsChange} theme={theme} onThemeChange={handleThemeChange} /></ProtectedRoute>} />
               <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
 
               {/* The research tools moved to /admin/research/*. Send old

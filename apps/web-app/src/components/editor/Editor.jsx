@@ -35,7 +35,7 @@ export default function Editor({
   return (
     <div
       className={`
-        relative flex flex-col min-h-0 flex-1 rounded-2xl border bg-white transition-all duration-200
+        relative flex flex-col min-h-0 flex-1 rounded-2xl border bg-white dark:bg-ink-50 transition-all duration-200
         ${focused
           ? 'border-brand-400 shadow-[0_0_0_3px_rgba(205,25,26,0.07)]'
           : 'border-ink-200/80 shadow-card hover:border-ink-300'}

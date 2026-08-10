@@ -316,6 +316,32 @@ textarea { resize: vertical; }
 }
 
 .dark {
+  /* User-facing palette. The app's utility classes are written against the
+     ink and brand ramps, so swapping the ramps here themes every surface and
+     keeps text contrast consistent without duplicating dark: classes. */
+  --color-canvas: #131011;
+  --color-ink-50: #211d1e;
+  --color-ink-100: #2c2728;
+  --color-ink-200: #3c3637;
+  --color-ink-300: #514a4b;
+  --color-ink-400: #8d8586;
+  --color-ink-500: #aaa4a5;
+  --color-ink-600: #c1bcbc;
+  --color-ink-700: #d7d3d3;
+  --color-ink-800: #eceaea;
+  --color-ink-900: #f8f7f7;
+  --color-ink-950: #ffffff;
+  --color-brand-50: #311a1c;
+  --color-brand-100: #421d20;
+  --color-brand-200: #5b2427;
+  --color-brand-300: #7e2d30;
+  --color-brand-400: #b94546;
+  --color-brand-500: #dc5b59;
+  --color-brand-600: #e97371;
+  --color-brand-700: #f18b89;
+  --color-brand-800: #f5aaa8;
+  --color-brand-900: #f8cecd;
+
   --background: #161112;
   --foreground: #f8f7f7;
   --card: #1d1819;

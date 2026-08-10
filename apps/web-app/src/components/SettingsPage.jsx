@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { ArrowLeft, Sliders, RotateCcw, CheckCircle2, Settings as SettingsIcon } from 'lucide-react';
+import {
+  ArrowLeft, Sliders, RotateCcw, CheckCircle2, Settings as SettingsIcon,
+  Palette, Sun, Moon,
+} from 'lucide-react';
 import PageHeader from './ui/PageHeader';
 import ActionButton from './ui/ActionButton';
 import Dropdown from './ui/Dropdown';
@@ -43,7 +46,7 @@ function SettingsSection({ icon: Icon, title, description, children }) {
   );
 }
 
-export default function SettingsPage({ onBack, onDefaultsChange }) {
+export default function SettingsPage({ onBack, onDefaultsChange, theme = 'light', onThemeChange }) {
   const [settings, setSettings] = useState(() => ({
     ...DEFAULT_SETTINGS,
     ...getSettings(),
@@ -80,6 +83,7 @@ export default function SettingsPage({ onBack, onDefaultsChange }) {
     setSettings({ ...DEFAULT_SETTINGS });
     setTouched(new Set());
     onDefaultsChange?.({});
+    onThemeChange?.('light');
     setSaved(false);
   };
 
@@ -97,6 +101,46 @@ export default function SettingsPage({ onBack, onDefaultsChange }) {
       />
 
       <div className="space-y-4">
+        <SettingsSection
+          icon={Palette}
+          title="Appearance"
+          description="Choose how SinAi looks. Your choice is saved to your account on this device."
+        >
+          <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Color theme">
+            {[
+              { value: 'light', label: 'Light', icon: Sun },
+              { value: 'dark', label: 'Dark', icon: Moon },
+            ].map(({ value, label, icon: Icon }) => {
+              const selected = theme === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => onThemeChange?.(value)}
+                  className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left
+                    transition-all duration-150 cursor-pointer
+                    ${selected
+                      ? 'border-brand-600 bg-brand-50 text-brand-800 shadow-sm'
+                      : 'border-ink-200 bg-white dark:bg-ink-50 text-ink-700 hover:border-ink-300 hover:bg-ink-50 dark:hover:bg-ink-100'}`}
+                >
+                  <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg
+                    ${selected ? 'bg-brand-600 text-white' : 'bg-ink-100 text-ink-500'}`}>
+                    <Icon size={17} strokeWidth={2.1} />
+                  </span>
+                  <span>
+                    <span className="block text-[13.5px] font-semibold">{label}</span>
+                    <span className="block text-[11px] text-ink-500 mt-0.5">
+                      {value === 'light' ? 'Bright and clear' : 'Easy on the eyes'}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </SettingsSection>
+
         <SettingsSection
           icon={Sliders}
           title="Tool defaults"

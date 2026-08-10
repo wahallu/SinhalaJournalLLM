@@ -37,7 +37,7 @@ export default function Dropdown({
         id={id}
         aria-label={label}
         className={`
-          inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white
+          inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white dark:bg-ink-50
           text-ink-700 font-medium cursor-pointer transition-colors duration-150
           hover:border-ink-300 hover:text-ink-900
           focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]
@@ -62,7 +62,7 @@ export default function Dropdown({
           position="popper"
           sideOffset={6}
           className="z-50 min-w-[var(--radix-select-trigger-width)] max-h-[18rem] overflow-hidden
-            rounded-xl border border-ink-200/80 bg-white shadow-pop
+            rounded-xl border border-ink-200/80 bg-white dark:bg-ink-50 shadow-pop
             animate-in fade-in slide-in-from-top-1 duration-150"
         >
           <Select.Viewport className="p-1">

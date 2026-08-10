@@ -53,7 +53,7 @@ function StageToggle({ id, label, icon: Icon, note, on, onToggle, control }) {
           text-[12px] font-semibold cursor-pointer transition-colors duration-150
           ${on
             ? 'bg-brand-50 border-brand-200 text-brand-700'
-            : 'bg-white border-ink-200 text-ink-500 hover:border-ink-300 hover:text-ink-700'}`}
+            : 'bg-white dark:bg-ink-50 border-ink-200 text-ink-500 hover:border-ink-300 hover:text-ink-700'}`}
       >
         <span
           className={`relative w-7 h-4 rounded-full shrink-0 transition-colors duration-150
@@ -131,7 +131,7 @@ export default function OptimizePage({ settings, setSettings }) {
             actually happen — restyle before the read-only stages, because it
             rewrites the text they are generated from. */}
         <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2 px-3.5 py-2.5 rounded-xl
-          bg-white border border-ink-200/80 shadow-card">
+          bg-white dark:bg-ink-50 border border-ink-200/80 shadow-card">
           <span className="text-[10px] font-bold text-ink-500 uppercase tracking-[0.12em] pr-1 shrink-0">
             Pipeline
           </span>
