@@ -1,14 +1,75 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Cpu,
   ShieldCheck,
 } from "lucide-react";
 
+function ScrollTrackedSection({ children }: { children: React.ReactNode }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [indicatorTop, setIndicatorTop] = useState<number>(0);
+  const [indicatorHeight, setIndicatorHeight] = useState<number>(60);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!containerRef.current) return;
+      const container = containerRef.current;
+      const items = container.querySelectorAll<HTMLElement>(".narrative-item");
+      if (!items.length) return;
+
+      const triggerY = window.innerHeight * 0.5;
+      let bestIndex = 0;
+      let minDistance = Infinity;
+
+      items.forEach((item, index) => {
+        const rect = item.getBoundingClientRect();
+        const itemCenter = rect.top + rect.height / 2;
+        const distance = Math.abs(itemCenter - triggerY);
+        if (distance < minDistance) {
+          minDistance = distance;
+          bestIndex = index;
+        }
+      });
+
+      const activeItem = items[bestIndex];
+      if (activeItem) {
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeItem.getBoundingClientRect();
+        setIndicatorTop(activeRect.top - containerRect.top);
+        setIndicatorHeight(activeRect.height);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll);
+    handleScroll();
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative pl-5 sm:pl-8 border-l-[3px] border-[#D9D7D0] space-y-6 sm:space-y-8"
+    >
+      <div
+        className="absolute left-[-3px] w-[3px] rounded-full bg-gradient-to-b from-[#cd191a] to-[#ff4b2b] transition-all duration-500 ease-out pointer-events-none"
+        style={{
+          top: `${indicatorTop}px`,
+          height: `${indicatorHeight}px`,
+        }}
+      />
+      {children}
+    </div>
+  );
+}
+
 export default function ResearchShowcase() {
   return (
-    <section id="research" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-12 max-w-[1560px] mx-auto bg-[#FAF9F5]">
+    <section id="research" className="py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-12 max-w-[1560px] mx-auto bg-[#FAF9F5] scroll-mt-20 sm:scroll-mt-28">
       {/* Section Header */}
       <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-20">
         <span className="text-[11px] sm:text-xs uppercase tracking-widest font-bold text-[#cd191a] mb-2 sm:mb-3 block">
@@ -104,16 +165,14 @@ export default function ResearchShowcase() {
           </div>
         </div>
 
-        {/* Right: Narrative Details */}
+        {/* Right: Narrative Details with Scroll-Tracked Vertical Red Line */}
         <div className="flex flex-col justify-center max-w-lg">
           <h3 className="font-display text-xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[#181818] mb-6 sm:mb-8">
             LoRA Adaptation for Specialized Linguistic Tasks.
           </h3>
 
-          <div className="relative pl-5 sm:pl-8 border-l-[3px] border-[#D9D7D0] space-y-6 sm:space-y-8">
-            <div className="absolute left-[-3px] top-0 w-[3px] h-1/4 bg-gradient-to-b from-[#cd191a] to-[#ff4b2b]" />
-
-            <div>
+          <ScrollTrackedSection>
+            <div className="narrative-item">
               <h4 className="text-sm sm:text-base md:text-lg font-bold text-[#181818] mb-1.5 sm:mb-2">
                 Domain-Adapted Sinhala Tokenizer
               </h4>
@@ -122,7 +181,7 @@ export default function ResearchShowcase() {
               </p>
             </div>
 
-            <div>
+            <div className="narrative-item">
               <h4 className="text-sm sm:text-base md:text-lg font-bold text-[#181818] mb-1.5 sm:mb-2">
                 Zero-Degradation Hot Adapter Swapping
               </h4>
@@ -131,7 +190,7 @@ export default function ResearchShowcase() {
               </p>
             </div>
 
-            <div>
+            <div className="narrative-item">
               <h4 className="text-sm sm:text-base md:text-lg font-bold text-[#181818] mb-1.5 sm:mb-2">
                 Length-Conditioned Executive Summaries
               </h4>
@@ -139,22 +198,20 @@ export default function ResearchShowcase() {
                 Abstractive compression trained with explicit length tokens to deliver concise 3-bullet executive briefs or detailed narrative syntheses without hallucination.
               </p>
             </div>
-          </div>
+          </ScrollTrackedSection>
         </div>
       </div>
 
       {/* Deep Dive 2: Security & Row-Level Isolation */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 lg:gap-20 items-center">
-        {/* Left: Narrative Details */}
+        {/* Left: Narrative Details with Scroll-Tracked Vertical Red Line */}
         <div className="flex flex-col justify-center max-w-lg order-2 lg:order-1">
           <h3 className="font-display text-xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[#181818] mb-6 sm:mb-8">
             Newsroom-Grade Security &amp; Row-Level Isolation.
           </h3>
 
-          <div className="relative pl-5 sm:pl-8 border-l-[3px] border-[#D9D7D0] space-y-6 sm:space-y-8">
-            <div className="absolute left-[-3px] top-0 w-[3px] h-1/4 bg-gradient-to-b from-[#cd191a] to-[#ff4b2b]" />
-
-            <div>
+          <ScrollTrackedSection>
+            <div className="narrative-item">
               <h4 className="text-sm sm:text-base md:text-lg font-bold text-[#181818] mb-1.5 sm:mb-2">
                 Postgres Row-Level Security (RLS)
               </h4>
@@ -163,7 +220,7 @@ export default function ResearchShowcase() {
               </p>
             </div>
 
-            <div>
+            <div className="narrative-item">
               <h4 className="text-sm sm:text-base md:text-lg font-bold text-[#181818] mb-1.5 sm:mb-2">
                 Privacy-Preserving Hashed Telemetry
               </h4>
@@ -172,7 +229,7 @@ export default function ResearchShowcase() {
               </p>
             </div>
 
-            <div>
+            <div className="narrative-item">
               <h4 className="text-sm sm:text-base md:text-lg font-bold text-[#181818] mb-1.5 sm:mb-2">
                 Reliable Model Gateway &amp; Failover
               </h4>
@@ -180,7 +237,7 @@ export default function ResearchShowcase() {
                 Built-in automatic fallback routing between dedicated GPU clusters and secondary endpoints for high availability during breaking news cycles.
               </p>
             </div>
-          </div>
+          </ScrollTrackedSection>
         </div>
 
         {/* Right: Security Diagram */}
@@ -225,3 +282,4 @@ export default function ResearchShowcase() {
     </section>
   );
 }
+
