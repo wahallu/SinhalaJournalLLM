@@ -98,9 +98,6 @@ export default function EcosystemTabs() {
         <h2 className="font-display text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#181818] tracking-tight leading-tight mb-4 sm:mb-6">
           A unified suite built for modern newsrooms.
         </h2>
-        <p className="text-xs sm:text-base md:text-lg text-[#615e58] leading-relaxed">
-          Whether you work in a web browser, Google Docs, or your preferred CMS, SinAi seamlessly fits your existing editorial workflow.
-        </p>
       </div>
 
       {/* Surface Selector Pills */}

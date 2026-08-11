@@ -4,7 +4,13 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   Cpu,
   ShieldCheck,
+  CheckCircle2,
+  ArrowRight,
+  Crosshair,
+  Sliders,
+  SplitSquareHorizontal,
 } from "lucide-react";
+import Link from "next/link";
 
 function ScrollTrackedSection({ children }: { children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -199,6 +205,72 @@ export default function ResearchShowcase() {
               </p>
             </div>
           </ScrollTrackedSection>
+        </div>
+      </div>
+
+      {/* Model Capabilities Grid */}
+      <div className="py-12 sm:py-16 md:py-20 border-t border-[#F0EFEB] mt-12 sm:mt-16 md:mt-24">
+        <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-16">
+          <span className="text-[11px] sm:text-xs uppercase tracking-widest font-bold text-[#cd191a] mb-2 sm:mb-3 block">
+            Core AI Models
+          </span>
+          <h3 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[#181818]">
+            Explore the Specialized Adapters
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+          <Link href="/research/grammar-checker" className="group block bg-white rounded-2xl p-6 sm:p-8 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-xl transition-all duration-300">
+            <div className="w-12 h-12 rounded-xl bg-[#fdf3f2] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <CheckCircle2 className="w-6 h-6 text-[#cd191a]" />
+            </div>
+            <h4 className="font-display text-xl sm:text-2xl font-bold text-[#181818] mb-3">Grammar Checker</h4>
+            <p className="text-sm text-[#615e58] leading-relaxed mb-6">
+              Precision error correction that preserves the journalist's style. Trained on a hand-curated dataset of 36,000+ examples to achieve a low 6.7% over-correction rate.
+            </p>
+            <div className="flex items-center text-xs font-bold uppercase tracking-wider text-[#cd191a] gap-2">
+              Learn More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          <Link href="/research/headline-generator" className="group block bg-white rounded-2xl p-6 sm:p-8 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-xl transition-all duration-300">
+            <div className="w-12 h-12 rounded-xl bg-[#fdf3f2] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <Crosshair className="w-6 h-6 text-[#cd191a]" />
+            </div>
+            <h4 className="font-display text-xl sm:text-2xl font-bold text-[#181818] mb-3">Headline Generator</h4>
+            <p className="text-sm text-[#615e58] leading-relaxed mb-6">
+              Generates headlines perfectly matched to editorial word-count limits. Length-conditioned across three strict bands with a near-zero artifact rate.
+            </p>
+            <div className="flex items-center text-xs font-bold uppercase tracking-wider text-[#cd191a] gap-2">
+              Learn More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          <Link href="/research/style-rewriter" className="group block bg-white rounded-2xl p-6 sm:p-8 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-xl transition-all duration-300">
+            <div className="w-12 h-12 rounded-xl bg-[#fdf3f2] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <Sliders className="w-6 h-6 text-[#cd191a]" />
+            </div>
+            <h4 className="font-display text-xl sm:text-2xl font-bold text-[#181818] mb-3">Style Rewriter</h4>
+            <p className="text-sm text-[#615e58] leading-relaxed mb-6">
+              Dynamically shifts article tone between 5 distinct newspaper styles (Formal, Sports, Youth, Editorial, Feature) without hallucinating details.
+            </p>
+            <div className="flex items-center text-xs font-bold uppercase tracking-wider text-[#cd191a] gap-2">
+              Learn More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          <Link href="/research/news-summarizer" className="group block bg-white rounded-2xl p-6 sm:p-8 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-xl transition-all duration-300">
+            <div className="w-12 h-12 rounded-xl bg-[#fdf3f2] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <SplitSquareHorizontal className="w-6 h-6 text-[#cd191a]" />
+            </div>
+            <h4 className="font-display text-xl sm:text-2xl font-bold text-[#181818] mb-3">News Summarizer</h4>
+            <p className="text-sm text-[#615e58] leading-relaxed mb-6">
+              Abstractive compression model natively trained on Llama-3 Chat formats to produce accurate, short, medium, or long executive briefs.
+            </p>
+            <div className="flex items-center text-xs font-bold uppercase tracking-wider text-[#cd191a] gap-2">
+              Learn More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
         </div>
       </div>
 
