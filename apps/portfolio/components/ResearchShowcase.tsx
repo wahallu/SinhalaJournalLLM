@@ -219,56 +219,56 @@ export default function ResearchShowcase() {
           </h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-          <Link href="/research/grammar-checker" className="group block bg-white rounded-2xl p-6 sm:p-8 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-xl transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-[#fdf3f2] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <CheckCircle2 className="w-6 h-6 text-[#cd191a]" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <Link href="/research/grammar-checker" className="group block bg-white rounded-xl sm:rounded-2xl p-5 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+            <div className="w-10 h-10 rounded-lg bg-[#fdf3f2] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-[#cd191a]" />
             </div>
-            <h4 className="font-display text-xl sm:text-2xl font-bold text-[#181818] mb-3">Grammar Checker</h4>
-            <p className="text-sm text-[#615e58] leading-relaxed mb-6">
-              Precision error correction that preserves the journalist's style. Trained on a hand-curated dataset of 36,000+ examples to achieve a low 6.7% over-correction rate.
+            <h4 className="font-display text-lg font-bold text-[#181818] mb-2 leading-tight">Grammar Checker</h4>
+            <p className="text-xs text-[#615e58] leading-relaxed mb-4 flex-grow">
+              Precision error correction. Trained on 36K+ curated examples to achieve a low 6.7% over-correction rate.
             </p>
-            <div className="flex items-center text-xs font-bold uppercase tracking-wider text-[#cd191a] gap-2">
-              Learn More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider text-[#cd191a] gap-1.5 mt-auto">
+              Learn More <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
           </Link>
 
-          <Link href="/research/headline-generator" className="group block bg-white rounded-2xl p-6 sm:p-8 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-xl transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-[#fdf3f2] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <Crosshair className="w-6 h-6 text-[#cd191a]" />
+          <Link href="/research/headline-generator" className="group block bg-white rounded-xl sm:rounded-2xl p-5 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+            <div className="w-10 h-10 rounded-lg bg-[#fdf3f2] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shrink-0">
+              <Crosshair className="w-5 h-5 text-[#cd191a]" />
             </div>
-            <h4 className="font-display text-xl sm:text-2xl font-bold text-[#181818] mb-3">Headline Generator</h4>
-            <p className="text-sm text-[#615e58] leading-relaxed mb-6">
-              Generates headlines perfectly matched to editorial word-count limits. Length-conditioned across three strict bands with a near-zero artifact rate.
+            <h4 className="font-display text-lg font-bold text-[#181818] mb-2 leading-tight">Headline Generator</h4>
+            <p className="text-xs text-[#615e58] leading-relaxed mb-4 flex-grow">
+              Length-conditioned headlines across three strict bands with a near-zero artifact rate.
             </p>
-            <div className="flex items-center text-xs font-bold uppercase tracking-wider text-[#cd191a] gap-2">
-              Learn More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider text-[#cd191a] gap-1.5 mt-auto">
+              Learn More <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
           </Link>
 
-          <Link href="/research/style-rewriter" className="group block bg-white rounded-2xl p-6 sm:p-8 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-xl transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-[#fdf3f2] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <Sliders className="w-6 h-6 text-[#cd191a]" />
+          <Link href="/research/style-rewriter" className="group block bg-white rounded-xl sm:rounded-2xl p-5 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+            <div className="w-10 h-10 rounded-lg bg-[#fdf3f2] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shrink-0">
+              <Sliders className="w-5 h-5 text-[#cd191a]" />
             </div>
-            <h4 className="font-display text-xl sm:text-2xl font-bold text-[#181818] mb-3">Style Rewriter</h4>
-            <p className="text-sm text-[#615e58] leading-relaxed mb-6">
-              Dynamically shifts article tone between 5 distinct newspaper styles (Formal, Sports, Youth, Editorial, Feature) without hallucinating details.
+            <h4 className="font-display text-lg font-bold text-[#181818] mb-2 leading-tight">Style Rewriter</h4>
+            <p className="text-xs text-[#615e58] leading-relaxed mb-4 flex-grow">
+              Dynamically shifts article tone between 5 distinct newspaper styles without hallucinating details.
             </p>
-            <div className="flex items-center text-xs font-bold uppercase tracking-wider text-[#cd191a] gap-2">
-              Learn More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider text-[#cd191a] gap-1.5 mt-auto">
+              Learn More <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
           </Link>
 
-          <Link href="/research/news-summarizer" className="group block bg-white rounded-2xl p-6 sm:p-8 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-xl transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-[#fdf3f2] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <SplitSquareHorizontal className="w-6 h-6 text-[#cd191a]" />
+          <Link href="/research/news-summarizer" className="group block bg-white rounded-xl sm:rounded-2xl p-5 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+            <div className="w-10 h-10 rounded-lg bg-[#fdf3f2] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shrink-0">
+              <SplitSquareHorizontal className="w-5 h-5 text-[#cd191a]" />
             </div>
-            <h4 className="font-display text-xl sm:text-2xl font-bold text-[#181818] mb-3">News Summarizer</h4>
-            <p className="text-sm text-[#615e58] leading-relaxed mb-6">
-              Abstractive compression model natively trained on Llama-3 Chat formats to produce accurate, short, medium, or long executive briefs.
+            <h4 className="font-display text-lg font-bold text-[#181818] mb-2 leading-tight">News Summarizer</h4>
+            <p className="text-xs text-[#615e58] leading-relaxed mb-4 flex-grow">
+              Abstractive compression model natively trained on Chat formats to produce executive briefs.
             </p>
-            <div className="flex items-center text-xs font-bold uppercase tracking-wider text-[#cd191a] gap-2">
-              Learn More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider text-[#cd191a] gap-1.5 mt-auto">
+              Learn More <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
           </Link>
         </div>
