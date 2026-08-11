@@ -25,14 +25,14 @@ export default function Home() {
         {/* 2. Model & Ecosystem Marquee Trust Strip */}
         <TrustStrip />
 
-        {/* 3. Floating Visual AI Collage (Sinhala Linguistic Intelligence) */}
-        <VisualCollage />
-
         {/* 4. Manifesto Section with Celestial Geometric Vector Rings */}
         <Manifesto />
 
         {/* 5. Sinhala Journal LLM Foundation Model & Enterprise Architecture Deep Dive */}
         <ResearchShowcase />
+
+        {/* 3. Floating Visual AI Collage (Sinhala Linguistic Intelligence) */}
+        <VisualCollage />
 
         {/* 6. Live In-Page Interactive Tool Simulator (Grammar, Headlines, Style, Summary) */}
         <InteractivePlayground />
