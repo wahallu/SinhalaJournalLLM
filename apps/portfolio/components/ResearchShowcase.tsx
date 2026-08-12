@@ -4,7 +4,13 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   Cpu,
   ShieldCheck,
+  CheckCircle2,
+  ArrowRight,
+  Crosshair,
+  Sliders,
+  SplitSquareHorizontal,
 } from "lucide-react";
+import Link from "next/link";
 
 function ScrollTrackedSection({ children }: { children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -199,6 +205,72 @@ export default function ResearchShowcase() {
               </p>
             </div>
           </ScrollTrackedSection>
+        </div>
+      </div>
+
+      {/* Model Capabilities Grid */}
+      <div className="py-12 sm:py-16 md:py-20 border-t border-[#F0EFEB] mt-12 sm:mt-16 md:mt-24">
+        <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-16">
+          <span className="text-[11px] sm:text-xs uppercase tracking-widest font-bold text-[#cd191a] mb-2 sm:mb-3 block">
+            Core AI Models
+          </span>
+          <h3 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[#181818]">
+            Explore the Specialized Adapters
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <Link href="/research/grammar-checker" className="group block bg-white rounded-xl sm:rounded-2xl p-5 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+            <div className="w-10 h-10 rounded-lg bg-[#fdf3f2] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-[#cd191a]" />
+            </div>
+            <h4 className="font-display text-lg font-bold text-[#181818] mb-2 leading-tight">Grammar Checker</h4>
+            <p className="text-xs text-[#615e58] leading-relaxed mb-4 flex-grow">
+              Precision error correction. Trained on 36K+ curated examples to achieve a low 6.7% over-correction rate.
+            </p>
+            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider text-[#cd191a] gap-1.5 mt-auto">
+              Learn More <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          <Link href="/research/headline-generator" className="group block bg-white rounded-xl sm:rounded-2xl p-5 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+            <div className="w-10 h-10 rounded-lg bg-[#fdf3f2] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shrink-0">
+              <Crosshair className="w-5 h-5 text-[#cd191a]" />
+            </div>
+            <h4 className="font-display text-lg font-bold text-[#181818] mb-2 leading-tight">Headline Generator</h4>
+            <p className="text-xs text-[#615e58] leading-relaxed mb-4 flex-grow">
+              Length-conditioned headlines across three strict bands with a near-zero artifact rate.
+            </p>
+            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider text-[#cd191a] gap-1.5 mt-auto">
+              Learn More <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          <Link href="/research/style-rewriter" className="group block bg-white rounded-xl sm:rounded-2xl p-5 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+            <div className="w-10 h-10 rounded-lg bg-[#fdf3f2] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shrink-0">
+              <Sliders className="w-5 h-5 text-[#cd191a]" />
+            </div>
+            <h4 className="font-display text-lg font-bold text-[#181818] mb-2 leading-tight">Style Rewriter</h4>
+            <p className="text-xs text-[#615e58] leading-relaxed mb-4 flex-grow">
+              Dynamically shifts article tone between 5 distinct newspaper styles without hallucinating details.
+            </p>
+            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider text-[#cd191a] gap-1.5 mt-auto">
+              Learn More <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
+
+          <Link href="/research/news-summarizer" className="group block bg-white rounded-xl sm:rounded-2xl p-5 border border-[#D9D7D0] hover:border-[#cd191a]/30 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
+            <div className="w-10 h-10 rounded-lg bg-[#fdf3f2] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shrink-0">
+              <SplitSquareHorizontal className="w-5 h-5 text-[#cd191a]" />
+            </div>
+            <h4 className="font-display text-lg font-bold text-[#181818] mb-2 leading-tight">News Summarizer</h4>
+            <p className="text-xs text-[#615e58] leading-relaxed mb-4 flex-grow">
+              Abstractive compression model natively trained on Chat formats to produce executive briefs.
+            </p>
+            <div className="flex items-center text-[10px] font-bold uppercase tracking-wider text-[#cd191a] gap-1.5 mt-auto">
+              Learn More <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
         </div>
       </div>
 

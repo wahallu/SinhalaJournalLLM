@@ -1,17 +1,17 @@
 """
 Image Generation API endpoint.
 
-POST /image/generate  —  Generate an image from a visual prompt via OpenRouter
-                         (krea/krea-2-large). Returns a base64 PNG data URL or hosted image URL.
+POST /image/generate — Generate an image from a visual prompt with GPT Image 2.
+Returns a base64 PNG data URL while keeping OPENAI_API_KEY on the server.
 """
 
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.schemas.image_generation import ImageGenerationRequest, ImageGenerationResponse
-from app.core.deps import require_user
+from app.schemas.image_generation import DEFAULT_IMAGE_MODEL
+from app.core.deps import require_admin
 from app.schemas.auth import AuthUser
 from app.services.image_generation_service import generate_image
-from app.core.config import get_settings
 
 router = APIRouter(prefix="/image", tags=["Image Generation"])
 
@@ -19,12 +19,13 @@ router = APIRouter(prefix="/image", tags=["Image Generation"])
 @router.post("/generate", response_model=ImageGenerationResponse)
 async def generate_image_endpoint(
     payload: ImageGenerationRequest,
-    _user: AuthUser = Depends(require_user),
+    _admin: AuthUser = Depends(require_admin),
 ):
     """
     Generate a photorealistic image from an English text prompt via OpenAI.
 
     Designed to consume the visual prompt produced by the headline generator.
+    Admin-only because every request bills the project's OpenAI account.
     Proxies the request to OpenAI so the API token never leaves the backend.
     """
     try:
@@ -37,9 +38,8 @@ async def generate_image_endpoint(
             detail=f"Unexpected error during image generation: {exc}",
         ) from exc
 
-    settings = get_settings()
     return ImageGenerationResponse(
         image_data=image_data,
         prompt=payload.prompt,
-        model=settings.IMAGE_MODEL or "gpt-image-1",
+        model=DEFAULT_IMAGE_MODEL,
     )

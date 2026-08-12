@@ -108,28 +108,23 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 sm:space-y-3 text-[11px] sm:text-xs text-white/60">
               <li>
-                <Link href="#research" className="hover:text-white transition-colors">
-                  Sinhala Journal Base Model
+                <Link href="/research/grammar-checker" className="hover:text-white transition-colors">
+                  Grammar Checker (v22)
                 </Link>
               </li>
               <li>
-                <Link href="#capabilities" className="hover:text-white transition-colors">
-                  grammar_v13
+                <Link href="/research/headline-generator" className="hover:text-white transition-colors">
+                  Headline Generator (v19)
                 </Link>
               </li>
               <li>
-                <Link href="#capabilities" className="hover:text-white transition-colors">
-                  headline_v17
+                <Link href="/research/style-rewriter" className="hover:text-white transition-colors">
+                  Style Rewriter (v07)
                 </Link>
               </li>
               <li>
-                <Link href="#capabilities" className="hover:text-white transition-colors">
-                  style_v07
-                </Link>
-              </li>
-              <li>
-                <Link href="#capabilities" className="hover:text-white transition-colors">
-                  summarization_v04
+                <Link href="/research/news-summarizer" className="hover:text-white transition-colors">
+                  News Summarizer (v06)
                 </Link>
               </li>
             </ul>
