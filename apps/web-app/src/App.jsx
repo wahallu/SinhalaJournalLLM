@@ -19,7 +19,7 @@ import ProfilePage from './components/ProfilePage';
 import Plans from './components/Plans';
 import { useToolProcessor } from './hooks/useToolProcessor';
 import { usePlatformMeta } from './hooks/usePlatformMeta';
-import { checkGrammar, generateHeadlines, rewriteStyle, summarizeNews } from './services/api';
+import { checkGrammar, generateHeadlines, hydrateHeadlineOutput, rewriteStyle, summarizeNews } from './services/api';
 import ProtectedRoute from './auth/ProtectedRoute';
 import { useAuth } from './auth/useAuth';
 import Login from './pages/auth/Login';
@@ -171,14 +171,27 @@ function ToolRunner({ activeTool, settings, setSettings }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const config = TOOL_CONFIG[activeTool];
-  const { input, setInput, output, loading, error, process, clear } = useToolProcessor();
+  const { input, setInput, output, loading, error, process, clear, restore } = useToolProcessor();
 
   useEffect(() => {
-    if (location.state?.text) {
-      setInput(location.state.text);
-      window.history.replaceState({}, document.title);
+    const historyRun = location.state?.historyRun;
+    if (historyRun) {
+      const restoredOutput = activeTool === 'headlines'
+        ? hydrateHeadlineOutput(historyRun.output || {}, historyRun.settings?.headlineLength)
+        : historyRun.output;
+      restore(historyRun.input, restoredOutput);
+      if (historyRun.settings && Object.keys(historyRun.settings).length) {
+        setSettings({ ...settings, ...historyRun.settings });
+      }
+      navigate(location.pathname, { replace: true, state: null });
+    } else if (location.state?.text) {
+      restore(location.state.text, null);
+      navigate(location.pathname, { replace: true, state: null });
     }
-  }, [location.state, setInput]);
+    // A navigation state is consumed once. Depending on the whole settings
+    // object here would replay restoration after the merge it triggers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key, activeTool, location.pathname, navigate, restore]);
 
   const handleRun = useCallback(() => {
     if (!input.trim()) return;
@@ -381,9 +394,12 @@ function App() {
     navigate(path, { state: { backgroundLocation: location } });
   }, [navigate, location]);
 
-  const handleQuickStart = useCallback((toolId, text = '') => {
+  const handleQuickStart = useCallback((toolId, payload = '') => {
     const path = TOOL_TO_PATH[toolId] || `/${toolId}`;
-    navigate(path, { state: { text } });
+    const state = typeof payload === 'object' && payload !== null
+      ? { historyRun: payload }
+      : { text: payload };
+    navigate(path, { state });
   }, [navigate]);
 
   /* The dashboard is both its own route and the backdrop every modal route

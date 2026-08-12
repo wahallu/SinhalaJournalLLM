@@ -221,6 +221,36 @@ async def fetch_by_id(
     return response.data if response is not None else None
 
 
+async def update_record(
+    table: str,
+    record_id: str,
+    changes: dict[str, Any],
+    *,
+    user_id: str | None = None,
+) -> dict[str, Any] | None:
+    """Update one row, optionally scoped to its owner, and return it.
+
+    User-facing callers must always pass ``user_id``. The service-role client
+    bypasses RLS, so this explicit filter is the account boundary.
+    """
+    if _circuit_is_open():
+        raise DatabaseUnavailable(f"History storage unavailable (cooldown): {table}")
+    try:
+        client = await resolve_client()
+        query = client.table(table).update(changes).eq("id", record_id)
+        if user_id is not None:
+            query = query.eq("user_id", user_id)
+        response = await asyncio.wait_for(
+            query.execute(), timeout=WRITE_TIMEOUT_SECONDS
+        )
+    except Exception as exc:
+        _record_failure(exc)
+        raise DatabaseUnavailable(f"Failed to update {table}: {exc}") from exc
+    _record_success()
+    rows = response.data or []
+    return rows[0] if rows else None
+
+
 async def fetch_page(
     table: str,
     *,

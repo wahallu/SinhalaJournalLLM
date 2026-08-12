@@ -986,6 +986,50 @@ input:checked + .slider:before {
   color: #b91c1c;
 }
 
+/* ── Suggestions / Possible misspellings ── */
+.suggestion-warning-banner {
+  background: #fefce8;
+  border: 1px solid #fef08a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  color: #854d0e;
+  font-size: 0.76rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.suggestions-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 6px;
+  margin-bottom: 3px;
+}
+
+.suggestion-detail-item {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-left: 3px solid #22c55e;
+  border-radius: 6px;
+  padding: 7px 10px;
+}
+
+.suggestion-orig {
+  color: #4b5563;
+  font-family: var(--font-sinhala);
+  text-decoration: underline dotted #38bdf8;
+  text-underline-offset: 3px;
+}
+
+.suggestion-new {
+  color: #15803d;
+  font-weight: 600;
+  font-family: var(--font-sinhala);
+}
+
 /* ── Optimize result cards (Tools tab) ── */
 .optimize-results {
   display: flex;

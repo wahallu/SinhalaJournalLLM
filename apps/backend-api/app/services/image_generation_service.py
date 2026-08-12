@@ -1,7 +1,8 @@
 """
 OpenAI image generation service.
 
-Calls the official OpenAI Image Generation API using `gpt-image-1` / `dall-e-3`.
+Calls the official OpenAI Image API using `gpt-image-2`. The API key is read
+only from the backend environment and is never returned to the browser.
 
 Endpoint:
     POST https://api.openai.com/v1/images/generations
@@ -10,31 +11,59 @@ Auth:
     Authorization: Bearer {OPENAI_API_KEY}
 """
 
-import asyncio
-import re
+import logging
+
 import httpx
 
 from app.core.config import get_settings
+from app.schemas.image_generation import DEFAULT_IMAGE_MODEL
 
-REQUEST_TIMEOUT = 120.0
+OPENAI_IMAGE_ENDPOINT = "https://api.openai.com/v1/images/generations"
+REQUEST_TIMEOUT = 180.0
+MAX_RETRIES = 3
+IMAGE_SIZE = "1536x1024"
+IMAGE_QUALITY = "high"
+
+logger = logging.getLogger(__name__)
 
 
-def _generalize_political_names(prompt: str) -> str:
-    """
-    Replace specific real political figure names (e.g. 'Prime Minister Sanae Takaichi')
-    with generic terms ('a government leader') to comply with AI image model safety policies.
-    """
-    return re.sub(
-        r'(?:[A-Z][a-z]+\s+)?(?:Prime Minister|President|Minister|Governor|Chancellor)\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*',
-        'a government leader',
-        prompt
-    )
+def _api_error(response: httpx.Response) -> tuple[str, bool]:
+    """Return a safe user-facing message and whether the failure is transient."""
+    try:
+        body = response.json()
+    except Exception:
+        body = {}
+
+    error = body.get("error") if isinstance(body, dict) else None
+    error = error if isinstance(error, dict) else {}
+    code = error.get("code")
+    upstream_message = error.get("message")
+
+    if code == "moderation_blocked":
+        return (
+            "This image could not be generated because it did not meet safety requirements. "
+            "Try revising the visual prompt.",
+            False,
+        )
+    if response.status_code in (401, 403):
+        return (
+            "OpenAI image generation is not authorized. Check the backend OPENAI_API_KEY.",
+            False,
+        )
+    if response.status_code == 429:
+        return ("OpenAI image generation is temporarily rate limited. Please try again.", True)
+    if response.status_code >= 500:
+        return ("OpenAI image generation is temporarily unavailable. Please try again.", True)
+
+    message = upstream_message or f"OpenAI rejected the image request ({response.status_code})."
+    return (message, False)
 
 
 async def generate_image(prompt: str) -> str:
     """
     Generate an image from *prompt* using official OpenAI Image Generation API.
-    Includes prompt sanitization, political figure generalization, and a retry loop.
+    The prompt is preserved (apart from whitespace cleanup) for best instruction
+    fidelity. Only transient network, rate-limit, and server failures are retried.
 
     Args:
         prompt: English image prompt.
@@ -46,17 +75,10 @@ async def generate_image(prompt: str) -> str:
         RuntimeError: If API key is missing or the API returns an error on all attempts.
     """
     settings = get_settings()
-    api_key = settings.OPENAI_API_KEY or settings.IMAGE_API_KEY or settings.OPENROUTER_IMAGE_API_KEY
-    gateway_url = settings.IMAGE_GATEWAY_URL or "https://api.openai.com/v1"
-    model = settings.IMAGE_MODEL or "gpt-image-1"
+    api_key = settings.OPENAI_API_KEY
 
     if not api_key:
-        raise RuntimeError(
-            "OPENAI_API_KEY / IMAGE_API_KEY is not configured in apps/backend-api/.env."
-        )
-
-    # Standard OpenAI generations endpoint
-    endpoint = f"{gateway_url.rstrip('/')}/images/generations"
+        raise RuntimeError("OPENAI_API_KEY is not configured on the backend.")
 
     # 1. Sanitize the prompt: convert newlines to spaces and strip leading/trailing spaces/quotes
     sanitized_prompt = " ".join(prompt.splitlines()).strip()
@@ -69,67 +91,72 @@ async def generate_image(prompt: str) -> str:
         "Content-Type": "application/json",
     }
 
-    last_error = None
-    max_retries = 3
+    payload = {
+        "model": DEFAULT_IMAGE_MODEL,
+        "prompt": sanitized_prompt,
+        "n": 1,
+        "size": IMAGE_SIZE,
+        "quality": IMAGE_QUALITY,
+    }
 
-    for attempt in range(max_retries):
-        current_prompt = sanitized_prompt
-        if attempt > 0:
-            current_prompt = _generalize_political_names(sanitized_prompt)
-            if current_prompt == sanitized_prompt:
-                current_prompt = f"{sanitized_prompt} {' ' * attempt}."
+    last_error: RuntimeError | None = None
 
-        payload = {
-            "model": model,
-            "prompt": current_prompt,
-            "n": 1,
-        }
-
+    for attempt in range(MAX_RETRIES):
         try:
             async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
-                response = await client.post(endpoint, headers=headers, json=payload)
-
+                response = await client.post(OPENAI_IMAGE_ENDPOINT, headers=headers, json=payload)
+        except httpx.HTTPError as exc:
+            last_error = RuntimeError("Could not reach OpenAI image generation. Please try again.")
+            logger.warning("OpenAI image request failed: %s", exc)
+        else:
+            request_id = response.headers.get("x-request-id")
             if response.status_code != 200:
+                message, retryable = _api_error(response)
+                logger.warning(
+                    "OpenAI image generation failed status=%s request_id=%s retryable=%s",
+                    response.status_code,
+                    request_id,
+                    retryable,
+                )
+                if not retryable:
+                    raise RuntimeError(message)
+                last_error = RuntimeError(message)
+            else:
                 try:
-                    error_body = response.json()
-                    error_msg = error_body.get("error", {}).get("message") or error_body.get("message") or str(error_body)
-                except Exception:
-                    error_msg = response.text[:400] or f"HTTP {response.status_code}"
-                raise RuntimeError(f"OpenAI error ({response.status_code}): {error_msg}")
+                    data = response.json()
+                except Exception as exc:
+                    last_error = RuntimeError("OpenAI returned an unreadable image response.")
+                    logger.warning(
+                        "OpenAI image response was not JSON request_id=%s: %s",
+                        request_id,
+                        exc,
+                    )
+                else:
+                    results = data.get("data", []) if isinstance(data, dict) else []
+                    first_result = results[0] if results and isinstance(results[0], dict) else {}
+                    image_data = first_result.get("b64_json") or first_result.get("url")
 
-            try:
-                data = response.json()
-            except Exception as exc:
-                raise RuntimeError(
-                    f"OpenAI returned non-parseable JSON: {response.text[:300]}"
-                ) from exc
+                    if image_data:
+                        if not image_data.startswith(("http://", "https://", "data:")):
+                            image_data = f"data:image/png;base64,{image_data}"
+                        return image_data
 
-            results = data.get("data", [])
-            if not results:
-                raise RuntimeError(
-                    f"OpenAI response is missing data array. Full response: {str(data)[:300]}"
-                )
+                    last_error = RuntimeError("OpenAI returned no generated image data.")
+                    logger.warning(
+                        "OpenAI image response had no image request_id=%s",
+                        request_id,
+                    )
 
-            first_result = results[0]
-            image_url = first_result.get("url") or first_result.get("b64_json")
-
-            if not image_url or image_url == "":
-                raise RuntimeError(
-                    f"OpenAI response contains no image URL or base64 data. Full response: {str(data)[:300]}"
-                )
-
-            # If it's pure base64 without prefix, prefix it
-            if not image_url.startswith("http") and not image_url.startswith("data:"):
-                image_url = f"data:image/png;base64,{image_url}"
-
-            return image_url
-
-        except Exception as exc:
-            last_error = exc
-            print(f"OpenAI image generation attempt {attempt + 1} failed: {exc}")
-            if attempt < max_retries - 1:
-                await asyncio.sleep(1.0)
+        if attempt < MAX_RETRIES - 1:
+            await _retry_delay(2 ** attempt)
 
     raise RuntimeError(
-        f"OpenAI image generation failed after {max_retries} attempts. Last error: {last_error}"
+        f"OpenAI image generation failed after {MAX_RETRIES} attempts. {last_error}"
     )
+
+
+async def _retry_delay(seconds: float) -> None:
+    """Kept as a seam so retry timing can be skipped in focused tests."""
+    import asyncio
+
+    await asyncio.sleep(seconds)

@@ -45,8 +45,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnClearHistory = document.getElementById("btn-clear-history");
 
   // Settings Tab
-  const inputApiHost = document.getElementById("input-api-host");
-  const btnTestConnection = document.getElementById("btn-test-connection");
   const selectDefaultTone = document.getElementById("select-default-tone");
   const selectDefaultLength = document.getElementById("select-default-length");
   const inputDefaultHeadlines = document.getElementById("input-default-headlines");
@@ -568,7 +566,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (items.defaultHeadlineCount) extensionSettings.defaultHeadlineCount = items.defaultHeadlineCount;
 
         // Apply to Settings UI
-        inputApiHost.value = extensionSettings.apiHost;
         toggleInlineHelper.checked = extensionSettings.inlineEnabled;
         selectDefaultTone.value = extensionSettings.defaultTone;
         selectDefaultLength.value = extensionSettings.defaultLength;
@@ -594,7 +591,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function setupSettingsEvents() {
     btnSaveSettings.addEventListener("click", () => {
       const updated = {
-        apiHost: inputApiHost.value.trim() || "https://sinhalajournalllm.onrender.com/api/v1",
         defaultTone: selectDefaultTone.value,
         defaultLength: selectDefaultLength.value,
         defaultHeadlineCount: parseInt(inputDefaultHeadlines.value, 10) || 5
@@ -612,7 +608,7 @@ document.addEventListener("DOMContentLoaded", () => {
           btnSaveSettings.style.background = "";
         }, 1500);
 
-        checkApiHealth(); // recheck with new host
+        checkApiHealth(); // recheck with host
       });
     });
 
@@ -621,34 +617,11 @@ document.addEventListener("DOMContentLoaded", () => {
         extensionSettings.inlineEnabled = e.target.checked;
       });
     });
-
-    btnTestConnection.addEventListener("click", () => {
-      const originalText = btnTestConnection.textContent;
-      btnTestConnection.textContent = "Testing...";
-      btnTestConnection.disabled = true;
-
-      checkApiHealth((connected) => {
-        btnTestConnection.textContent = originalText;
-        btnTestConnection.disabled = false;
-
-        if (connected) {
-          btnTestConnection.style.borderColor = "#10B981";
-          btnTestConnection.style.color = "#10B981";
-        } else {
-          btnTestConnection.style.borderColor = "#EF4444";
-          btnTestConnection.style.color = "#EF4444";
-        }
-        setTimeout(() => {
-          btnTestConnection.style.borderColor = "";
-          btnTestConnection.style.color = "";
-        }, 1500);
-      });
-    });
   }
 
   // ── API Health Check ──
   function checkApiHealth(callback) {
-    const apiHost = inputApiHost.value.trim() || extensionSettings.apiHost;
+    const apiHost = extensionSettings.apiHost || "https://sinhalajournalllm.onrender.com/api/v1";
     const healthUrl = apiHost.replace(/\/api\/v1\/?$/, "") + "/health";
 
     apiStatusDot.className = "status-dot warning";
@@ -876,14 +849,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (tool === "grammar") {
       toolResultOutput.textContent = data.corrected;
 
-      if (data.corrections && data.corrections.length > 0) {
+      const corrections = data.corrections || [];
+      const suggestions = data.suggestions || [];
+
+      if (corrections.length === 0 && suggestions.length === 0) {
+        grammarCorrectionsList.classList.remove("hidden");
+        grammarCorrectionsList.innerHTML = `<div class="empty-state" style="padding: 10px 0;"><p style="color: #10B981; font-size: 0.8rem;">No grammar issues found.</p></div>`;
+      } else {
         grammarCorrectionsList.classList.remove("hidden");
 
-        // Mirrors the inline card: the substitution guard flags edits that
-        // look like a swapped word rather than a fixed spelling, and a
-        // renamed person has to be visible before the user copies the text
-        // out. Banner first so it survives scrolling.
-        const flagged = data.corrections.filter((c) => c.suspicious);
+        // Substitution guard warning banner
+        const flagged = corrections.filter((c) => c.suspicious);
         if (flagged.length > 0) {
           const warn = document.createElement("div");
           warn.className = "correction-warning-banner";
@@ -894,7 +870,26 @@ document.addEventListener("DOMContentLoaded", () => {
           grammarCorrectionsList.appendChild(warn);
         }
 
-        data.corrections.forEach((c) => {
+        // Suggestions / Possible misspellings notice banner
+        if (suggestions.length > 0) {
+          const suggNotice = document.createElement("div");
+          suggNotice.className = "suggestion-warning-banner";
+          if (corrections.length === 0) {
+            suggNotice.innerHTML = `Nothing changed, but <strong>${suggestions.length}</strong> word${
+              suggestions.length !== 1 ? "s" : ""
+            } may be misspelled.`;
+          } else {
+            suggNotice.innerHTML = `<strong>${corrections.length}</strong> correction${
+              corrections.length !== 1 ? "s" : ""
+            } applied, and <strong>${suggestions.length}</strong> word${
+              suggestions.length !== 1 ? "s" : ""
+            } worth checking.`;
+          }
+          grammarCorrectionsList.appendChild(suggNotice);
+        }
+
+        // Render applied corrections
+        corrections.forEach((c) => {
           const detailItem = document.createElement("div");
           detailItem.className = c.suspicious
             ? "correction-detail-item is-flagged"
@@ -908,14 +903,32 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="correction-rule">${escapeHtml(
               c.suspicious
                 ? c.suspicious_reason || "Possible word replacement — verify against your source."
-                : c.rule
+                : c.rule || "Grammar correction"
             )}</div>
           `;
           grammarCorrectionsList.appendChild(detailItem);
         });
-      } else {
-        grammarCorrectionsList.classList.remove("hidden");
-        grammarCorrectionsList.innerHTML = `<div class="empty-state" style="padding: 10px 0;"><p style="color: #10B981; font-size: 0.8rem;">No grammar issues found.</p></div>`;
+
+        // Render possible misspellings
+        if (suggestions.length > 0) {
+          const heading = document.createElement("div");
+          heading.className = "suggestions-section-title";
+          heading.textContent = "Possible misspellings";
+          grammarCorrectionsList.appendChild(heading);
+
+          suggestions.forEach((s) => {
+            const item = document.createElement("div");
+            item.className = "suggestion-detail-item";
+            item.innerHTML = `
+              <div class="correction-comparison">
+                <span class="suggestion-orig">${escapeHtml(s.original)}</span>
+                <span class="corr-arrow">➔</span>
+                <span class="suggestion-new">${escapeHtml(s.suggestion)}</span>
+              </div>
+            `;
+            grammarCorrectionsList.appendChild(item);
+          });
+        }
       }
     } else if (tool === "headlines") {
       const ol = document.createElement("ol");

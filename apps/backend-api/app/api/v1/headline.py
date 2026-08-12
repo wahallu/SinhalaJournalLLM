@@ -13,12 +13,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.core.features import require_tool_enabled
 from app.core.deps import optional_user, require_user
 from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
-from app.repositories.headline_repository import get_generations
+from app.repositories.headline_repository import get_generations, update_generation_assets
 from app.repositories.telemetry_repository import record_request
 from app.schemas.auth import AuthUser
 from app.schemas.headline import (
     HeadlineHistoryItem,
     HeadlineHistoryResponse,
+    HeadlineAssetsRequest,
     HeadlineRequest,
     HeadlineResponse,
     VisualPromptRequest,
@@ -93,7 +94,31 @@ async def visual_prompt_endpoint(
     except RuntimeError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
+    if user and payload.history_id:
+        await update_generation_assets(
+            payload.history_id,
+            {"visual_prompt": prompt},
+            user_id=user.id,
+        )
+
     return VisualPromptResponse(visual_prompt=prompt)
+
+
+@router.patch("/{generation_id}/assets", response_model=VisualPromptResponse)
+async def update_headline_assets_endpoint(
+    generation_id: str,
+    payload: HeadlineAssetsRequest,
+    user: AuthUser = Depends(require_user),
+):
+    """Save the user's edited visual prompt on their own headline run."""
+    updated = await update_generation_assets(
+        generation_id,
+        {"visual_prompt": payload.visual_prompt},
+        user_id=user.id,
+    )
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Headline history entry not found.")
+    return VisualPromptResponse(visual_prompt=updated.get("visual_prompt") or "")
 
 
 @router.get("/history", response_model=HeadlineHistoryResponse)
@@ -112,10 +137,14 @@ async def headline_history_endpoint(
             article_text=r.get("article_text", ""),
             headlines=r.get("headlines") or [],
             count=r.get("count", 0),
+            category=r.get("category") or "General",
+            length=r.get("length") or "medium",
+            adapter=r.get("adapter"),
+            visual_prompt=r.get("visual_prompt") or "",
+            image_url=r.get("image_url") or "",
             model_provider=r.get("model_provider"),
             created_at=r.get("created_at"),
         )
         for r in records
     ]
     return HeadlineHistoryResponse(items=items, total=total, page=page, page_size=page_size)
-

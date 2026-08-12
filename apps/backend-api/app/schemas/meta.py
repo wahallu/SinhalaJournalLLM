@@ -75,6 +75,16 @@ class UnifiedHistoryResponse(BaseModel):
     items: list[HistoryItem]
 
 
+class HistoryRun(BaseModel):
+    """Complete saved workspace payload used by History → Reopen."""
+    id: str
+    tool: str
+    input: str
+    output: dict[str, Any] = Field(default_factory=dict)
+    settings: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime | None = None
+
+
 class UsageStatsResponse(BaseModel):
     """
     Exact run counts for the caller.

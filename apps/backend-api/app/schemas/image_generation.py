@@ -1,10 +1,8 @@
-"""
-Pydantic schemas for the AI Image Generation API (OpenRouter).
-"""
+"""Pydantic schemas for the OpenAI image generation endpoint."""
 
 from pydantic import BaseModel, Field
 
-DEFAULT_IMAGE_MODEL = "gpt-image-1"
+DEFAULT_IMAGE_MODEL = "gpt-image-2"
 
 
 class ImageGenerationRequest(BaseModel):
@@ -14,6 +12,10 @@ class ImageGenerationRequest(BaseModel):
         min_length=1,
         max_length=2000,
         description="English image-generation prompt (the visual prompt from the headline tool)",
+    )
+    history_id: str | None = Field(
+        default=None,
+        description="Headline generation record to attach the permanent image to",
     )
 
 
@@ -27,4 +29,8 @@ class ImageGenerationResponse(BaseModel):
     model: str = Field(
         default=DEFAULT_IMAGE_MODEL,
         description="Model used for generation",
+    )
+    stored: bool = Field(
+        default=False,
+        description="Whether the image was uploaded and attached to history",
     )

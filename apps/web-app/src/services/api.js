@@ -165,7 +165,15 @@ export async function generateHeadlines(text, options = {}) {
     adapter: adapter || undefined,
   });
 
-  const band = raw.length || HEADLINE_LENGTH_BANDS[length] || HEADLINE_LENGTH_BANDS.medium;
+  return hydrateHeadlineOutput(raw, length);
+}
+
+/** Rebuild the presentation-only headline fields for API and history data. */
+export function hydrateHeadlineOutput(raw, fallbackLength = 'medium') {
+  const lengthId = raw?.length?.id || (typeof raw?.length === 'string' ? raw.length : fallbackLength);
+  const band = raw?.length?.min_words
+    ? raw.length
+    : (HEADLINE_LENGTH_BANDS[lengthId] || HEADLINE_LENGTH_BANDS.medium);
 
   // Only two derived values, both computed from text the backend actually
   // returned: the word count and whether it landed in the requested band.
@@ -196,6 +204,19 @@ export function getHeadlineHistory(page = 1, pageSize = 20) {
 
 export function generateVisualPrompt(articleText, headline = '') {
   return request('/headlines/visual-prompt', { article_text: articleText, headline });
+}
+
+export function generateAndSaveVisualPrompt(articleText, headline = '', historyId = null) {
+  return request('/headlines/visual-prompt', {
+    article_text: articleText,
+    headline,
+    history_id: historyId,
+  });
+}
+
+export function saveHeadlineVisualPrompt(historyId, visualPrompt) {
+  if (!historyId) return Promise.resolve(null);
+  return request(`/headlines/${historyId}/assets`, { visual_prompt: visualPrompt }, 'PATCH');
 }
 
 // ── Style Rewriter ──
@@ -310,6 +331,10 @@ export function getUnifiedHistory(limit = 50) {
   return request(`/history?limit=${limit}`, null, 'GET');
 }
 
+export function getHistoryRun(tool, id) {
+  return request(`/history/${encodeURIComponent(tool)}/${encodeURIComponent(id)}`, null, 'GET');
+}
+
 /**
  * Report which proposed changes the journalist took.
  *
@@ -334,10 +359,11 @@ export function getHistoryStats() {
   return request('/history/stats', null, 'GET');
 }
 
-// ── Image Generation (OpenRouter — Krea 2 Large) ──
-// The backend proxies to OpenRouter and returns a base64 PNG data URL or hosted image URL.
-export function generateImage(prompt) {
-  return request('/image/generate', { prompt });
+// ── Image Generation (OpenAI GPT Image 2) ──
+// The authenticated backend proxy keeps OPENAI_API_KEY out of the browser and
+// returns a base64 PNG data URL.
+export function generateImage(prompt, historyId = null) {
+  return request('/image/generate', { prompt, history_id: historyId });
 }
 
 // ── Capabilities ──

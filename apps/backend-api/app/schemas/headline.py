@@ -89,6 +89,11 @@ class HeadlineHistoryItem(BaseModel):
     article_text: str
     headlines: list[str]
     count: int
+    category: str = "General"
+    length: str = "medium"
+    adapter: str | None = None
+    visual_prompt: str = ""
+    image_url: str = ""
     model_provider: str | None = None
     created_at: datetime | None = None
 
@@ -114,6 +119,10 @@ class VisualPromptRequest(BaseModel):
         max_length=300,
         description="The selected headline (used to sharpen the prompt)",
     )
+    history_id: str | None = Field(
+        default=None,
+        description="Headline generation record to attach the prompt to",
+    )
 
 
 class VisualPromptResponse(BaseModel):
@@ -122,3 +131,8 @@ class VisualPromptResponse(BaseModel):
         ...,
         description="Detailed English prompt ready to feed into an image generation model",
     )
+
+
+class HeadlineAssetsRequest(BaseModel):
+    """Editable media state attached to an existing headline run."""
+    visual_prompt: str = Field(default="", max_length=4000)

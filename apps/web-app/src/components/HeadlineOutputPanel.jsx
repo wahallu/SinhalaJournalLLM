@@ -2,13 +2,16 @@ import { useState, useEffect } from 'react';
 import {
   ChevronDown, ChevronUp, Trophy, AlertTriangle, Sparkles,
   Camera, RefreshCw, ImageOff, Edit3, FileSearch,
-  Wand2, Download, ExternalLink, ImageIcon, Clock, X,
+  Wand2, Download, ExternalLink, ImageIcon,
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
 import ActionButton from './ui/ActionButton';
 import { Skeleton } from './ui/Skeleton';
-import { generateVisualPrompt, generateImage } from '../services/api';
+import {
+  generateAndSaveVisualPrompt, generateImage, saveHeadlineVisualPrompt,
+} from '../services/api';
+import { useAuth } from '../auth/useAuth';
 
 /* ── Single candidate card ──────────────────────────────────────
    Word count and band fit are the only per-candidate facts available:
@@ -43,22 +46,19 @@ function CandidateCard({ candidate }) {
 }
 
 /* ── Visual prompt module ───────────────────────────────────────── */
-function VisualPromptModule({ headline, articleText }) {
+function VisualPromptModule({ headline, articleText, historyId, initialPrompt = '', initialImage = '' }) {
+  const { isAdmin } = useAuth();
   const [open, setOpen] = useState(true);
 
   // Visual prompt state
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(initialPrompt);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Image generation state
-  const [imageData, setImageData] = useState(null);   // base64 data URL
+  const [imageData, setImageData] = useState(initialImage || null);
   const [imgLoading, setImgLoading] = useState(false);
   const [imgError, setImgError] = useState(null);
-  // Image generation is not launched yet — the button surfaces a notice
-  // instead of calling the API. handleGenerateImage is left in place so
-  // flipping this back on later is a one-line change.
-  const [comingSoon, setComingSoon] = useState(false);
 
   const generate = (cancelledRef) => {
     if (!articleText) return;
@@ -68,31 +68,36 @@ function VisualPromptModule({ headline, articleText }) {
     // Clear previous image when regenerating the prompt
     setImageData(null);
     setImgError(null);
-    setComingSoon(false);
-    generateVisualPrompt(articleText, headline)
+    generateAndSaveVisualPrompt(articleText, headline, historyId)
       .then((res) => { if (!cancelledRef?.cancelled) setPrompt(res.visual_prompt || ''); })
       .catch((err) => { if (!cancelledRef?.cancelled) setError(err.message || 'Failed to generate visual prompt'); })
       .finally(() => { if (!cancelledRef?.cancelled) setLoading(false); });
   };
 
   const handleGenerateImage = () => {
-    if (!prompt) return;
+    const cleanPrompt = prompt.trim();
+    if (!isAdmin || !cleanPrompt || imgLoading) return;
     setImgLoading(true);
     setImgError(null);
     setImageData(null);
-    generateImage(prompt)
+    generateImage(cleanPrompt, historyId)
       .then((res) => setImageData(res.image_data || ''))
       .catch((err) => setImgError(err.message || 'Image generation failed'))
       .finally(() => setImgLoading(false));
   };
 
-  // Auto-generate once when the article changes
+  // Restore saved media as-is. Only new/legacy headline records without a
+  // prompt make a provider call.
   useEffect(() => {
+    if (initialPrompt) return undefined;
     const ref = { cancelled: false };
-    generate(ref);
-    return () => { ref.cancelled = true; };
+    const timer = window.setTimeout(() => generate(ref), 0);
+    return () => {
+      ref.cancelled = true;
+      window.clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [articleText]);
+  }, [articleText, headline, historyId, initialPrompt, initialImage]);
 
   return (
     <Card className="overflow-hidden">
@@ -109,14 +114,11 @@ function VisualPromptModule({ headline, articleText }) {
       </button>
 
       {open && (
-        <div className="p-4 space-y-3">
-          {/* Prompt and image sit side by side when the pane is wide enough,
-              and stack below md. The image box keeps a fixed aspect ratio in
-              every state — placeholder, skeleton, loaded — so generating one
-              never shifts the surrounding layout. */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-            {/* ── Prompt column ── */}
-            <div className="space-y-2 min-w-0">
+        <div className="p-4 space-y-5">
+          {/* Deliberately vertical: the prompt needs the full pane width for
+              editing, and the generated image is the next step in the flow —
+              not a small preview competing for half of the same row. */}
+          <div className="space-y-2 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5 min-w-0 text-[11px] text-ink-500 font-medium">
                   <Edit3 size={11} className="text-ink-400 shrink-0" />
@@ -131,7 +133,8 @@ function VisualPromptModule({ headline, articleText }) {
                 <textarea
                   value={prompt}
                   onChange={(e) => { setPrompt(e.target.value); setImageData(null); setImgError(null); }}
-                  rows={5}
+                  onBlur={() => saveHeadlineVisualPrompt(historyId, prompt.trim()).catch(() => {})}
+                  rows={6}
                   className="w-full px-3 py-2.5 text-[13px] text-ink-700 bg-ink-50 border border-ink-200
                     rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-brand-200
                     focus:border-brand-300 leading-relaxed font-mono"
@@ -155,37 +158,31 @@ function VisualPromptModule({ headline, articleText }) {
                     variant="primary"
                     size="sm"
                     icon={Wand2}
-                    onClick={() => setComingSoon(true)}
+                    onClick={handleGenerateImage}
+                    loading={imgLoading}
+                    disabled={!isAdmin}
+                    title={!isAdmin ? 'Image generation is available to administrators only' : undefined}
                   >
-                    Generate image
+                    {imgLoading ? 'Generating image' : 'Generate image'}
                   </ActionButton>
                 )}
               </div>
+          </div>
 
-              {comingSoon && (
-                <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 rounded-lg border border-amber-200/70">
-                  <Clock size={14} className="text-amber-600 shrink-0 mt-0.5" />
-                  <p className="flex-1 text-[12px] text-amber-800 font-medium">
-                    Image generation — Coming soon
-                  </p>
-                  <button
-                    onClick={() => setComingSoon(false)}
-                    aria-label="Dismiss"
-                    className="text-amber-500 hover:text-amber-700 cursor-pointer shrink-0"
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-              )}
-            </div>
+          {/* A full-width image stage beneath the prompt. The fixed 16:9
+              frame is substantially larger while preventing layout shifts
+              between placeholder, loading, and completed states. */}
+          <div className="min-w-0 space-y-2">
+              <span className="flex items-center gap-1.5 text-[11px] text-ink-500 font-medium">
+                <ImageIcon size={12} className="text-ink-400" />
+                Generated image
+              </span>
 
-            {/* ── Image column ── */}
-            <div className="min-w-0">
-              {imgLoading && <Skeleton className="w-full aspect-[16/10] rounded-xl" />}
+              {imgLoading && <Skeleton className="w-full aspect-video rounded-xl" />}
 
               {imageData && !imgLoading && (
                 <div className="relative group rounded-xl overflow-hidden border border-ink-200
-                  bg-ink-100 aspect-[16/10] animate-in fade-in duration-300">
+                  bg-ink-100 aspect-video animate-in fade-in duration-300 shadow-card">
                   <img src={imageData} alt="AI-generated news image" className="w-full h-full object-cover" />
                   <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0
                     group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
@@ -215,15 +212,14 @@ function VisualPromptModule({ headline, articleText }) {
               )}
 
               {!imageData && !imgLoading && (
-                <div className="w-full aspect-[16/10] rounded-xl border border-dashed border-ink-300/70
+                <div className="w-full aspect-video rounded-xl border border-dashed border-ink-300/70
                   flex flex-col items-center justify-center gap-1.5 text-center px-4">
-                  <ImageIcon size={18} className="text-ink-300" />
-                  <p className="text-[11.5px] text-ink-400">
+                  <ImageIcon size={26} className="text-ink-300" />
+                  <p className="text-[12.5px] text-ink-400">
                     {prompt ? 'Generate an image from the prompt' : 'A prompt is generated from your article first'}
                   </p>
                 </div>
               )}
-            </div>
           </div>
 
           {/* ── Image generation error ── */}
@@ -348,7 +344,14 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
       )}
 
       {/* Visual prompt module */}
-      <VisualPromptModule headline={output.best_headline || ''} articleText={articleText} />
+      <VisualPromptModule
+        key={`${output.id || 'unsaved'}:${output.visual_prompt || ''}:${output.image_url || ''}`}
+        headline={output.best_headline || ''}
+        articleText={articleText}
+        historyId={output.id}
+        initialPrompt={output.visual_prompt || ''}
+        initialImage={output.image_url || ''}
+      />
 
       {/* Candidates list */}
       <div className="space-y-2.5">

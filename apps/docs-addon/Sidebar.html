@@ -212,12 +212,6 @@
 
         <div class="settings-form">
           <div class="form-group">
-            <label for="input-api-host" class="field-label">API Base URL</label>
-            <input type="text" id="input-api-host" class="sidebar-input" placeholder="https://sinhalajournalllm.onrender.com/api/v1">
-            <p class="field-help">Address the Apps Script server connects to. Change this only for local development.</p>
-          </div>
-
-          <div class="form-group">
             <label for="select-default-tone" class="field-label">Default Style Tone</label>
             <select id="select-default-tone" class="sidebar-select">
               <option value="formal">Formal</option>
@@ -253,13 +247,6 @@
             <li>Pick a tool and press its action button.</li>
             <li>Use <strong>Replace Selection</strong> to swap the highlighted text, or <strong>Insert</strong> to drop the result in at the cursor.</li>
           </ol>
-        </div>
-
-        <div class="help-card" style="margin-top: 12px;">
-          <h3>Testing a local backend</h3>
-          <p>Apps Script's servers can't reach a backend running on your own computer (<code style="display:inline; padding:1px 4px;">http://localhost:8000</code>) directly.</p>
-          <p style="margin-top: 6px;">Use a tunnel like <strong>ngrok</strong> to get a public URL, then paste it into API Base URL above:</p>
-          <code>ngrok http 8000</code>
         </div>
       </section>
 

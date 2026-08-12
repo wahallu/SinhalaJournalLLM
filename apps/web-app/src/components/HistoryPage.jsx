@@ -9,7 +9,7 @@ import { Card } from './ui/Card';
 import { Skeleton, SkeletonLines } from './ui/Skeleton';
 import { TOOL_META } from '../lib/toolMeta';
 import { useAuth } from '../auth/useAuth';
-import { getUnifiedHistory } from '../services/api';
+import { getHistoryRun, getUnifiedHistory } from '../services/api';
 
 function formatTime(iso) {
   const d = new Date(iso);
@@ -38,6 +38,22 @@ export default function HistoryPage({ onRerun, onBack }) {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [openingId, setOpeningId] = useState(null);
+  const [openError, setOpenError] = useState(null);
+
+  const reopen = async (item) => {
+    if (openingId) return;
+    setOpeningId(item.id);
+    setOpenError(null);
+    try {
+      const run = await getHistoryRun(item.tool, item.id);
+      onRerun?.(item.tool, run);
+    } catch (err) {
+      setOpenError(err.message || 'Could not reopen this history entry.');
+    } finally {
+      setOpeningId(null);
+    }
+  };
 
   /* History is per-user, so the fetch is keyed to the signed-in identity.
      With an empty dependency list it ran once on mount, so signing in from
@@ -209,6 +225,11 @@ export default function HistoryPage({ onRerun, onBack }) {
         </div>
       ) : (
         <div className="space-y-6">
+          {openError && (
+            <p role="alert" className="text-[13px] text-brand-700 bg-brand-50 rounded-xl px-4 py-3">
+              Could not reopen this entry: {openError}
+            </p>
+          )}
           {groups.map(({ label, items }) => (
             <section key={label} aria-label={label}>
               <h2 className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.14em] mb-2 px-1">
@@ -233,13 +254,14 @@ export default function HistoryPage({ onRerun, onBack }) {
                               <span className="text-[11px] text-ink-400 tabular-nums mr-1">{formatTime(item.timestamp)}</span>
                               <CopyButton text={item.input} label="" className="!px-1.5 opacity-0 group-hover:opacity-100" />
                               <button
-                                onClick={() => onRerun?.(item.tool, item.input)}
+                                onClick={() => reopen(item)}
+                                disabled={Boolean(openingId)}
                                 title="Reopen in tool"
                                 className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11.5px] font-semibold
                                   text-ink-500 hover:text-brand-700 hover:bg-brand-50 cursor-pointer
                                   transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                               >
-                                Reopen <ArrowUpRight size={12} />
+                                {openingId === item.id ? 'Opening…' : 'Reopen'} <ArrowUpRight size={12} />
                               </button>
                             </div>
                           </div>

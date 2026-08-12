@@ -90,7 +90,8 @@ Requests carry a Supabase JWT as `Authorization: Bearer <token>`. Setup is in [d
 
 Anonymous callers are capped at `ANON_REQUESTS_PER_HOUR` per hashed IP and receive 429 past that. The Chrome extension and Docs add-on use the anonymous path.
 
-`/admin/*` requires `profiles.role = 'admin'`. Image generation requires a session (it bills a hosted provider), and the comparison and playground endpoints are admin-only.
+`/admin/*` requires `profiles.role = 'admin'`. Image generation, comparison,
+and playground endpoints are admin-only.
 
 ## Running locally
 
@@ -105,6 +106,12 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 Run `schema.sql` once in Supabase Studio's SQL editor.
+
+For permanent headline images, configure `OPENAI_API_KEY` and the
+`CLOUDINARY_URL` copied from Cloudinary in the backend environment. Existing
+databases must also run `apps/backend-api/migrations/2026-08-12-complete-history.sql`
+once; it adds the fields required to reopen complete tool outputs, visual
+prompts, and Cloudinary image URLs.
 
 Tests (fully offline — fake Supabase + mock provider): `python -m pytest tests/ -v`
 

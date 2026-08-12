@@ -27,5 +27,12 @@ export function useToolProcessor() {
     setError(null);
   }, []);
 
-  return { input, setInput, output, loading, error, process, clear };
+  const restore = useCallback((savedInput, savedOutput) => {
+    setInput(savedInput || '');
+    setOutput(savedOutput || null);
+    setError(null);
+    setLoading(false);
+  }, []);
+
+  return { input, setInput, output, loading, error, process, clear, restore };
 }

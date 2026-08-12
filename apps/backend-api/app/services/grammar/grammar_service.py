@@ -246,6 +246,10 @@ async def check_grammar(
         "corrected_text": corrected_text,
         "corrections": [c.model_dump() for c in corrections],
         "correction_count": len(corrections),
+        # Filled after the advisory lexicon pass below. Kept here as an empty
+        # list for old/failing databases; the saved row is updated below once
+        # suggestions are known.
+        "suggestions": [],
         "model_provider": provider,
         # Admin-diagnostics only — see GrammarCheckResponse._adapter for why
         # this never reaches the API response, only this persisted row and
@@ -255,8 +259,6 @@ async def check_grammar(
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
     }
-    saved = await persist_if_owned(save_correction, record, user_id, actor)
-
     # Run on the CORRECTED text, not the input: anything the model already
     # fixed should not be flagged again, and a word it introduced is worth
     # checking too. 0 disables it entirely.
@@ -287,6 +289,11 @@ async def check_grammar(
         except Exception:
             # Advisory extra: never let it fail a correction that succeeded.
             logger.exception("Spelling suggestions failed — returning none")
+
+    # Persist the advisory output together with the correction result so a
+    # reopened history row renders exactly the same workspace.
+    record["suggestions"] = [suggestion.model_dump() for suggestion in suggestions]
+    saved = await persist_if_owned(save_correction, record, user_id, actor)
 
     response = GrammarCheckResponse(
         id=str(saved["id"]),

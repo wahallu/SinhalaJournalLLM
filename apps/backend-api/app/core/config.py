@@ -109,14 +109,15 @@ class Settings(BaseSettings):
     GROQ_STYLE_API_KEY: str = ""
     GROQ_STYLE_MODEL: str = "llama3-8b-8192"
 
-    # OpenRouter Image Generation
-    OPENROUTER_IMAGE_API_KEY: str = ""
-
-    # OpenAI Image Generation Configs
+    # OpenAI Image Generation. The API key stays server-side and is read from
+    # Render's environment; the browser only calls our authenticated proxy.
     OPENAI_API_KEY: str = ""
-    IMAGE_API_KEY: str = ""
-    IMAGE_MODEL: str = "gpt-image-1"
-    IMAGE_GATEWAY_URL: str = "https://api.openai.com/v1"
+
+    # Permanent storage for generated headline images. Cloudinary provides
+    # this value in the form cloudinary://API_KEY:API_SECRET@CLOUD_NAME.
+    # When unset, image generation still works but the returned base64 image
+    # cannot be restored from history after the page is closed.
+    CLOUDINARY_URL: str = ""
 
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173,https://sinai.onrender.com,https://chat.sin-ai.app"
@@ -141,5 +142,3 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Cached singleton for app settings."""
     return Settings()
-
-
