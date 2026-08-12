@@ -7,7 +7,7 @@ GET /history — newest activity across all four tools
 GET /history/stats — exact run counts (not derived from a page of history)
 """
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core import runtime_settings
 from app.core.deps import require_user
@@ -21,11 +21,12 @@ from app.core.prompts import (
     STYLE_LABELS,
     SUMMARY_LENGTHS,
 )
-from app.repositories.history_repository import list_recent, usage_stats
+from app.repositories.history_repository import get_run, list_recent, usage_stats
 from app.schemas.auth import AuthUser
 from app.schemas.meta import (
     HeadlineLengthOption,
     HistoryItem,
+    HistoryRun,
     LengthOption,
     MetaResponse,
     StyleOption,
@@ -81,6 +82,19 @@ async def unified_history_endpoint(
     """Newest activity for the caller across grammar, headlines, rewriter, and summarizer."""
     items = await list_recent(limit, user_id=user.id)
     return UnifiedHistoryResponse(items=[HistoryItem(**item) for item in items])
+
+
+@router.get("/history/{tool}/{record_id}", response_model=HistoryRun)
+async def history_run_endpoint(
+    tool: str,
+    record_id: str,
+    user: AuthUser = Depends(require_user),
+):
+    """Complete saved input/output state for History → Reopen."""
+    run = await get_run(tool, record_id, user_id=user.id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="History entry not found.")
+    return HistoryRun(**run)
 
 
 @router.get("/history/stats", response_model=UsageStatsResponse)

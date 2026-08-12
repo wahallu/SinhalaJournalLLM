@@ -13,6 +13,10 @@ class ImageGenerationRequest(BaseModel):
         max_length=2000,
         description="English image-generation prompt (the visual prompt from the headline tool)",
     )
+    history_id: str | None = Field(
+        default=None,
+        description="Headline generation record to attach the permanent image to",
+    )
 
 
 class ImageGenerationResponse(BaseModel):
@@ -25,4 +29,8 @@ class ImageGenerationResponse(BaseModel):
     model: str = Field(
         default=DEFAULT_IMAGE_MODEL,
         description="Model used for generation",
+    )
+    stored: bool = Field(
+        default=False,
+        description="Whether the image was uploaded and attached to history",
     )

@@ -16,7 +16,7 @@ from app.repositories import (
     style_repository,
     summarizer_repository,
 )
-from app.repositories.base import count_rows, fetch_recent
+from app.repositories.base import count_rows, fetch_by_id, fetch_recent
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,106 @@ _PREVIEW_CHARS = 240
 def _preview(value: str | None) -> str:
     value = (value or "").strip()
     return value[:_PREVIEW_CHARS]
+
+
+async def get_run(
+    tool: str,
+    record_id: str,
+    *,
+    user_id: str,
+) -> dict[str, Any] | None:
+    """Return one complete, normalized workspace owned by ``user_id``."""
+    source = _SOURCES.get(tool)
+    if source is None:
+        return None
+
+    table, input_column, _ = source
+    row = await fetch_by_id(table, record_id, user_id=user_id)
+    if not row:
+        return None
+
+    created_at = row.get("created_at")
+    common = {
+        "id": str(row.get("id")),
+        "tool": tool,
+        "input": row.get(input_column) or "",
+        "created_at": created_at,
+    }
+
+    if tool == "grammar":
+        corrections = row.get("corrections") or []
+        return {
+            **common,
+            "output": {
+                "id": str(row.get("id")),
+                "corrected": row.get("corrected_text") or "",
+                "corrections": corrections,
+                "correction_count": row.get("correction_count", len(corrections)),
+                "suggestions": row.get("suggestions") or [],
+                "created_at": created_at,
+                "model_used": row.get("model_provider"),
+            },
+            "settings": {},
+        }
+
+    if tool == "headlines":
+        length_id = row.get("length") or "medium"
+        requested_count = row.get("requested_count") or row.get("count")
+        headline_settings = {
+            "category": row.get("category") or "General",
+            "headlineLength": length_id,
+        }
+        if requested_count in (3, 5, 7):
+            headline_settings["count"] = requested_count
+        if row.get("adapter"):
+            headline_settings["headlineModel"] = row["adapter"]
+        # Older rows predate saved length metadata. The frontend has the exact
+        # bands and safely falls back from this id when rebuilding candidates.
+        return {
+            **common,
+            "output": {
+                "id": str(row.get("id")),
+                "headlines": row.get("headlines") or [],
+                "length": {"id": length_id},
+                "model_used": row.get("model_provider"),
+                "adapter_used": row.get("adapter"),
+                "created_at": created_at,
+                "visual_prompt": row.get("visual_prompt") or "",
+                "image_url": row.get("image_url") or "",
+                "image_model": row.get("image_model"),
+            },
+            "settings": headline_settings,
+        }
+
+    if tool == "rewriter":
+        style = row.get("style") or "formal"
+        return {
+            **common,
+            "output": {
+                "id": str(row.get("id")),
+                "original": row.get("original_text") or "",
+                "rewritten": row.get("rewritten_text") or "",
+                "tone": style,
+                "style": style,
+                "model_used": row.get("model_provider"),
+                "created_at": created_at,
+            },
+            "settings": {"tone": style},
+        }
+
+    length = row.get("length") or "medium"
+    return {
+        **common,
+        "output": {
+            "id": str(row.get("id")),
+            "original": row.get("original_text") or "",
+            "summary": row.get("summary_text") or "",
+            "length": length,
+            "model_used": row.get("model_provider"),
+            "created_at": created_at,
+        },
+        "settings": {"length": length},
+    }
 
 
 async def list_recent(limit: int = 50, *, user_id: str | None = None) -> list[dict[str, Any]]:

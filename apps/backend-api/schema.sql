@@ -19,6 +19,7 @@ create table if not exists grammar_corrections (
 -- Columns added after the first deploy (no-ops on fresh databases).
 alter table grammar_corrections add column if not exists model_provider text;
 alter table grammar_corrections add column if not exists latency_ms integer;
+alter table grammar_corrections add column if not exists suggestions jsonb not null default '[]'::jsonb;
 
 -- Which LoRA adapter actually served the request (server-resolved: an admin
 -- override, or whatever the model server picked as newest at its own last
@@ -38,6 +39,16 @@ create table if not exists headline_generations (
     latency_ms integer,
     created_at timestamptz not null default now()
 );
+
+-- Workspace state needed to reopen a headline run exactly as it appeared.
+alter table headline_generations add column if not exists category text not null default 'General';
+alter table headline_generations add column if not exists length text not null default 'medium';
+alter table headline_generations add column if not exists adapter text;
+alter table headline_generations add column if not exists requested_count integer;
+alter table headline_generations add column if not exists visual_prompt text;
+alter table headline_generations add column if not exists image_url text;
+alter table headline_generations add column if not exists image_public_id text;
+alter table headline_generations add column if not exists image_model text;
 
 -- ── Style rewriter ──
 create table if not exists style_rewrites (

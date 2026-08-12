@@ -8,7 +8,9 @@ import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
 import ActionButton from './ui/ActionButton';
 import { Skeleton } from './ui/Skeleton';
-import { generateVisualPrompt, generateImage } from '../services/api';
+import {
+  generateAndSaveVisualPrompt, generateImage, saveHeadlineVisualPrompt,
+} from '../services/api';
 import { useAuth } from '../auth/useAuth';
 
 /* ── Single candidate card ──────────────────────────────────────
@@ -44,17 +46,17 @@ function CandidateCard({ candidate }) {
 }
 
 /* ── Visual prompt module ───────────────────────────────────────── */
-function VisualPromptModule({ headline, articleText }) {
+function VisualPromptModule({ headline, articleText, historyId, initialPrompt = '', initialImage = '' }) {
   const { isAdmin } = useAuth();
   const [open, setOpen] = useState(true);
 
   // Visual prompt state
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(initialPrompt);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Image generation state
-  const [imageData, setImageData] = useState(null);   // base64 data URL
+  const [imageData, setImageData] = useState(initialImage || null);
   const [imgLoading, setImgLoading] = useState(false);
   const [imgError, setImgError] = useState(null);
 
@@ -66,7 +68,7 @@ function VisualPromptModule({ headline, articleText }) {
     // Clear previous image when regenerating the prompt
     setImageData(null);
     setImgError(null);
-    generateVisualPrompt(articleText, headline)
+    generateAndSaveVisualPrompt(articleText, headline, historyId)
       .then((res) => { if (!cancelledRef?.cancelled) setPrompt(res.visual_prompt || ''); })
       .catch((err) => { if (!cancelledRef?.cancelled) setError(err.message || 'Failed to generate visual prompt'); })
       .finally(() => { if (!cancelledRef?.cancelled) setLoading(false); });
@@ -78,19 +80,24 @@ function VisualPromptModule({ headline, articleText }) {
     setImgLoading(true);
     setImgError(null);
     setImageData(null);
-    generateImage(cleanPrompt)
+    generateImage(cleanPrompt, historyId)
       .then((res) => setImageData(res.image_data || ''))
       .catch((err) => setImgError(err.message || 'Image generation failed'))
       .finally(() => setImgLoading(false));
   };
 
-  // Auto-generate once when the article changes
+  // Restore saved media as-is. Only new/legacy headline records without a
+  // prompt make a provider call.
   useEffect(() => {
+    if (initialPrompt) return undefined;
     const ref = { cancelled: false };
-    generate(ref);
-    return () => { ref.cancelled = true; };
+    const timer = window.setTimeout(() => generate(ref), 0);
+    return () => {
+      ref.cancelled = true;
+      window.clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [articleText]);
+  }, [articleText, headline, historyId, initialPrompt, initialImage]);
 
   return (
     <Card className="overflow-hidden">
@@ -129,6 +136,7 @@ function VisualPromptModule({ headline, articleText }) {
                 <textarea
                   value={prompt}
                   onChange={(e) => { setPrompt(e.target.value); setImageData(null); setImgError(null); }}
+                  onBlur={() => saveHeadlineVisualPrompt(historyId, prompt.trim()).catch(() => {})}
                   rows={5}
                   className="w-full px-3 py-2.5 text-[13px] text-ink-700 bg-ink-50 border border-ink-200
                     rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-brand-200
@@ -333,7 +341,14 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
       )}
 
       {/* Visual prompt module */}
-      <VisualPromptModule headline={output.best_headline || ''} articleText={articleText} />
+      <VisualPromptModule
+        key={`${output.id || 'unsaved'}:${output.visual_prompt || ''}:${output.image_url || ''}`}
+        headline={output.best_headline || ''}
+        articleText={articleText}
+        historyId={output.id}
+        initialPrompt={output.visual_prompt || ''}
+        initialImage={output.image_url || ''}
+      />
 
       {/* Candidates list */}
       <div className="space-y-2.5">

@@ -113,6 +113,12 @@ class Settings(BaseSettings):
     # Render's environment; the browser only calls our authenticated proxy.
     OPENAI_API_KEY: str = ""
 
+    # Permanent storage for generated headline images. Cloudinary provides
+    # this value in the form cloudinary://API_KEY:API_SECRET@CLOUD_NAME.
+    # When unset, image generation still works but the returned base64 image
+    # cannot be restored from history after the page is closed.
+    CLOUDINARY_URL: str = ""
+
     # ── CORS ──
     CORS_ORIGINS: str = "http://localhost:5173,https://sinai.onrender.com,https://chat.sin-ai.app"
 
