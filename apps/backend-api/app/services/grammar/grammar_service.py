@@ -33,6 +33,7 @@ from app.schemas.grammar import (
     SpellingSuggestion,
 )
 from app.services.grammar.rule_types import (
+    ConfidenceLevel,
     Decision,
     RuleTrigger,
     ValidationConfig,
@@ -123,14 +124,15 @@ def derive_corrections(
         kind, rule = _classify(original_fragment, corrected_fragment)
         # This legacy annotation remains useful when rule validation is
         # disabled or fails open. With validation enabled, probable name
-        # substitutions are reverted before this applied-edit diff is built.
+        # substitutions are either selectively rejected or retained with an
+        # advisory decision before this applied-edit diff is built.
         suspicious, suspicious_reason = inspect_substitution(
             original_fragment, corrected_fragment
         )
         validation_edit = next(
             (
                 edit for edit in (validation_edits or [])
-                if edit.decision == Decision.ACCEPT
+                if edit.decision in {Decision.ACCEPT, Decision.SUGGEST}
                 and edit.original_start is not None
                 and edit.original_end is not None
                 and edit.original_start <= position <= edit.original_end
@@ -148,6 +150,10 @@ def derive_corrections(
                 suspicious_reason=suspicious_reason,
                 rule_ids=list(validation_edit.rule_ids) if validation_edit else [],
                 confidence=validation_edit.confidence if validation_edit else None,
+                confidence_level=(
+                    validation_edit.confidence_level.value if validation_edit else None
+                ),
+                decision=(validation_edit.decision.value if validation_edit else "ACCEPT"),
             )
         )
     return corrections
@@ -181,17 +187,59 @@ def _validation_summary(
     *,
     enabled: bool,
 ) -> GrammarValidation:
+    confidence_rank = {
+        ConfidenceLevel.LOW: 0,
+        ConfidenceLevel.MEDIUM: 1,
+        ConfidenceLevel.HIGH: 2,
+    }
+    confidence_levels = [
+        result.confidence_level for result in results if result.confidence_level is not None
+    ]
+    confidence_level = (
+        min(confidence_levels, key=confidence_rank.get).value
+        if confidence_levels else None
+    )
+    accepted = sum(edit.decision == Decision.ACCEPT for edit in edits)
+    warnings = sum(edit.decision == Decision.SUGGEST for edit in edits)
+    rejected = sum(edit.decision == Decision.REJECT for edit in edits)
+
+    def has_rule(edit: ValidationEdit, prefix: str) -> bool:
+        return any(rule_id.startswith(prefix) for rule_id in edit.rule_ids)
     counts = {
         "proposed": len(edits),
-        "accepted": sum(edit.decision == Decision.ACCEPT for edit in edits),
-        "suggested": sum(edit.decision == Decision.SUGGEST for edit in edits),
-        "rejected": sum(edit.decision == Decision.REJECT for edit in edits),
+        "accepted": accepted,
+        "applied": accepted + warnings,
+        "suggested": warnings,
+        "rejected": rejected,
+        "advisory_warnings": warnings,
+        "hard_rejections": rejected,
+        "selectively_reverted": rejected,
+        "entity_protections": sum(
+            edit.decision == Decision.REJECT and has_rule(edit, "ENTITY_") for edit in edits
+        ),
+        "number_protections": sum(
+            edit.decision == Decision.REJECT and has_rule(edit, "NUMBER_") for edit in edits
+        ),
+        "ambiguous_warnings": sum(
+            edit.decision == Decision.SUGGEST and has_rule(edit, "AMBIG_") for edit in edits
+        ),
+        "tense_warnings": sum(
+            edit.decision == Decision.SUGGEST and has_rule(edit, "VERB_TENSE_") for edit in edits
+        ),
+        "voice_warnings": sum(
+            edit.decision == Decision.SUGGEST and has_rule(edit, "VERB_VOICE_") for edit in edits
+        ),
+        "edit_size_warnings": sum(
+            edit.decision == Decision.SUGGEST and has_rule(edit, "SEMANTIC_EDIT_SIZE_")
+            for edit in edits
+        ),
     }
     return GrammarValidation(
         enabled=enabled,
         failed_open=any(result.failed_open for result in results),
         decision=_validation_decision(results).value,
-        confidence=round(min((result.confidence for result in results), default=1.0), 3),
+        confidence=None,
+        confidence_level=confidence_level,
         rules_triggered=[trigger.to_dict() for trigger in triggers],
         edits=[edit.to_dict() for edit in edits],
         counts=counts,
@@ -349,7 +397,8 @@ async def check_grammar(
                 model_candidate=candidate_chunk,
                 final_text=candidate_chunk,
                 decision=fallback_decision,
-                confidence=0.0,
+                confidence=None,
+                confidence_level=None,
                 enabled=validation_config.enabled,
                 failed_open=True,
             )
@@ -393,7 +442,8 @@ async def check_grammar(
                 model_candidate=text,
                 final_text=text,
                 decision=Decision.KEEP,
-                confidence=1.0,
+                confidence=None,
+                confidence_level=None,
                 enabled=validation_config.enabled,
             )
         )

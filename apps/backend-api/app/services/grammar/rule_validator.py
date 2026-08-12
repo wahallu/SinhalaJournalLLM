@@ -24,6 +24,7 @@ from app.services.grammar.orthography import (
 )
 from app.services.grammar.rule_registry import get_rule
 from app.services.grammar.rule_types import (
+    ConfidenceLevel,
     Decision,
     MorphFeatures,
     RuleTrigger,
@@ -40,13 +41,22 @@ from app.services.grammar.safety_gate import (
     segment_kinds,
     tokenize,
 )
-from app.services.grammar.substitution_guard import inspect_substitution, is_probable_name
+from app.services.grammar.substitution_guard import (
+    inspect_substitution,
+    is_name_substitution,
+    is_probable_name,
+)
 
 _HERE = Path(__file__).resolve().parent
 _DATA = _HERE / "data"
 _RULES_PATH = _HERE / "rules_high_confidence.json"
 _VOWEL_SIGNS = frozenset("ාැෑිීුූෘෙේෛොෝෞ")
 _STRIP = " \t\n\r.,!?;:\"'“”‘’()[]{}…"
+_CONFIDENCE_RANK = {
+    ConfidenceLevel.LOW: 0,
+    ConfidenceLevel.MEDIUM: 1,
+    ConfidenceLevel.HIGH: 2,
+}
 
 
 @lru_cache(maxsize=None)
@@ -82,6 +92,12 @@ def _features(value: Any) -> MorphFeatures | None:
         allowed = MorphFeatures.__dataclass_fields__.keys()
         return MorphFeatures(**{key: value[key] for key in allowed if key in value})
     return None
+
+
+def _result_confidence(edits: Sequence[ValidationEdit]) -> ConfidenceLevel | None:
+    if not edits:
+        return None
+    return min((edit.confidence_level for edit in edits), key=_CONFIDENCE_RANK.get)
 
 
 class SinhalaRuleValidator:
@@ -136,7 +152,8 @@ class SinhalaRuleValidator:
                 model_candidate=candidate_text,
                 final_text=candidate_text,
                 decision=decision,
-                confidence=0.0,
+                confidence=None,
+                confidence_level=None,
                 enabled=False,
             )
 
@@ -145,8 +162,16 @@ class SinhalaRuleValidator:
         if config.auto_safe_orthography:
             candidate = apply_safe_spacing(candidate)
 
-        runtime_terms = set(self.rules.get("protected_terms", ())) | set(protected_terms)
-        runtime_terms.update(metadata.get("protected_terms", ()) or ())
+        explicit_entity_terms = {
+            normalize_nfc(str(term))
+            for term in (
+                list(self.rules.get("protected_terms", ()))
+                + list(protected_terms)
+                + list(metadata.get("protected_terms", ()) or ())
+            )
+            if term
+        }
+        runtime_terms = set(explicit_entity_terms)
         if config.protect_entities:
             runtime_terms.update(probable_entity_terms(original))
             runtime_terms.update(probable_entity_terms(candidate))
@@ -231,10 +256,14 @@ class SinhalaRuleValidator:
                 changed_ratio=changed_ratio,
                 config=config,
                 metadata=metadata,
+                explicit_entity_terms=explicit_entity_terms,
             )
             edits.append(edit)
             final_parts.append(
-                candidate_fragment if edit.decision == Decision.ACCEPT else original_fragment
+                candidate_fragment
+                if edit.decision == Decision.ACCEPT
+                or (edit.decision == Decision.SUGGEST and config.apply_advisory_edits)
+                else original_fragment
             )
 
         final_text = "".join(final_parts)
@@ -245,7 +274,8 @@ class SinhalaRuleValidator:
         if original_text != original:
             edit = self._edit(
                 "normalize", original_text, original, Decision.ACCEPT,
-                ("ORTH_NFC_001",), 1.0, "Normalized Unicode to NFC without removing marks.",
+                ("ORTH_NFC_001",), ConfidenceLevel.HIGH,
+                "Normalized Unicode to NFC without removing marks.",
                 original_start=0, original_end=len(original_text),
                 candidate_start=0, candidate_end=len(original),
             )
@@ -253,13 +283,13 @@ class SinhalaRuleValidator:
             triggers = self._triggers(edits)
 
         decision = _decision_for(edits, final_text != original_text)
-        confidence = min((edit.confidence for edit in edits), default=1.0)
         return ValidationResult(
             original_text=original_text,
             model_candidate=candidate_text,
             final_text=final_text,
             decision=decision,
-            confidence=round(confidence, 3),
+            confidence=None,
+            confidence_level=_result_confidence(edits),
             edits=edits,
             rules_triggered=triggers,
         )
@@ -281,6 +311,7 @@ class SinhalaRuleValidator:
         changed_ratio: float,
         config: ValidationConfig,
         metadata: Mapping[str, Any],
+        explicit_entity_terms: set[str],
     ) -> ValidationEdit:
         original_fragment = "".join(token.text for token in original)
         candidate_fragment = "".join(token.text for token in candidate)
@@ -299,27 +330,40 @@ class SinhalaRuleValidator:
 
         if config.protect_numbers and "number" in kinds and "number" in factual_changes:
             return self._edit(operation, original_fragment, candidate_fragment, Decision.REJECT,
-                ("NUMBER_PROTECT_001", "SEMANTIC_NUMBER_001"), 1.0,
+                ("NUMBER_PROTECT_001", "SEMANTIC_NUMBER_001"), ConfidenceLevel.HIGH,
                 "The proposed edit changes a factual number, date, percentage, or quantity.", **common)
         if "url" in kinds and "url" in factual_changes:
             return self._edit(operation, original_fragment, candidate_fragment, Decision.REJECT,
-                ("URL_PROTECT_001",), 1.0, "The proposed edit changes a URL.", **common)
+                ("URL_PROTECT_001",), ConfidenceLevel.HIGH,
+                "The proposed edit changes a URL.", **common)
         if "email" in kinds and "email" in factual_changes:
             return self._edit(operation, original_fragment, candidate_fragment, Decision.REJECT,
-                ("EMAIL_PROTECT_001",), 1.0, "The proposed edit changes an email address.", **common)
-        if config.protect_quotes and "quote" in kinds:
-            return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
-                ("QUOTE_PROTECT_001", "REGISTER_CONTEXT_001"), 0.9,
-                "A change inside direct quotation requires editorial confirmation.", **common)
-        if uncertain_joiner_change(original_fragment, candidate_fragment):
-            return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
-                ("ORTH_ZWJ_001",), 0.8,
-                "The edit changes Sinhala joiner/conjunct structure and cannot be proved safe.", **common)
+                ("EMAIL_PROTECT_001",), ConfidenceLevel.HIGH,
+                "The proposed edit changes an email address.", **common)
+        if polarity_changed and self._touches_polarity(original_fragment, candidate_fragment):
+            return self._edit(operation, original_fragment, candidate_fragment, Decision.REJECT,
+                ("POLARITY_PROTECT_001", "SEMANTIC_POLARITY_001", "NEGATION_CONTEXT_001"),
+                ConfidenceLevel.HIGH,
+                "The proposed edit reverses explicit sentence polarity.", **common)
         if config.protect_entities and "entity" in kinds:
             if not self._approved_entity(original_fragment, candidate_fragment, metadata):
-                return self._edit(operation, original_fragment, candidate_fragment, Decision.REJECT,
-                    ("ENTITY_PROTECT_001", "SEMANTIC_ENTITY_001"), 1.0,
-                    "The proposed edit changes a protected newsroom or glossary term.", **common)
+                confidence = self._entity_confidence(
+                    original_fragment,
+                    candidate_fragment,
+                    explicit_entity_terms,
+                    legacy=config.legacy_entity_policy,
+                    original_text=original_text,
+                    candidate_text=candidate_text,
+                    original_span=(os, oe),
+                    candidate_span=(cs, ce),
+                )
+                if confidence == ConfidenceLevel.HIGH:
+                    return self._edit(operation, original_fragment, candidate_fragment, Decision.REJECT,
+                        ("ENTITY_PROTECT_001", "SEMANTIC_ENTITY_001"), confidence,
+                        "The proposed edit changes a high-confidence protected entity.", **common)
+                return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
+                    ("ENTITY_PROTECT_001",), confidence,
+                    "The edit touches a probable entity; the candidate is retained with a verification warning.", **common)
 
         if len(original_words) == 1 and len(candidate_words) == 1:
             old, new = original_words[0].strip(_STRIP), candidate_words[0].strip(_STRIP)
@@ -327,45 +371,70 @@ class SinhalaRuleValidator:
             if config.protect_entities and old != new and (
                 is_probable_name(old) or is_probable_name(new)
             ):
-                return self._edit(operation, original_fragment, candidate_fragment, Decision.REJECT,
-                    ("ENTITY_PROTECT_001", "SEMANTIC_ENTITY_001"), 0.99,
+                confidence = self._entity_confidence(
+                    old,
+                    new,
+                    explicit_entity_terms,
+                    legacy=config.legacy_entity_policy,
+                    original_text=original_text,
+                    candidate_text=candidate_text,
+                    original_span=(os, oe),
+                    candidate_span=(cs, ce),
+                )
+                decision = (
+                    Decision.REJECT if confidence == ConfidenceLevel.HIGH else Decision.SUGGEST
+                )
+                rule_ids = (
+                    ("ENTITY_PROTECT_001", "SEMANTIC_ENTITY_001")
+                    if decision == Decision.REJECT else ("ENTITY_PROTECT_001",)
+                )
+                return self._edit(operation, original_fragment, candidate_fragment, decision,
+                    rule_ids, confidence,
                     suspicious_reason or "The replacement may alter a named entity.", **common)
             pair = _pair(old, new)
             if pair in self.blocked_pairs or pair in self.ambiguous_pairs:
                 return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
-                    ("AMBIG_KEEP_001",), 0.95,
-                    "Both forms may be valid; context is required before applying this change.", **common)
+                    ("AMBIG_KEEP_001",), ConfidenceLevel.LOW,
+                    "Both forms may be valid; the candidate is applied with a context warning.", **common)
             approved = self.approved.get((old, new))
             if approved:
                 return self._edit(operation, original_fragment, candidate_fragment, Decision.ACCEPT,
-                    (approved["rule_id"],), 1.0, approved["explanation"], **common)
+                    (approved["rule_id"],), ConfidenceLevel.HIGH,
+                    approved["explanation"], **common)
 
-        if polarity_changed and self._touches_polarity(original_fragment, candidate_fragment):
-            return self._edit(operation, original_fragment, candidate_fragment, Decision.REJECT,
-                ("POLARITY_PROTECT_001", "SEMANTIC_POLARITY_001", "NEGATION_CONTEXT_001"), 1.0,
-                "The proposed edit reverses explicit sentence polarity.", **common)
+        if config.protect_quotes and "quote" in kinds:
+            return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
+                ("QUOTE_PROTECT_001", "REGISTER_CONTEXT_001"), ConfidenceLevel.LOW,
+                "A change inside direct quotation requires editorial confirmation.", **common)
+        if uncertain_joiner_change(original_fragment, candidate_fragment):
+            return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
+                ("ORTH_ZWJ_001",), ConfidenceLevel.LOW,
+                "The edit changes Sinhala joiner/conjunct structure; it is applied with a review warning.", **common)
         if tense_changed and self._touches_predicate(candidate_fragment, candidate_text):
             return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
-                ("VERB_TENSE_001", "SEMANTIC_TENSE_001"), 0.85,
-                "The model changed an identifiable tense; preserve it without stronger evidence.", **common)
+                ("VERB_TENSE_001", "SEMANTIC_TENSE_001"), ConfidenceLevel.LOW,
+                "The model changed an identifiable tense; the candidate is retained with a warning.", **common)
         if voice_changed and self._touches_predicate(candidate_fragment, candidate_text):
             return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
-                ("VERB_VOICE_001", "SEMANTIC_VOICE_001", "PASSIVE_AUX_001"), 0.9,
-                "The model changed active/passive voice; editorial confirmation is required.", **common)
+                ("VERB_VOICE_001", "SEMANTIC_VOICE_001", "PASSIVE_AUX_001"),
+                ConfidenceLevel.LOW,
+                "The model changed active/passive voice; the candidate is retained with a warning.", **common)
 
         contextual = contextual_rule_ids(original_fragment, candidate_fragment) if config.contextual_rules else ()
         if contextual:
             return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
-                contextual, 0.75, "This change depends on discourse or journalistic register.", **common)
+                contextual, ConfidenceLevel.LOW,
+                "This change depends on discourse or journalistic register.", **common)
 
         if agreement_ids and self._touches_predicate(candidate_fragment, candidate_text):
             return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
-                agreement_ids, 0.78, "Possible subject-predicate agreement mismatch.", **common)
+                agreement_ids, ConfidenceLevel.LOW,
+                "Possible subject-predicate agreement mismatch.", **common)
 
         if large_rewrite:
             return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
-                ("SEMANTIC_EDIT_SIZE_001",), 0.7,
-                "The model rewrote too much of this sentence for automatic application.", **common)
+                ("SEMANTIC_EDIT_SIZE_001",), ConfidenceLevel.LOW,
+                "The model rewrote a large span; the candidate is retained with a review warning.", **common)
 
         if len(original_words) == 1 and len(candidate_words) == 1:
             suspicious, suspicious_reason = inspect_substitution(
@@ -373,7 +442,7 @@ class SinhalaRuleValidator:
             )
             if suspicious:
                 return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
-                    ("ENTITY_PROTECT_001",), 0.82,
+                    ("ENTITY_PROTECT_001",), ConfidenceLevel.MEDIUM,
                     suspicious_reason or "This looks like a different lexical item, not a spelling fix.", **common)
 
         case_rule = self._case_attachment(original_words, candidate_words)
@@ -381,30 +450,32 @@ class SinhalaRuleValidator:
             decision = Decision.ACCEPT if lexicon.contains("".join(candidate_words)) else Decision.SUGGEST
             return self._edit(operation, original_fragment, candidate_fragment, decision,
                 ("CASE_ATTACH_001", "MORPH_SUFFIX_001", "SANDHI_JOIN_001"),
-                0.96 if decision == Decision.ACCEPT else 0.7,
+                ConfidenceLevel.HIGH if decision == Decision.ACCEPT else ConfidenceLevel.LOW,
                 "A reviewed case suffix is attached to an attested noun form." if decision == Decision.ACCEPT
                 else "Possible separated case suffix; the merged form lacks enough lexical evidence.", **common)
 
         max_tokens = int(self.rules.get("max_auto_edit_tokens", 2))
         if max(len(original_words), len(candidate_words)) > max_tokens:
             return self._edit(operation, original_fragment, candidate_fragment, Decision.SUGGEST,
-                ("SEMANTIC_EDIT_SIZE_001",), 0.68,
-                "A multi-token rewrite requires editorial review.", **common)
+                ("SEMANTIC_EDIT_SIZE_001",), ConfidenceLevel.LOW,
+                "A multi-token rewrite is applied with an editorial-review warning.", **common)
 
         if len(original_words) == len(candidate_words) == 1 and lexicon.supports_replacement(
             original_words[0], candidate_words[0]
         ):
             rule_id = self._spelling_rule(original_words[0], candidate_words[0])
             return self._edit(operation, original_fragment, candidate_fragment, Decision.ACCEPT,
-                (rule_id, "MORPH_LEXICON_001"), 0.94,
+                (rule_id, "MORPH_LEXICON_001"), ConfidenceLevel.HIGH,
                 "The shared SINAI lexicon independently supports this spelling candidate.", **common)
 
         if not original_words and not candidate_words:
             return self._edit(operation, original_fragment, candidate_fragment, Decision.ACCEPT,
-                ("ORTH_SPACE_001",), 0.99, "Safe whitespace or punctuation spacing correction.", **common)
+                ("ORTH_SPACE_001",), ConfidenceLevel.HIGH,
+                "Safe whitespace or punctuation spacing correction.", **common)
 
         return self._edit(operation, original_fragment, candidate_fragment, Decision.ACCEPT,
-            (), 0.72, "Small neural correction passed all deterministic safety checks.", **common)
+            (), ConfidenceLevel.MEDIUM,
+            "Small neural correction passed all deterministic safety checks.", **common)
 
     @staticmethod
     def _case_attachment(original_words: Sequence[str], candidate_words: Sequence[str]) -> bool:
@@ -434,6 +505,61 @@ class SinhalaRuleValidator:
         )
 
     @staticmethod
+    def _entity_confidence(
+        original: str,
+        candidate: str,
+        explicit_terms: set[str],
+        *,
+        legacy: bool,
+        original_text: str,
+        candidate_text: str,
+        original_span: tuple[int | None, int | None],
+        candidate_span: tuple[int | None, int | None],
+    ) -> ConfidenceLevel:
+        """Return evidence strength for an entity edit, not a probability.
+
+        Explicit newsroom metadata, a clear surname-identity substitution, and
+        all-uppercase Latin acronym substitutions are deterministic enough to
+        block. Heuristic name/entity shapes remain advisory.
+        """
+        if legacy:
+            return ConfidenceLevel.HIGH
+
+        def overlaps(text: str, term: str, span: tuple[int | None, int | None]) -> bool:
+            start, end = span
+            if start is None or end is None:
+                return False
+            found = text.find(term)
+            while found >= 0:
+                if start < found + len(term) and found < end:
+                    return True
+                found = text.find(term, found + len(term))
+            return False
+
+        if any(
+            overlaps(original_text, term, original_span)
+            or overlaps(candidate_text, term, candidate_span)
+            for term in explicit_terms
+        ):
+            return ConfidenceLevel.HIGH
+
+        old = original.strip(_STRIP)
+        new = candidate.strip(_STRIP)
+        if is_name_substitution(old, new):
+            return ConfidenceLevel.HIGH
+        if (
+            old != new
+            and old.isascii()
+            and new.isascii()
+            and old.isalpha()
+            and new.isalpha()
+            and old.isupper()
+            and new.isupper()
+        ):
+            return ConfidenceLevel.HIGH
+        return ConfidenceLevel.MEDIUM
+
+    @staticmethod
     def _spelling_rule(original: str, candidate: str) -> str:
         if len(original) == len(candidate):
             changed = [(a, b) for a, b in zip(original, candidate) if a != b]
@@ -448,39 +574,57 @@ class SinhalaRuleValidator:
         candidate: str,
         decision: Decision,
         rule_ids: tuple[str, ...],
-        confidence: float,
+        confidence_level: ConfidenceLevel,
         reason: str,
         **kwargs: Any,
     ) -> ValidationEdit:
         primary = get_rule(rule_ids[0]) if rule_ids else None
+        severity = (
+            Severity.ERROR
+            if decision == Decision.REJECT
+            else Severity.WARNING
+            if decision == Decision.SUGGEST
+            else primary.severity if primary else Severity.INFO
+        )
         return ValidationEdit(
             operation=operation,
             original=original,
             candidate=candidate,
             decision=decision,
             rule_ids=rule_ids,
-            confidence=confidence,
+            confidence=None,
+            confidence_level=confidence_level,
             reason=reason,
             category=primary.category if primary else "neural",
-            severity=primary.severity if primary else Severity.INFO,
+            severity=severity,
             **kwargs,
         )
 
     @staticmethod
     def _triggers(edits: Sequence[ValidationEdit]) -> list[RuleTrigger]:
-        messages: dict[str, str] = {}
+        signals: dict[str, ValidationEdit] = {}
+        priority = {
+            Decision.KEEP: 0,
+            Decision.ACCEPT: 1,
+            Decision.SUGGEST: 2,
+            Decision.REJECT: 3,
+        }
         for edit in edits:
             for rule_id in edit.rule_ids:
-                messages.setdefault(rule_id, edit.reason)
+                current = signals.get(rule_id)
+                if current is None or priority[edit.decision] > priority[current.decision]:
+                    signals[rule_id] = edit
         return [
             RuleTrigger(
                 id=definition.id,
                 category=definition.category,
                 tier=definition.tier,
-                severity=definition.severity,
-                message=messages[rule_id],
+                severity=signals[rule_id].severity,
+                message=signals[rule_id].reason,
+                decision=signals[rule_id].decision,
+                confidence_level=signals[rule_id].confidence_level,
             )
-            for rule_id in messages
+            for rule_id in signals
             for definition in (get_rule(rule_id),)
         ]
 

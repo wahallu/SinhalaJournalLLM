@@ -15,7 +15,7 @@ Preprocessed chunk
   -> factual protection (number, URL, email, entity, polarity, quote)
   -> linguistic validation (orthography, lexicon/morphology, agreement, predicate, tense/voice)
   -> semantic edit-size gate
-  -> ACCEPT / SUGGEST / REJECT / KEEP per edit
+  -> ACCEPT / advisory SUGGEST / REJECT / KEEP per edit
   -> safe automatic text plus structured research metadata
 ```
 
@@ -40,7 +40,7 @@ The validator accepts two strings and optional context/metadata. It never calls 
 
 ## Safety mechanisms
 
-Protected factual values are compared as multisets, retaining repeated values. Token alignment preserves whitespace/punctuation so an unsafe local edit can be reverted without rewriting unrelated text. The existing substitution guard is reused, uppercase Latin names/acronyms and repository-attested institution designators are protected, and multi-token newsroom glossary spans are supported. High-confidence probable entity mutations are rejected, while generic low-similarity lexical substitutions are downgraded for review rather than mislabeled as certain named entities.
+Protected factual values are compared as multisets, retaining repeated values. Token alignment preserves whitespace/punctuation so an unsafe local edit can be reverted without rewriting unrelated text. `SUGGEST` retains the neural edit and records a warning. Explicit newsroom glossary spans, clear surname-identity substitutions, and uppercase Latin acronym substitutions are `HIGH` entity evidence and can reject; heuristic entity shapes are `MEDIUM` warnings. Numeric pseudo-probabilities are not assigned.
 
 Large-rewrite detection combines an absolute changed-token floor with a relative ratio. This prevents a valid one-word edit in a very short sentence from being rejected only because its percentage is high.
 
@@ -64,7 +64,7 @@ Reported metrics are:
 - under-correction;
 - exact whitespace-token edit precision, recall, and F0.5;
 - entity, number, and polarity mutation rates;
-- validator ACCEPT/SUGGEST/REJECT counts;
+- validator ACCEPT/advisory-SUGGEST/REJECT counts;
 - per-rule trigger counts and locally adjudicable correct/false blocks.
 
 F0.5 weights precision more heavily than recall, matching the newsroom safety objective. Char-F1 is not used as the primary measure because unchanged characters dominate and can conceal correction failure.

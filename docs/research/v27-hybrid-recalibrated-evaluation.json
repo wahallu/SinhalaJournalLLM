@@ -1,0 +1,1456 @@
+{
+  "systems": {
+    "model_only": {
+      "N": 154,
+      "exact_match": 0.6688,
+      "correction_needed_exact": 0.569,
+      "clean_preservation": 0.9737,
+      "overcorrection_rate": 0.0263,
+      "undercorrection_rate": 0.1897,
+      "edit_precision": 0.8827,
+      "edit_recall": 0.7114,
+      "edit_f0.5": 0.8422,
+      "entity_mutation_rate": 0.013,
+      "entity_error_rate": 0.0065,
+      "number_mutation_rate": 0.0,
+      "number_error_rate": 0.0,
+      "polarity_mutation_rate": 0.0,
+      "polarity_error_rate": 0.0
+    },
+    "rules_only": {
+      "N": 154,
+      "exact_match": 0.2468,
+      "correction_needed_exact": 0.0,
+      "clean_preservation": 1.0,
+      "overcorrection_rate": 0.0,
+      "undercorrection_rate": 1.0,
+      "edit_precision": 0.0,
+      "edit_recall": 0.0,
+      "edit_f0.5": 0.0,
+      "entity_mutation_rate": 0.0,
+      "entity_error_rate": 0.0,
+      "number_mutation_rate": 0.0,
+      "number_error_rate": 0.0,
+      "polarity_mutation_rate": 0.0,
+      "polarity_error_rate": 0.0
+    },
+    "legacy_hybrid": {
+      "N": 154,
+      "exact_match": 0.5714,
+      "correction_needed_exact": 0.4397,
+      "clean_preservation": 0.9737,
+      "overcorrection_rate": 0.0263,
+      "undercorrection_rate": 0.319,
+      "edit_precision": 0.8968,
+      "edit_recall": 0.5622,
+      "edit_f0.5": 0.8014,
+      "entity_mutation_rate": 0.0,
+      "entity_error_rate": 0.0,
+      "number_mutation_rate": 0.0,
+      "number_error_rate": 0.0,
+      "polarity_mutation_rate": 0.0,
+      "polarity_error_rate": 0.0
+    },
+    "hybrid": {
+      "N": 154,
+      "exact_match": 0.6688,
+      "correction_needed_exact": 0.569,
+      "clean_preservation": 0.9737,
+      "overcorrection_rate": 0.0263,
+      "undercorrection_rate": 0.1897,
+      "edit_precision": 0.8882,
+      "edit_recall": 0.7114,
+      "edit_f0.5": 0.8462,
+      "entity_mutation_rate": 0.0065,
+      "entity_error_rate": 0.0,
+      "number_mutation_rate": 0.0,
+      "number_error_rate": 0.0,
+      "polarity_mutation_rate": 0.0,
+      "polarity_error_rate": 0.0
+    }
+  },
+  "validator_decisions": {
+    "ACCEPT": 146,
+    "SUGGEST": 38,
+    "REJECT": 1
+  },
+  "legacy_validator_decisions": {
+    "ACCEPT": 146,
+    "SUGGEST": 35,
+    "REJECT": 4
+  },
+  "rule_coverage": {
+    "AMBIG_KEEP_001": {
+      "trigger_count": 4,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 4,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 4
+      }
+    },
+    "CASE_ATTACH_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 5
+      }
+    },
+    "ENTITY_PROTECT_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 3,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 4,
+        "REJECT": 1
+      }
+    },
+    "HONORIFIC_CONTEXT_001": {
+      "trigger_count": 1,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 1,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 1
+      }
+    },
+    "MORPH_LEXICON_001": {
+      "trigger_count": 96,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 96
+      }
+    },
+    "MORPH_SUFFIX_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 5
+      }
+    },
+    "ORTH_SPACE_001": {
+      "trigger_count": 1,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 1
+      }
+    },
+    "ORTH_ZWJ_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 1,
+      "advisory_original_supported": 2,
+      "decisions": {
+        "SUGGEST": 5
+      }
+    },
+    "PASSIVE_AUX_001": {
+      "trigger_count": 2,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 2,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 2
+      }
+    },
+    "REGISTER_CONTEXT_001": {
+      "trigger_count": 4,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 3,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 4
+      }
+    },
+    "SANDHI_JOIN_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 5
+      }
+    },
+    "SEMANTIC_EDIT_SIZE_001": {
+      "trigger_count": 13,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 6,
+      "advisory_original_supported": 3,
+      "decisions": {
+        "SUGGEST": 13
+      }
+    },
+    "SEMANTIC_ENTITY_001": {
+      "trigger_count": 1,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "REJECT": 1
+      }
+    },
+    "SEMANTIC_TENSE_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 3,
+      "advisory_original_supported": 1,
+      "decisions": {
+        "SUGGEST": 5
+      }
+    },
+    "SEMANTIC_VOICE_001": {
+      "trigger_count": 2,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 2,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 2
+      }
+    },
+    "SPELL_CONSONANT_CONFUSION_001": {
+      "trigger_count": 89,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 89
+      }
+    },
+    "SPELL_VOWEL_LENGTH_001": {
+      "trigger_count": 7,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 7
+      }
+    },
+    "VERB_TENSE_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 3,
+      "advisory_original_supported": 1,
+      "decisions": {
+        "SUGGEST": 5
+      }
+    },
+    "VERB_VOICE_001": {
+      "trigger_count": 2,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 2,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 2
+      }
+    }
+  },
+  "legacy_rule_coverage": {
+    "AMBIG_KEEP_001": {
+      "trigger_count": 4,
+      "correct_blocks": 0,
+      "false_blocks": 4,
+      "block_precision": 0.0,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 4
+      }
+    },
+    "CASE_ATTACH_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 5
+      }
+    },
+    "ENTITY_PROTECT_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 3,
+      "block_precision": 0.0,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "REJECT": 4,
+        "SUGGEST": 1
+      }
+    },
+    "HONORIFIC_CONTEXT_001": {
+      "trigger_count": 1,
+      "correct_blocks": 0,
+      "false_blocks": 1,
+      "block_precision": 0.0,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 1
+      }
+    },
+    "MORPH_LEXICON_001": {
+      "trigger_count": 96,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 96
+      }
+    },
+    "MORPH_SUFFIX_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 5
+      }
+    },
+    "ORTH_SPACE_001": {
+      "trigger_count": 1,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 1
+      }
+    },
+    "ORTH_ZWJ_001": {
+      "trigger_count": 5,
+      "correct_blocks": 2,
+      "false_blocks": 1,
+      "block_precision": 0.6667,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 5
+      }
+    },
+    "PASSIVE_AUX_001": {
+      "trigger_count": 2,
+      "correct_blocks": 0,
+      "false_blocks": 2,
+      "block_precision": 0.0,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 2
+      }
+    },
+    "REGISTER_CONTEXT_001": {
+      "trigger_count": 4,
+      "correct_blocks": 0,
+      "false_blocks": 3,
+      "block_precision": 0.0,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 4
+      }
+    },
+    "SANDHI_JOIN_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 5
+      }
+    },
+    "SEMANTIC_EDIT_SIZE_001": {
+      "trigger_count": 13,
+      "correct_blocks": 3,
+      "false_blocks": 6,
+      "block_precision": 0.3333,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 13
+      }
+    },
+    "SEMANTIC_ENTITY_001": {
+      "trigger_count": 4,
+      "correct_blocks": 0,
+      "false_blocks": 3,
+      "block_precision": 0.0,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "REJECT": 4
+      }
+    },
+    "SEMANTIC_TENSE_001": {
+      "trigger_count": 5,
+      "correct_blocks": 1,
+      "false_blocks": 3,
+      "block_precision": 0.25,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 5
+      }
+    },
+    "SEMANTIC_VOICE_001": {
+      "trigger_count": 2,
+      "correct_blocks": 0,
+      "false_blocks": 2,
+      "block_precision": 0.0,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 2
+      }
+    },
+    "SPELL_CONSONANT_CONFUSION_001": {
+      "trigger_count": 89,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 89
+      }
+    },
+    "SPELL_VOWEL_LENGTH_001": {
+      "trigger_count": 7,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "block_precision": null,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "ACCEPT": 7
+      }
+    },
+    "VERB_TENSE_001": {
+      "trigger_count": 5,
+      "correct_blocks": 1,
+      "false_blocks": 3,
+      "block_precision": 0.25,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 5
+      }
+    },
+    "VERB_VOICE_001": {
+      "trigger_count": 2,
+      "correct_blocks": 0,
+      "false_blocks": 2,
+      "block_precision": 0.0,
+      "advisory_candidate_supported": 0,
+      "advisory_original_supported": 0,
+      "decisions": {
+        "SUGGEST": 2
+      }
+    }
+  },
+  "policy_analysis": {
+    "legacy_false_blocked_edits": 23,
+    "legacy_false_blocks_by_decision": {
+      "SUGGEST": 20,
+      "REJECT": 3
+    },
+    "legacy_sentence_level_false_blocks": 0,
+    "new_hard_blocked_edits": 1,
+    "new_false_hard_blocks": 0,
+    "new_unadjudicated_hard_blocks": 1
+  },
+  "legacy_false_blocks": [
+    {
+      "id": "6:1",
+      "example_id": "6",
+      "rule_ids": "VERB_TENSE_001;SEMANTIC_TENSE_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "කරනවා",
+      "candidate_fragment": "කළා",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "ජනාධිපතිවරයා ඊයේ රාත්‍රී ජාතිය අමතා කතා කරනවා.",
+      "model_output": "ජනාධිපතිවරයා ඊයේ රාත්‍රී ජාතිය අමතා කතා කළා.",
+      "old_hybrid": "ජනාධිපතිවරයා ඊයේ රාත්‍රී ජාතිය අමතා කතා කරනවා.",
+      "new_decision": "WARN/APPLY",
+      "target": "ජනාධිපතිවරයා ඊයේ රාත්‍රී ජාතිය අමතා කතා කළා.",
+      "reason": "The model changed an identifiable tense; the candidate is retained with a warning."
+    },
+    {
+      "id": "10:1",
+      "example_id": "10",
+      "rule_ids": "VERB_TENSE_001;SEMANTIC_TENSE_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "කරනවා",
+      "candidate_fragment": "කළා",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "රජය ඊයේ නව ව්‍යාපෘතියේ සිව්වන අදියර ප්‍රකාශයට පත් කරනවා.",
+      "model_output": "රජය ඊයේ නව ව්‍යාපෘතියේ සිව්වන අදියර ප්‍රකාශයට පත් කළා.",
+      "old_hybrid": "රජය ඊයේ නව ව්‍යාපෘතියේ සිව්වන අදියර ප්‍රකාශයට පත් කරනවා.",
+      "new_decision": "WARN/APPLY",
+      "target": "රජය ඊයේ නව ව්‍යාපෘතියේ සිව්වන අදියර ප්‍රකාශයට පත් කළා.",
+      "reason": "The model changed an identifiable tense; the candidate is retained with a warning."
+    },
+    {
+      "id": "11:1",
+      "example_id": "11",
+      "rule_ids": "SEMANTIC_EDIT_SIZE_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "",
+      "candidate_fragment": " ජාතිය අමතා",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "ජනාධිපතිවරයා ප්‍රකාශය නිකුත් කළා ජාතිය අමතා.",
+      "model_output": "ජනාධිපතිවරයා ජාතිය අමතා ප්‍රකාශය නිකුත් කළා.",
+      "old_hybrid": "ජනාධිපතිවරයා ප්‍රකාශය නිකුත් කළා ජාතිය අමතා.",
+      "new_decision": "WARN/APPLY",
+      "target": "ජනාධිපතිවරයා ජාතිය අමතා ප්‍රකාශය නිකුත් කළා.",
+      "reason": "The model rewrote a large span; the candidate is retained with a review warning."
+    },
+    {
+      "id": "12:1",
+      "example_id": "12",
+      "rule_ids": "ORTH_ZWJ_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "",
+      "candidate_fragment": " නව ව්‍යාපෘතිය හරහා",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "රාජ්‍ය ආයතනය ජනතාවට සහනය ලබාදෙන්නේය නව ව්‍යාපෘතිය හරහා.",
+      "model_output": "රාජ්‍ය ආයතනය නව ව්‍යාපෘතිය හරහා ජනතාවට සහනය ලබාදෙන්නේය.",
+      "old_hybrid": "රාජ්‍ය ආයතනය ජනතාවට සහනය ලබාදෙන්නේය නව ව්‍යාපෘතිය හරහා.",
+      "new_decision": "WARN/APPLY",
+      "target": "රාජ්‍ය ආයතනය නව ව්‍යාපෘතිය හරහා ජනතාවට සහනය ලබාදෙන්නේය.",
+      "reason": "The edit changes Sinhala joiner/conjunct structure; it is applied with a review warning."
+    },
+    {
+      "id": "14:1",
+      "example_id": "14",
+      "rule_ids": "SEMANTIC_EDIT_SIZE_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "",
+      "candidate_fragment": " ලබන සතියේ",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "කොමිසම නිර්දේශ ජනාධිපතිවරයාට ලබා දෙනවා ලබන සතියේ.",
+      "model_output": "කොමිසම ලබන සතියේ නිර්දේශ ජනාධිපතිවරයාට ලබා දෙනවා.",
+      "old_hybrid": "කොමිසම නිර්දේශ ජනාධිපතිවරයාට ලබා දෙනවා ලබන සතියේ.",
+      "new_decision": "WARN/APPLY",
+      "target": "කොමිසම ලබන සතියේ නිර්දේශ ජනාධිපතිවරයාට ලබා දෙනවා.",
+      "reason": "The model rewrote a large span; the candidate is retained with a review warning."
+    },
+    {
+      "id": "23:1",
+      "example_id": "23",
+      "rule_ids": "REGISTER_CONTEXT_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "නෑ",
+      "candidate_fragment": "නැහැ",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "ආණ්ඩුව ජනතාවට ඒ ගැන දැනුම් දීමට නොකළේ නෑ.",
+      "model_output": "ආණ්ඩුව ජනතාවට ඒ ගැන දැනුම් දීමට නොකළේ නැහැ.",
+      "old_hybrid": "ආණ්ඩුව ජනතාවට ඒ ගැන දැනුම් දීමට නොකළේ නෑ.",
+      "new_decision": "WARN/APPLY",
+      "target": "ආණ්ඩුව ජනතාවට ඒ ගැන දැනුම් දීමට නොකළේ නැහැ.",
+      "reason": "This change depends on discourse or journalistic register."
+    },
+    {
+      "id": "28:1",
+      "example_id": "28",
+      "rule_ids": "VERB_TENSE_001;SEMANTIC_TENSE_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "කරනවා",
+      "candidate_fragment": "කළෝය",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "නායකයෝ ගිය සතියේ ජාතික ප්‍රශ්නය ගැන සාකච්ඡා කරනවා.",
+      "model_output": "නායකයෝ ගිය සතියේ ජාතික ප්‍රශ්නය ගැන සාකච්ඡා කළෝය.",
+      "old_hybrid": "නායකයෝ ගිය සතියේ ජාතික ප්‍රශ්නය ගැන සාකච්ඡා කරනවා.",
+      "new_decision": "WARN/APPLY",
+      "target": "නායකයෝ ගිය සතියේ ජාතික ප්‍රශ්නය ගැන සාකච්ඡා කළෝය.",
+      "reason": "The model changed an identifiable tense; the candidate is retained with a warning."
+    },
+    {
+      "id": "31:1",
+      "example_id": "31",
+      "rule_ids": "REGISTER_CONTEXT_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "කිව්වා",
+      "candidate_fragment": "කිව්වේ",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "අග්‍රාමාත්‍යවරයා කිව්වා නව ව්‍යාපෘතිය ජනතාවට ප්‍රතිලාභ ලබාදෙනවා කියලා.",
+      "model_output": "අග්‍රාමාත්‍යවරයා කිව්වේ නව ව්‍යාපෘතිය ජනතාවට ප්‍රතිලාභ ලබාදෙනවා කියලා.",
+      "old_hybrid": "අග්‍රාමාත්‍යවරයා කිව්වා නව ව්‍යාපෘතිය ජනතාවට ප්‍රතිලාභ ලබාදෙනවා කියලා.",
+      "new_decision": "WARN/APPLY",
+      "target": "අග්‍රාමාත්‍යවරයා කිව්වේ නව ව්‍යාපෘතිය ජනතාවට ප්‍රතිලාභ ලබාදෙන බවයි.",
+      "reason": "This change depends on discourse or journalistic register."
+    },
+    {
+      "id": "36:1",
+      "example_id": "36",
+      "rule_ids": "HONORIFIC_CONTEXT_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "ජනාධිපතිතුමාගෙ",
+      "candidate_fragment": "ජනාධිපතිතුමාගේ",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "ජනාධිපතිතුමාගෙ ප්‍රකාශය ජාතිය ඇමතීමේදී ලබා දෙනු ලැබිණ.",
+      "model_output": "ජනාධිපතිතුමාගේ ප්‍රකාශය ජාතිය ඇමතීමේදී ලබා දෙනු ලැබිණ.",
+      "old_hybrid": "ජනාධිපතිතුමාගෙ ප්‍රකාශය ජාතිය ඇමතීමේදී ලබා දෙනු ලැබිණ.",
+      "new_decision": "WARN/APPLY",
+      "target": "ජනාධිපතිතුමාගේ ප්‍රකාශය ජාතිය ඇමතීමේදී ලබා දෙනු ලැබිණ.",
+      "reason": "This change depends on discourse or journalistic register."
+    },
+    {
+      "id": "58:5",
+      "example_id": "58",
+      "rule_ids": "AMBIG_KEEP_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "කල",
+      "candidate_fragment": "කළ",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "ශ්‍රී ලංකා කණ්ඩායම ඊයේ රාත්‍රී පැවැත්වුනු තරඟයෙන් විශිෂ්ඨ ජයක් ලැබූහ. නායකයා පැවසුවේ සියළුම ක්‍රීඩකයන් හොදින් ක්‍රීඩා කල බවයි. මෙම ජයග්‍රහනය රටට ඉතා වැදගත් වේ.",
+      "model_output": "ශ්‍රී ලංකා කණ්ඩායම ඊයේ රාත්‍රී පැවැත්වුණු තරඟයෙන් විශිෂ්ට ජයක් ලැබූහ. නායකයා පැවසුවේ සියලුම ක්‍රීඩකයන් හොඳින් ක්‍රීඩා කළ බවයි. මෙම ජයග්‍රහණය රටට ඉතා වැදගත් වේ.",
+      "old_hybrid": "ශ්‍රී ලංකා කණ්ඩායම ඊයේ රාත්‍රී පැවැත්වුණු තරඟයෙන් විශිෂ්ට ජයක් ලැබූහ. නායකයා පැවසුවේ සියලුම ක්‍රීඩකයන් හොඳින් ක්‍රීඩා කල බවයි. මෙම ජයග්‍රහණය රටට ඉතා වැදගත් වේ.",
+      "new_decision": "WARN/APPLY",
+      "target": "ශ්‍රී ලංකා කණ්ඩායම ඊයේ රාත්‍රී පැවැත්වුණු තරඟයෙන් විශිෂ්ට ජයක් ලැබූහ. නායකයා පැවසුවේ සියලුම ක්‍රීඩකයන් හොඳින් ක්‍රීඩා කළ බවයි. මෙම ජයග්‍රහණය රටට ඉතා වැදගත් වේ.",
+      "reason": "Both forms may be valid; the candidate is applied with a context warning."
+    },
+    {
+      "id": "59:1",
+      "example_id": "59",
+      "rule_ids": "ENTITY_PROTECT_001;SEMANTIC_ENTITY_001",
+      "decision": "REJECT",
+      "confidence_level": "HIGH",
+      "original_fragment": "අමාත්‍යංශය",
+      "candidate_fragment": "අමාත්‍යාංශය",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "අධ්‍යාපන අමාත්‍යංශය විසින් පවත්වනු ලබන විභාග වල ප්‍රතිඵල ලබන සතියේ නිකුත් කෙරේ. සිසුන් හට තම ප්‍රතිඵල අන්තර්ජාලය හරහා ලබා ගැනීමට පහසුකම් සලසා ඇතැයි නිළධාරීන් සදහන් කළා.",
+      "model_output": "අධ්‍යාපන අමාත්‍යාංශය විසින් පවත්වනු ලබන විභාගවල ප්‍රතිඵල ලබන සතියේ නිකුත් කෙරේ. සිසුන් හට තම ප්‍රතිඵල අන්තර්ජාලය හරහා ලබා ගැනීමට පහසුකම් සලසා ඇතැයි නිලධාරීන් සඳහන් කළා.",
+      "old_hybrid": "අධ්‍යාපන අමාත්‍යංශය විසින් පවත්වනු ලබන විභාගවල ප්‍රතිඵල ලබන සතියේ නිකුත් කෙරේ. සිසුන් හට තම ප්‍රතිඵල අන්තර්ජාලය හරහා ලබා ගැනීමට පහසුකම් සලසා ඇතැයි නිලධාරීන් සඳහන් කළා.",
+      "new_decision": "WARN/APPLY",
+      "target": "අධ්‍යාපන අමාත්‍යාංශය විසින් පවත්වනු ලබන විභාගවල ප්‍රතිඵල ලබන සතියේ නිකුත් කෙරේ. සිසුන් හට තම ප්‍රතිඵල අන්තර්ජාලය හරහා ලබා ගැනීමට පහසුකම් සලසා ඇතැයි නිලධාරීන් සඳහන් කළා.",
+      "reason": "The proposed edit changes a high-confidence protected entity."
+    },
+    {
+      "id": "60:7",
+      "example_id": "60",
+      "rule_ids": "REGISTER_CONTEXT_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "වුනා",
+      "candidate_fragment": "වුණා",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "පරිසර දූශණය වැලැක්වීම සදහා රජය නව නීති පැනවීමට තීරනය කර ඇත. මේ යටතේ ප්ලාස්ටික් භාවිතය සීමා කිරීමට පියවර ගන්නා බවත්, වැරදිකරුවන්ට දැඩි දඩුවම් පමුනුවන බවත් ප්‍රකාශ වුනා.",
+      "model_output": "පරිසර දූෂණය වැළැක්වීම සඳහා රජය නව නීති පැනවීමට තීරණය කර ඇත. මේ යටතේ ප්ලාස්ටික් භාවිතය සීමා කිරීමට පියවර ගන්නා බවත්, වැරදිකරුවන්ට දැඩි දඬුවම් පමුණුවන බවත් ප්‍රකාශ වුණා.",
+      "old_hybrid": "පරිසර දූෂණය වැළැක්වීම සඳහා රජය නව නීති පැනවීමට තීරණය කර ඇත. මේ යටතේ ප්ලාස්ටික් භාවිතය සීමා කිරීමට පියවර ගන්නා බවත්, වැරදිකරුවන්ට දැඩි දඬුවම් පමුණුවන බවත් ප්‍රකාශ වුනා.",
+      "new_decision": "WARN/APPLY",
+      "target": "පරිසර දූෂණය වැළැක්වීම සඳහා රජය නව නීති පැනවීමට තීරණය කර ඇත. මේ යටතේ ප්ලාස්ටික් භාවිතය සීමා කිරීමට පියවර ගන්නා බවත්, වැරදිකරුවන්ට දැඩි දඬුවම් පමුණුවන බවත් ප්‍රකාශ වුණා.",
+      "reason": "This change depends on discourse or journalistic register."
+    },
+    {
+      "id": "62:1",
+      "example_id": "62",
+      "rule_ids": "AMBIG_KEEP_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "කල",
+      "candidate_fragment": "කළ",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "සෞඛ්‍ය අංශ විසින් නිකුත් කල නිවේදනයට අනුව, නව උණ රෝගයක් පැතිරීමේ අවදානමක් පවතී. එම නිසා පොදු ස්ථාන වල ගැවසීමේදී මුඛ ආවරන පැලදීම ඉතා වැදගත් බව වෛද්‍යවරු උපදෙස් දෙති.",
+      "model_output": "සෞඛ්‍ය අංශ විසින් නිකුත් කළ නිවේදනයට අනුව, නව උණ රෝගයක් පැතිරීමේ අවදානමක් පවතී. එම නිසා පොදු ස්ථානවල ගැවසීමේදී මුඛ ආවරණ පැළඳීම ඉතා වැදගත් බව වෛද්‍යවරු උපදෙස් දෙති.",
+      "old_hybrid": "සෞඛ්‍ය අංශ විසින් නිකුත් කල නිවේදනයට අනුව, නව උණ රෝගයක් පැතිරීමේ අවදානමක් පවතී. එම නිසා පොදු ස්ථානවල ගැවසීමේදී මුඛ ආවරණ පැළඳීම ඉතා වැදගත් බව වෛද්‍යවරු උපදෙස් දෙති.",
+      "new_decision": "WARN/APPLY",
+      "target": "සෞඛ්‍ය අංශ විසින් නිකුත් කළ නිවේදනයට අනුව, නව උණ රෝගයක් පැතිරීමේ අවදානමක් පවතී. එම නිසා පොදු ස්ථානවල ගැවසීමේදී මුඛ ආවරණ පැළඳීම ඉතා වැදගත් බව වෛද්‍යවරු උපදෙස් දෙති.",
+      "reason": "Both forms may be valid; the candidate is applied with a context warning."
+    },
+    {
+      "id": "65:1",
+      "example_id": "65",
+      "rule_ids": "SEMANTIC_EDIT_SIZE_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "කාලගුන",
+      "candidate_fragment": "කාලගුණ",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "කාලගුන විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුල දිවයිනේ බොහෝ ප්‍රදේශ වලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කදුකර ප්‍රදේශ වලට තද වැසි අපේක්ෂා කල හැකිය.",
+      "model_output": "කාලගුණ විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුළ දිවයිනේ බොහෝ ප්‍රදේශවලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කඳුකර ප්‍රදේශවලට තද වැසි අපේක්ෂා කළ හැකිය.",
+      "old_hybrid": "කාලගුන විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුල දිවයිනේ බොහෝ ප්‍රදේශ වලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කදුකර ප්‍රදේශ වලට තද වැසි අපේක්ෂා කල හැකිය.",
+      "new_decision": "WARN/APPLY",
+      "target": "කාලගුණ විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුළ දිවයිනේ බොහෝ ප්‍රදේශවලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කඳුකර ප්‍රදේශවලට තද වැසි අපේක්ෂා කළ හැකිය.",
+      "reason": "The model rewrote a large span; the candidate is retained with a review warning."
+    },
+    {
+      "id": "65:2",
+      "example_id": "65",
+      "rule_ids": "SEMANTIC_EDIT_SIZE_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "තුල",
+      "candidate_fragment": "තුළ",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "කාලගුන විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුල දිවයිනේ බොහෝ ප්‍රදේශ වලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කදුකර ප්‍රදේශ වලට තද වැසි අපේක්ෂා කල හැකිය.",
+      "model_output": "කාලගුණ විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුළ දිවයිනේ බොහෝ ප්‍රදේශවලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කඳුකර ප්‍රදේශවලට තද වැසි අපේක්ෂා කළ හැකිය.",
+      "old_hybrid": "කාලගුන විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුල දිවයිනේ බොහෝ ප්‍රදේශ වලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කදුකර ප්‍රදේශ වලට තද වැසි අපේක්ෂා කල හැකිය.",
+      "new_decision": "WARN/APPLY",
+      "target": "කාලගුණ විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුළ දිවයිනේ බොහෝ ප්‍රදේශවලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කඳුකර ප්‍රදේශවලට තද වැසි අපේක්ෂා කළ හැකිය.",
+      "reason": "The model rewrote a large span; the candidate is retained with a review warning."
+    },
+    {
+      "id": "65:4",
+      "example_id": "65",
+      "rule_ids": "SEMANTIC_EDIT_SIZE_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "කදුකර",
+      "candidate_fragment": "කඳුකර",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "කාලගුන විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුල දිවයිනේ බොහෝ ප්‍රදේශ වලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කදුකර ප්‍රදේශ වලට තද වැසි අපේක්ෂා කල හැකිය.",
+      "model_output": "කාලගුණ විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුළ දිවයිනේ බොහෝ ප්‍රදේශවලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කඳුකර ප්‍රදේශවලට තද වැසි අපේක්ෂා කළ හැකිය.",
+      "old_hybrid": "කාලගුන විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුල දිවයිනේ බොහෝ ප්‍රදේශ වලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කදුකර ප්‍රදේශ වලට තද වැසි අපේක්ෂා කල හැකිය.",
+      "new_decision": "WARN/APPLY",
+      "target": "කාලගුණ විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුළ දිවයිනේ බොහෝ ප්‍රදේශවලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කඳුකර ප්‍රදේශවලට තද වැසි අපේක්ෂා කළ හැකිය.",
+      "reason": "The model rewrote a large span; the candidate is retained with a review warning."
+    },
+    {
+      "id": "65:6",
+      "example_id": "65",
+      "rule_ids": "AMBIG_KEEP_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "කල",
+      "candidate_fragment": "කළ",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "කාලගුන විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුල දිවයිනේ බොහෝ ප්‍රදේශ වලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කදුකර ප්‍රදේශ වලට තද වැසි අපේක්ෂා කල හැකිය.",
+      "model_output": "කාලගුණ විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුළ දිවයිනේ බොහෝ ප්‍රදේශවලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කඳුකර ප්‍රදේශවලට තද වැසි අපේක්ෂා කළ හැකිය.",
+      "old_hybrid": "කාලගුන විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුල දිවයිනේ බොහෝ ප්‍රදේශ වලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කදුකර ප්‍රදේශ වලට තද වැසි අපේක්ෂා කල හැකිය.",
+      "new_decision": "WARN/APPLY",
+      "target": "කාලගුණ විද්‍යා දෙපාර්තමේන්තුව පවසන්නේ ඉදිරි පැය 24 තුළ දිවයිනේ බොහෝ ප්‍රදේශවලට වැසි ඇතිවිය හැකි බවයි. විශේෂයෙන්ම කඳුකර ප්‍රදේශවලට තද වැසි අපේක්ෂා කළ හැකිය.",
+      "reason": "Both forms may be valid; the candidate is applied with a context warning."
+    },
+    {
+      "id": "66:1",
+      "example_id": "66",
+      "rule_ids": "AMBIG_KEEP_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "සමග",
+      "candidate_fragment": "සමඟ",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "ජාත්‍යන්තර මූල්‍ය අරමුදල සමග පැවැත්වූ සාකච්ඡා සාර්ථක බව මුදල් අමාත්‍යංශය නිවේදනය කළේය. මෙරට ආර්ථික ස්ථාවර භාවය ඇති කිරීම සදහා මෙම ගිවිසුම ඉතා වැදගත් වනු ඇත.",
+      "model_output": "ජාත්‍යන්තර මූල්‍ය අරමුදල සමඟ පැවැත්වූ සාකච්ඡා සාර්ථක බව මුදල් අමාත්‍යාංශය නිවේදනය කළේය. මෙරට ආර්ථික ස්ථාවරභාවය ඇති කිරීම සඳහා මෙම ගිවිසුම ඉතා වැදගත් වනු ඇත.",
+      "old_hybrid": "ජාත්‍යන්තර මූල්‍ය අරමුදල සමග පැවැත්වූ සාකච්ඡා සාර්ථක බව මුදල් අමාත්‍යංශය නිවේදනය කළේය. මෙරට ආර්ථික ස්ථාවරභාවය ඇති කිරීම සඳහා මෙම ගිවිසුම ඉතා වැදගත් වනු ඇත.",
+      "new_decision": "WARN/APPLY",
+      "target": "ජාත්‍යන්තර මූල්‍ය අරමුදල සමඟ පැවැත්වූ සාකච්ඡා සාර්ථක බව මුදල් අමාත්‍යාංශය නිවේදනය කළේය. මෙරට ආර්ථික ස්ථාවරභාවය ඇති කිරීම සඳහා මෙම ගිවිසුම ඉතා වැදගත් වනු ඇත.",
+      "reason": "Both forms may be valid; the candidate is applied with a context warning."
+    },
+    {
+      "id": "66:2",
+      "example_id": "66",
+      "rule_ids": "ENTITY_PROTECT_001;SEMANTIC_ENTITY_001",
+      "decision": "REJECT",
+      "confidence_level": "HIGH",
+      "original_fragment": "අමාත්‍යංශය",
+      "candidate_fragment": "අමාත්‍යාංශය",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "ජාත්‍යන්තර මූල්‍ය අරමුදල සමග පැවැත්වූ සාකච්ඡා සාර්ථක බව මුදල් අමාත්‍යංශය නිවේදනය කළේය. මෙරට ආර්ථික ස්ථාවර භාවය ඇති කිරීම සදහා මෙම ගිවිසුම ඉතා වැදගත් වනු ඇත.",
+      "model_output": "ජාත්‍යන්තර මූල්‍ය අරමුදල සමඟ පැවැත්වූ සාකච්ඡා සාර්ථක බව මුදල් අමාත්‍යාංශය නිවේදනය කළේය. මෙරට ආර්ථික ස්ථාවරභාවය ඇති කිරීම සඳහා මෙම ගිවිසුම ඉතා වැදගත් වනු ඇත.",
+      "old_hybrid": "ජාත්‍යන්තර මූල්‍ය අරමුදල සමග පැවැත්වූ සාකච්ඡා සාර්ථක බව මුදල් අමාත්‍යංශය නිවේදනය කළේය. මෙරට ආර්ථික ස්ථාවරභාවය ඇති කිරීම සඳහා මෙම ගිවිසුම ඉතා වැදගත් වනු ඇත.",
+      "new_decision": "WARN/APPLY",
+      "target": "ජාත්‍යන්තර මූල්‍ය අරමුදල සමඟ පැවැත්වූ සාකච්ඡා සාර්ථක බව මුදල් අමාත්‍යාංශය නිවේදනය කළේය. මෙරට ආර්ථික ස්ථාවරභාවය ඇති කිරීම සඳහා මෙම ගිවිසුම ඉතා වැදගත් වනු ඇත.",
+      "reason": "The proposed edit changes a high-confidence protected entity."
+    },
+    {
+      "id": "80:3",
+      "example_id": "80",
+      "rule_ids": "VERB_VOICE_001;SEMANTIC_VOICE_001;PASSIVE_AUX_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "සදහන්",
+      "candidate_fragment": "සඳහන්",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "අනතුරුව සැකකරු මෝටර් රථයකින් පලාගොස් ඇති අතර, එම අවස්ථාවේ රෝහලේ ආරක්ෂක නිළධාරිණියක විසින් සැකකරු පලාගිය මෝටර් රථයේ අංකය ඡායාරූපගත කර තිබීම හේතුවෙන් විමර්ශන සදහා වැදගත් තොරතුරු ලැබී ඇති බව පොලීසිය සදහන් කලේය.",
+      "model_output": "අනතුරුව සැකකරු මෝටර් රථයකින් පලාගොස් ඇති අතර, එම අවස්ථාවේ රෝහලේ ආරක්ෂක නිලධාරිණියක විසින් සැකකරු පලාගිය මෝටර් රථයේ අංකය ඡායාරූපගත කර තිබීම හේතුවෙන් විමර්ශන සඳහා වැදගත් තොරතුරු ලැබී ඇති බව පොලීසිය සඳහන් කළේය.",
+      "old_hybrid": "අනතුරුව සැකකරු මෝටර් රථයකින් පලාගොස් ඇති අතර, එම අවස්ථාවේ රෝහලේ ආරක්ෂක නිලධාරිණියක විසින් සැකකරු පලාගිය මෝටර් රථයේ අංකය ඡායාරූපගත කර තිබීම හේතුවෙන් විමර්ශන සඳහා වැදගත් තොරතුරු ලැබී ඇති බව පොලීසිය සදහන් කලේය.",
+      "new_decision": "WARN/APPLY",
+      "target": "අනතුරුව සැකකරු මෝටර් රථයකින් පළාගොස් ඇති අතර, එම අවස්ථාවේ රෝහලේ ආරක්ෂක නිලධාරිණියක විසින් සැකකරු පලාගිය මෝටර් රථයේ අංකය ඡායාරූපගත කර තිබීම හේතුවෙන් විමර්ශන සඳහා වැදගත් තොරතුරු ලැබී ඇති බව පොලීසිය සඳහන් කළේය.",
+      "reason": "The model changed active/passive voice; the candidate is retained with a warning."
+    },
+    {
+      "id": "80:4",
+      "example_id": "80",
+      "rule_ids": "VERB_VOICE_001;SEMANTIC_VOICE_001;PASSIVE_AUX_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "කලේය",
+      "candidate_fragment": "කළේය",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "අනතුරුව සැකකරු මෝටර් රථයකින් පලාගොස් ඇති අතර, එම අවස්ථාවේ රෝහලේ ආරක්ෂක නිළධාරිණියක විසින් සැකකරු පලාගිය මෝටර් රථයේ අංකය ඡායාරූපගත කර තිබීම හේතුවෙන් විමර්ශන සදහා වැදගත් තොරතුරු ලැබී ඇති බව පොලීසිය සදහන් කලේය.",
+      "model_output": "අනතුරුව සැකකරු මෝටර් රථයකින් පලාගොස් ඇති අතර, එම අවස්ථාවේ රෝහලේ ආරක්ෂක නිලධාරිණියක විසින් සැකකරු පලාගිය මෝටර් රථයේ අංකය ඡායාරූපගත කර තිබීම හේතුවෙන් විමර්ශන සඳහා වැදගත් තොරතුරු ලැබී ඇති බව පොලීසිය සඳහන් කළේය.",
+      "old_hybrid": "අනතුරුව සැකකරු මෝටර් රථයකින් පලාගොස් ඇති අතර, එම අවස්ථාවේ රෝහලේ ආරක්ෂක නිලධාරිණියක විසින් සැකකරු පලාගිය මෝටර් රථයේ අංකය ඡායාරූපගත කර තිබීම හේතුවෙන් විමර්ශන සඳහා වැදගත් තොරතුරු ලැබී ඇති බව පොලීසිය සදහන් කලේය.",
+      "new_decision": "WARN/APPLY",
+      "target": "අනතුරුව සැකකරු මෝටර් රථයකින් පළාගොස් ඇති අතර, එම අවස්ථාවේ රෝහලේ ආරක්ෂක නිලධාරිණියක විසින් සැකකරු පලාගිය මෝටර් රථයේ අංකය ඡායාරූපගත කර තිබීම හේතුවෙන් විමර්ශන සඳහා වැදගත් තොරතුරු ලැබී ඇති බව පොලීසිය සඳහන් කළේය.",
+      "reason": "The model changed active/passive voice; the candidate is retained with a warning."
+    },
+    {
+      "id": "98:1",
+      "example_id": "98",
+      "rule_ids": "SEMANTIC_EDIT_SIZE_001",
+      "decision": "SUGGEST",
+      "confidence_level": "LOW",
+      "original_fragment": "",
+      "candidate_fragment": " අද පෙරවරුවේ",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "පොලීසිය විමර්ශන ආරම්භ කර ඇත අද පෙරවරුවේ.",
+      "model_output": "පොලීසිය අද පෙරවරුවේ විමර්ශන ආරම්භ කර ඇත.",
+      "old_hybrid": "පොලීසිය විමර්ශන ආරම්භ කර ඇත අද පෙරවරුවේ.",
+      "new_decision": "WARN/APPLY",
+      "target": "පොලීසිය අද පෙරවරුවේ විමර්ශන ආරම්භ කර ඇත.",
+      "reason": "The model rewrote a large span; the candidate is retained with a review warning."
+    },
+    {
+      "id": "130:2",
+      "example_id": "130",
+      "rule_ids": "ENTITY_PROTECT_001;SEMANTIC_ENTITY_001",
+      "decision": "REJECT",
+      "confidence_level": "HIGH",
+      "original_fragment": "කරුනාතිලක",
+      "candidate_fragment": "කරුණාතිලක",
+      "adjudication": "candidate_supported",
+      "sentence_level_rollback": false,
+      "input": "චමින්ද විජේසිරි සහ රියදුරු බන්දුල රත්නායක යන විත්තිකරුවන් දෙදෙනා චෝදනා 4කට, ඇමති ආරක්ෂක සේවයේ පොලිස් නිලධාරි රසික කරුනාතිලක චෝදනා 3ටත් වැරදිකරු බවට තීරණය කෙරුනි.",
+      "model_output": "චමින්ද විජේසිරි සහ රියදුරු බන්දුල රත්නායක යන විත්තිකරුවන් දෙදෙනා චෝදනා 4කට, ඇමති ආරක්ෂක සේවයේ පොලිස් නිලධාරී රසික කරුණාතිලක චෝදනා 3ටත් වැරදිකරු බවට තීරණය කෙරිණි.",
+      "old_hybrid": "චමින්ද විජේසිරි සහ රියදුරු බන්දුල රත්නායක යන විත්තිකරුවන් දෙදෙනා චෝදනා 4කට, ඇමති ආරක්ෂක සේවයේ පොලිස් නිලධාරී රසික කරුනාතිලක චෝදනා 3ටත් වැරදිකරු බවට තීරණය කෙරිණි.",
+      "new_decision": "WARN/APPLY",
+      "target": "චමින්ද විජේසිරි සහ රියදුරු බන්දුල රත්නායක යන විත්තිකරුවන් දෙදෙනා චෝදනා 4කට, ඇමති ආරක්ෂක සේවයේ පොලිස් නිලධාරී රසික කරුණාතිලක චෝදනා 3ටත් වැරදිකරු බවට තීරණය කෙරුණි.",
+      "reason": "The proposed edit changes a high-confidence protected entity."
+    }
+  ],
+  "hard_blocks": [
+    {
+      "example_id": "82",
+      "rule_ids": "ENTITY_PROTECT_001;SEMANTIC_ENTITY_001",
+      "decision": "REJECT",
+      "confidence_level": "HIGH",
+      "original_fragment": "ගුනවර්ධන",
+      "candidate_fragment": "ගුණසේකර",
+      "adjudication": "unadjudicated",
+      "input": "සැකකරු අත්අඩංගුවට ගැනීම සදහා විමර්ශන ක්‍රියාත්මක වන අතර, හොරණ වැඩබලන මූලස්ථාන පොලිස් පරීක්ශක පරාක්‍රම ගුනවර්ධන මහතාගේ උපදෙස් මත හොරණ මූලස්ථාන පොලීසිය වැඩිදුර පරීක්ශන සිදු කරයි.",
+      "model_output": "සැකකරු අත්අඩංගුවට ගැනීම සඳහා විමර්ශන ක්‍රියාත්මක වන අතර, හොරණ වැඩබලන මූලස්ථාන පොලිස් පරීක්ෂක පරාක්‍රම ගුණසේකර මහතාගේ උපදෙස් මත හොරණ මූලස්ථාන පොලීසිය වැඩිදුර පරීක්ෂණ සිදු කරයි.",
+      "final": "සැකකරු අත්අඩංගුවට ගැනීම සඳහා විමර්ශන ක්‍රියාත්මක වන අතර, හොරණ වැඩබලන මූලස්ථාන පොලිස් පරීක්ෂක පරාක්‍රම ගුනවර්ධන මහතාගේ උපදෙස් මත හොරණ මූලස්ථාන පොලීසිය වැඩිදුර පරීක්ෂණ සිදු කරයි.",
+      "target": "සැකකරු අත්අඩංගුවට ගැනීම සඳහා විමර්ශන ක්‍රියාත්මක වන අතර, හොරණ වැඩබලන මූලස්ථාන පොලිස් පරීක්ෂක පරාක්‍රම ගුණවර්ධන මහතාගේ උපදෙස් මත හොරණ මූලස්ථාන පොලීසිය වැඩිදුර පරීක්ෂණ සිදු කරයි.",
+      "reason": "The proposed edit changes a high-confidence protected entity."
+    }
+  ],
+  "dedicated_rule_evaluation": {
+    "metrics": {
+      "AMBIG_KEEP_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 0,
+        "actual_blocks": 0,
+        "correct_blocks": 0,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": null,
+        "false_block_rate": null,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      },
+      "CASE_ATTACH_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 0,
+        "actual_blocks": 0,
+        "correct_blocks": 0,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": null,
+        "false_block_rate": null,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      },
+      "EMAIL_PROTECT_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 1,
+        "actual_blocks": 1,
+        "correct_blocks": 1,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": 1.0,
+        "false_block_rate": 0.0,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      },
+      "ENTITY_PROTECT_001": {
+        "cases": 3,
+        "expected_triggers": 2,
+        "actual_triggers": 2,
+        "true_positive": 2,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 1,
+        "actual_blocks": 1,
+        "correct_blocks": 1,
+        "false_blocks": 0,
+        "effect_matches": 3,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": 1.0,
+        "false_block_rate": 0.0,
+        "coverage": 0.6667,
+        "effect_accuracy": 1.0
+      },
+      "HONORIFIC_CONTEXT_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 0,
+        "actual_blocks": 0,
+        "correct_blocks": 0,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": null,
+        "false_block_rate": null,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      },
+      "NUMBER_PROTECT_001": {
+        "cases": 2,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 1,
+        "actual_blocks": 1,
+        "correct_blocks": 1,
+        "false_blocks": 0,
+        "effect_matches": 2,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": 1.0,
+        "false_block_rate": 0.0,
+        "coverage": 0.5,
+        "effect_accuracy": 1.0
+      },
+      "ORTH_ZWJ_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 0,
+        "actual_blocks": 0,
+        "correct_blocks": 0,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": null,
+        "false_block_rate": null,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      },
+      "PASSIVE_AUX_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 0,
+        "actual_blocks": 0,
+        "correct_blocks": 0,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": null,
+        "false_block_rate": null,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      },
+      "POLARITY_PROTECT_001": {
+        "cases": 2,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 1,
+        "actual_blocks": 1,
+        "correct_blocks": 1,
+        "false_blocks": 0,
+        "effect_matches": 2,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": 1.0,
+        "false_block_rate": 0.0,
+        "coverage": 0.5,
+        "effect_accuracy": 1.0
+      },
+      "REGISTER_CONTEXT_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 0,
+        "actual_blocks": 0,
+        "correct_blocks": 0,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": null,
+        "false_block_rate": null,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      },
+      "SEMANTIC_EDIT_SIZE_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 0,
+        "actual_blocks": 0,
+        "correct_blocks": 0,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": null,
+        "false_block_rate": null,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      },
+      "SEMANTIC_ENTITY_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 1,
+        "actual_blocks": 1,
+        "correct_blocks": 1,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": 1.0,
+        "false_block_rate": 0.0,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      },
+      "SPELL_CONSONANT_CONFUSION_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 0,
+        "actual_blocks": 0,
+        "correct_blocks": 0,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": null,
+        "false_block_rate": null,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      },
+      "URL_PROTECT_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 1,
+        "actual_blocks": 1,
+        "correct_blocks": 1,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": 1.0,
+        "false_block_rate": 0.0,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      },
+      "VERB_TENSE_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 0,
+        "actual_blocks": 0,
+        "correct_blocks": 0,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": null,
+        "false_block_rate": null,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      },
+      "VERB_VOICE_001": {
+        "cases": 1,
+        "expected_triggers": 1,
+        "actual_triggers": 1,
+        "true_positive": 1,
+        "false_positive": 0,
+        "false_negative": 0,
+        "expected_blocks": 0,
+        "actual_blocks": 0,
+        "correct_blocks": 0,
+        "false_blocks": 0,
+        "effect_matches": 1,
+        "trigger_precision": 1.0,
+        "trigger_recall": 1.0,
+        "block_precision": null,
+        "false_block_rate": null,
+        "coverage": 1.0,
+        "effect_accuracy": 1.0
+      }
+    },
+    "cases": [
+      {
+        "id": "number-reject",
+        "rule_id": "NUMBER_PROTECT_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "REJECT",
+        "actual_effect": "REJECT",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Deterministic factual-number mutation; policy fixture."
+      },
+      {
+        "id": "number-no-change",
+        "rule_id": "NUMBER_PROTECT_001",
+        "should_trigger": false,
+        "actual_trigger": false,
+        "expected_effect": "NONE",
+        "actual_effect": "NONE",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "A nearby unchanged number must not block an unrelated spelling repair."
+      },
+      {
+        "id": "url-reject",
+        "rule_id": "URL_PROTECT_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "REJECT",
+        "actual_effect": "REJECT",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Deterministic URL mutation; policy fixture."
+      },
+      {
+        "id": "email-reject",
+        "rule_id": "EMAIL_PROTECT_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "REJECT",
+        "actual_effect": "REJECT",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Deterministic email mutation; policy fixture."
+      },
+      {
+        "id": "polarity-reject",
+        "rule_id": "POLARITY_PROTECT_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "REJECT",
+        "actual_effect": "REJECT",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Explicit affirmative-to-negative reversal; policy fixture."
+      },
+      {
+        "id": "polarity-same-negative",
+        "rule_id": "POLARITY_PROTECT_001",
+        "should_trigger": false,
+        "actual_trigger": false,
+        "expected_effect": "NONE",
+        "actual_effect": "NONE",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Two negative surface forms preserve polarity and must not trigger the hard gate."
+      },
+      {
+        "id": "entity-name-substitution",
+        "rule_id": "ENTITY_PROTECT_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "REJECT",
+        "actual_effect": "REJECT",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Different reviewed surname endings provide HIGH structural evidence of identity substitution."
+      },
+      {
+        "id": "entity-name-spelling",
+        "rule_id": "ENTITY_PROTECT_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "WARN",
+        "actual_effect": "WARN",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Same surname ending with a spelling repair is MEDIUM confidence and advisory."
+      },
+      {
+        "id": "entity-ordinary-spelling",
+        "rule_id": "ENTITY_PROTECT_001",
+        "should_trigger": false,
+        "actual_trigger": false,
+        "expected_effect": "NONE",
+        "actual_effect": "NONE",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Ordinary attested spelling repair must not be classified as an entity edit."
+      },
+      {
+        "id": "entity-explicit-metadata",
+        "rule_id": "SEMANTIC_ENTITY_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "REJECT",
+        "actual_effect": "REJECT",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Explicit newsroom protected_terms metadata is HIGH confidence."
+      },
+      {
+        "id": "ambiguity-warn",
+        "rule_id": "AMBIG_KEEP_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "WARN",
+        "actual_effect": "WARN",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Gold is taken from v27; the ambiguity rule is diagnostic and does not override it."
+      },
+      {
+        "id": "honorific-warn",
+        "rule_id": "HONORIFIC_CONTEXT_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "WARN",
+        "actual_effect": "WARN",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Gold is taken from v27; honorific/register context remains advisory."
+      },
+      {
+        "id": "zwj-warn",
+        "rule_id": "ORTH_ZWJ_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "WARN",
+        "actual_effect": "WARN",
+        "gold_match": null,
+        "needs_native_review": true,
+        "notes": "Policy-only joiner diagnostic; no linguistic gold is assigned."
+      },
+      {
+        "id": "register-warn",
+        "rule_id": "REGISTER_CONTEXT_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "WARN",
+        "actual_effect": "WARN",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Gold is taken from v27."
+      },
+      {
+        "id": "tense-warn",
+        "rule_id": "VERB_TENSE_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "WARN",
+        "actual_effect": "WARN",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Gold is taken from v27; tense diagnostics must not suppress the neural repair."
+      },
+      {
+        "id": "voice-warn",
+        "rule_id": "VERB_VOICE_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "WARN",
+        "actual_effect": "WARN",
+        "gold_match": null,
+        "needs_native_review": true,
+        "notes": "Policy-only voice-change fixture; no linguistic gold is assigned."
+      },
+      {
+        "id": "passive-warn",
+        "rule_id": "PASSIVE_AUX_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "WARN",
+        "actual_effect": "WARN",
+        "gold_match": null,
+        "needs_native_review": true,
+        "notes": "Policy-only passive-auxiliary fixture; no linguistic gold is assigned."
+      },
+      {
+        "id": "edit-size-warn",
+        "rule_id": "SEMANTIC_EDIT_SIZE_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "WARN",
+        "actual_effect": "WARN",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Gold is taken from v27; word-order rewrites remain advisory."
+      },
+      {
+        "id": "case-attach-accept",
+        "rule_id": "CASE_ATTACH_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "ACCEPT",
+        "actual_effect": "ACCEPT",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Attested suffix attachment; existing deterministic acceptance fixture."
+      },
+      {
+        "id": "spelling-accept",
+        "rule_id": "SPELL_CONSONANT_CONFUSION_001",
+        "should_trigger": true,
+        "actual_trigger": true,
+        "expected_effect": "ACCEPT",
+        "actual_effect": "ACCEPT",
+        "gold_match": true,
+        "needs_native_review": false,
+        "notes": "Shared SINAI lexicon supports the candidate."
+      }
+    ]
+  }
+}

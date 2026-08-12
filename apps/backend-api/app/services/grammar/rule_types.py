@@ -31,6 +31,14 @@ class Severity(StrEnum):
     ERROR = "error"
 
 
+class ConfidenceLevel(StrEnum):
+    """Categorical evidence strength; deliberately not a probability."""
+
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+
 @dataclass(frozen=True)
 class MorphFeatures:
     """Known morphology only; unavailable features deliberately remain ``None``."""
@@ -67,11 +75,15 @@ class RuleTrigger:
     tier: RuleTier
     severity: Severity
     message: str
+    decision: Decision
+    confidence_level: ConfidenceLevel
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data["tier"] = self.tier.value
         data["severity"] = self.severity.value
+        data["decision"] = self.decision.value
+        data["confidence_level"] = self.confidence_level.value
         return data
 
 
@@ -84,7 +96,8 @@ class ValidationEdit:
     candidate: str
     decision: Decision
     rule_ids: tuple[str, ...]
-    confidence: float
+    confidence: float | None
+    confidence_level: ConfidenceLevel
     reason: str
     category: str
     severity: Severity
@@ -118,6 +131,7 @@ class ValidationEdit:
         data["decision"] = self.decision.value
         data["rule_ids"] = list(self.rule_ids)
         data["severity"] = self.severity.value
+        data["confidence_level"] = self.confidence_level.value
         return data
 
 
@@ -130,6 +144,10 @@ class ValidationConfig:
     protect_quotes: bool = True
     agreement_validation: bool = True
     contextual_rules: bool = True
+    # Evaluation-only switches preserve the historical policy so the same
+    # candidate set can be compared before and after recalibration.
+    apply_advisory_edits: bool = True
+    legacy_entity_policy: bool = False
 
 
 @dataclass
@@ -138,7 +156,8 @@ class ValidationResult:
     model_candidate: str
     final_text: str
     decision: Decision
-    confidence: float
+    confidence: float | None
+    confidence_level: ConfidenceLevel | None = None
     edits: list[ValidationEdit] = field(default_factory=list)
     rules_triggered: list[RuleTrigger] = field(default_factory=list)
     enabled: bool = True
@@ -146,7 +165,11 @@ class ValidationResult:
 
     @property
     def applied_edits(self) -> list[ValidationEdit]:
-        return [edit for edit in self.edits if edit.decision == Decision.ACCEPT]
+        return [
+            edit
+            for edit in self.edits
+            if edit.decision in {Decision.ACCEPT, Decision.SUGGEST}
+        ]
 
     @property
     def suggestions(self) -> list[ValidationEdit]:
@@ -157,11 +180,18 @@ class ValidationResult:
         return [edit for edit in self.edits if edit.decision == Decision.REJECT]
 
     def counts(self) -> dict[str, int]:
+        accepted = sum(edit.decision == Decision.ACCEPT for edit in self.edits)
+        warnings = len(self.suggestions)
+        rejected = len(self.blocked_edits)
         return {
             "proposed": len(self.edits),
-            "accepted": len(self.applied_edits),
-            "suggested": len(self.suggestions),
-            "rejected": len(self.blocked_edits),
+            "accepted": accepted,
+            "applied": accepted + warnings,
+            "suggested": warnings,
+            "rejected": rejected,
+            "advisory_warnings": warnings,
+            "hard_rejections": rejected,
+            "selectively_reverted": rejected,
         }
 
     def to_dict(self) -> dict[str, Any]:
@@ -170,6 +200,9 @@ class ValidationResult:
             "failed_open": self.failed_open,
             "decision": self.decision.value,
             "confidence": self.confidence,
+            "confidence_level": (
+                self.confidence_level.value if self.confidence_level else None
+            ),
             "rules_triggered": [rule.to_dict() for rule in self.rules_triggered],
             "edits": [edit.to_dict() for edit in self.edits],
             "counts": self.counts(),

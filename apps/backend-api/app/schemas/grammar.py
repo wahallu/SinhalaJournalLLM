@@ -45,9 +45,9 @@ class CorrectionDetail(BaseModel):
         default=None,
         description="Why the replacement was flagged. None when not suspicious.",
     )
-    decision: Literal["ACCEPT"] = Field(
+    decision: Literal["ACCEPT", "SUGGEST"] = Field(
         default="ACCEPT",
-        description="Applied corrections are ACCEPT decisions; non-applied edits live under validation.",
+        description="Applied directly (ACCEPT) or applied with an advisory warning (SUGGEST).",
     )
     rule_ids: list[str] = Field(
         default_factory=list,
@@ -57,7 +57,11 @@ class CorrectionDetail(BaseModel):
         default=None,
         ge=0.0,
         le=1.0,
-        description="Validator confidence when available.",
+        description="Deprecated numeric score; null for categorical rule decisions.",
+    )
+    confidence_level: Literal["HIGH", "MEDIUM", "LOW"] | None = Field(
+        default=None,
+        description="Categorical evidence strength, not a probability.",
     )
 
 
@@ -69,6 +73,8 @@ class ValidationRule(BaseModel):
     tier: Literal["AUTO", "CHECK", "NEURAL", "PROTECT"]
     severity: Literal["info", "warning", "error"]
     message: str
+    decision: Literal["ACCEPT", "SUGGEST", "REJECT", "KEEP"] | None = None
+    confidence_level: Literal["HIGH", "MEDIUM", "LOW"] | None = None
 
 
 class ValidationEditDetail(BaseModel):
@@ -79,7 +85,8 @@ class ValidationEditDetail(BaseModel):
     candidate: str
     decision: Literal["ACCEPT", "SUGGEST", "REJECT", "KEEP"]
     rule_ids: list[str] = Field(default_factory=list)
-    confidence: float = Field(ge=0.0, le=1.0)
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    confidence_level: Literal["HIGH", "MEDIUM", "LOW"] | None = None
     reason: str
     category: str
     severity: Literal["info", "warning", "error"]
@@ -96,7 +103,8 @@ class GrammarValidation(BaseModel):
     enabled: bool = True
     failed_open: bool = False
     decision: Literal["ACCEPT", "SUGGEST", "REJECT", "KEEP"]
-    confidence: float = Field(ge=0.0, le=1.0)
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    confidence_level: Literal["HIGH", "MEDIUM", "LOW"] | None = None
     rules_triggered: list[ValidationRule] = Field(default_factory=list)
     edits: list[ValidationEditDetail] = Field(default_factory=list)
     counts: dict[str, int] = Field(default_factory=dict)

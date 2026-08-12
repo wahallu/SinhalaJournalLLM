@@ -58,7 +58,10 @@ def predicate_features(words: Sequence[str]) -> MorphFeatures | None:
 
 def polarity(text: str) -> str | None:
     """Detect explicit negative morphology only; absence is not guessed positive."""
-    words = set(text.replace(".", " ").replace(",", " ").split())
+    words = {
+        word.strip(".,;:!?\"'“”‘’()[]{}")
+        for word in text.split()
+    }
     negatives = set(morphology_rules().get("negative_tokens", ()))
     if words & negatives or any(word.startswith("නො") and len(word) > 2 for word in words):
         return "negative"

@@ -21,6 +21,9 @@ async def test_number_change_is_removed_from_backend_output(monkeypatch):
     assert result.corrections == []
     assert result.validation.decision == "REJECT"
     assert result.validation.counts["rejected"] == 1
+    assert result.validation.counts["hard_rejections"] == 1
+    assert result.validation.counts["selectively_reverted"] == 1
+    assert result.validation.counts["number_protections"] == 1
 
 
 @pytest.mark.asyncio
@@ -31,10 +34,15 @@ async def test_ambiguous_change_is_exposed_as_structured_suggestion(monkeypatch)
     monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
     result = await check_grammar("ඔහු කල වැඩය")
 
-    assert result.corrected == "ඔහු කල වැඩය"
+    assert result.corrected == "ඔහු කළ වැඩය"
     [edit] = result.validation.edits
     assert edit.decision == "SUGGEST"
     assert edit.rule_ids == ["AMBIG_KEEP_001"]
+    assert edit.confidence is None
+    assert edit.confidence_level == "LOW"
+    assert result.validation.counts["advisory_warnings"] == 1
+    assert result.validation.counts["hard_rejections"] == 0
+    assert result.corrections[0].decision == "SUGGEST"
 
 
 @pytest.mark.asyncio

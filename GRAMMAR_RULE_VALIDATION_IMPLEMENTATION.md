@@ -20,12 +20,12 @@ The grammar endpoint is `POST /api/v1/grammar/check`; `grammar_service.check_gra
 input -> existing chunking -> existing model gateway -> sanitized model candidate
       -> model-independent SinhalaRuleValidator
       -> edit-level deterministic + semantic safety gate
-      -> accepted edit / suggestion (original retained) / rejected edit (original retained)
+      -> accepted edit / advisory suggestion (candidate retained) / rejected edit (original retained)
       -> correction diff from safe final text
       -> existing lexicon/final-form suggestions -> persistence/API/telemetry
 ```
 
-Suspicious name substitutions are no longer silently applied. The raw model candidate remains available for research and human review.
+High-confidence name substitutions are no longer silently applied; heuristic entity spelling changes remain applied with warnings. The raw model candidate remains available for research and human review.
 
 ## Files added
 
@@ -69,7 +69,7 @@ No automatic generation was implemented for free word order/SOV, complex object 
 
 Coverage includes clean preservation, numbers, entities, URL/email, ambiguous pairs, shared-lexicon spelling, inanimate plural, animate agreement mismatch, compound predicates, non-verbal predicates, quotations, polarity, tense, large rewrites, short sentences, case attachment, ZWJ changes, feature disablement, persistence, endpoint integration, rule IDs, and fail-open behavior.
 
-The complete backend suite passed: `465 passed in 9.71s`.
+The original implementation suite passed: `465 passed in 9.71s`. After policy recalibration and the added precedence/regression cases, the complete backend suite passes `470 passed in 9.70s`.
 
 ## Dataset audit findings
 
@@ -86,6 +86,8 @@ The saved v27 transcript contains 154 examples. Measured replay produced:
 | v27 + rules | 57.14% | 43.97% | 97.37% | 89.68% | 56.22% | 0.8014 | 0.00% |
 
 The hybrid removes measured entity mutations and slightly raises edit precision, but loses recall and exact match. This is a safety result, not evidence that the current thresholds improve overall GEC accuracy.
+
+The follow-up recalibration preserves this table as the immutable legacy baseline. `SUGGEST` is now advisory, entity protection uses categorical evidence strength, and only high-confidence factual/safety `REJECT` edits are selectively reverted. Current measured results are in `HYBRID_GRAMMAR_RECALIBRATED_RESULTS.md`.
 
 ## Exact commands
 

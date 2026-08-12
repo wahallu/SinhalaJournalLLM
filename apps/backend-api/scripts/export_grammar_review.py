@@ -18,7 +18,7 @@ from evaluate_grammar_hybrid import load_examples  # noqa: E402
 
 FIELDS = (
     "id", "original", "model_candidate", "hybrid_output", "decision",
-    "rule_ids", "reason", "category", "reviewer_decision",
+    "candidate_applied", "confidence_level", "rule_ids", "reason", "category", "reviewer_decision",
     "reviewer_correction", "notes",
 )
 
@@ -37,6 +37,8 @@ def rows(path: Path) -> list[dict[str, str]]:
                 "model_candidate": example.model_output,
                 "hybrid_output": result.final_text,
                 "decision": edit.decision.value,
+                "candidate_applied": str(edit.decision.value == "SUGGEST").lower(),
+                "confidence_level": edit.confidence_level.value,
                 "rule_ids": "|".join(edit.rule_ids),
                 "reason": edit.reason,
                 "category": edit.category,
