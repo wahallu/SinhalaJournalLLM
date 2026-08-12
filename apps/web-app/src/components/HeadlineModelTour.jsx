@@ -10,44 +10,26 @@ const MODELS = [
   {
     id: 'headline_sinllama_v17',
     name: 'ගිරා 1.7',
-    eyebrow: 'Simple and dependable',
+    level: 'Simple',
     icon: Feather,
-    summary: 'The simplest model for concise Sinhala news headlines.',
-    detail: (
-      <>
-        Trained on about <strong>48,000 examples</strong> with a fixed 4–7-word pattern.
-        It is dependable for quick newsroom headlines, with less control over long ones.
-      </>
-    ),
-    bestFor: 'Quick, familiar newsroom-style headlines',
+    does: 'Creates quick, concise Sinhala headlines using a simple style.',
+    bestFor: 'Short, familiar newsroom headlines.',
   },
   {
     id: 'headline_sinllama_v18',
     name: 'සැලලිහිණි 2.0',
-    eyebrow: 'Length optimized',
+    level: 'Optimized',
     icon: SlidersHorizontal,
-    summary: 'A flexible model that follows your selected headline length.',
-    detail: (
-      <>
-        Learns <strong>short, medium, and long</strong> length control, with about 81%
-        of evaluated headlines inside the requested word band.
-      </>
-    ),
-    bestFor: 'Length-controlled headlines for different layouts',
+    does: 'Creates headlines that follow your selected short, medium, or long length.',
+    bestFor: 'Headlines that must fit different layouts.',
   },
   {
     id: 'headline_sinllama_v19',
     name: 'හංස 3.0',
-    eyebrow: 'Best overall · Recommended',
+    level: 'Best overall',
     icon: Sparkles,
-    summary: 'The cleanest and most refined model in the headline tool.',
-    detail: (
-      <>
-        Uses <strong>cleaned training data</strong> and keeps 2.0&apos;s length control.
-        Evaluation found about 10× fewer unwanted tags, producing cleaner candidates.
-      </>
-    ),
-    bestFor: 'The best balance of control, cleanliness, and quality',
+    does: 'Creates the cleanest, most refined headlines with reliable length control.',
+    bestFor: 'The best overall headline quality.',
     recommended: true,
   },
 ];
@@ -115,38 +97,15 @@ export default function HeadlineModelTour() {
       <div className="space-y-3.5">
         <div className="pr-7">
           <h2 id="headline-model-tour-title" className="text-[15px] font-bold text-ink-900">
-            Meet the headline models
+            Headline model guide
           </h2>
           <p id="headline-model-tour-description" className="mt-0.5 text-[11px] leading-relaxed text-ink-500">
-            Choose the model that best fits your headline.
+            A quick introduction to each model.
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-1.5" role="tablist" aria-label="Headline models">
-          {MODELS.map((item, index) => (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={step === index}
-              onClick={() => setStep(index)}
-              className={`min-w-0 rounded-lg border px-1.5 py-2 text-center cursor-pointer transition-colors
-                ${step === index
-                  ? 'border-brand-600 bg-brand-50 text-brand-800'
-                  : 'border-ink-200 bg-white dark:bg-ink-50 text-ink-500 hover:border-ink-300 hover:text-ink-800'}`}
-            >
-              <span className="block truncate font-sinhala text-[12px] font-bold">{item.name}</span>
-              <span className="mt-0.5 block text-[8.5px] font-semibold uppercase tracking-wide">
-                {index === 0 ? 'Simple' : index === 1 ? 'Optimized' : 'Best'}
-              </span>
-            </button>
-          ))}
-        </div>
-
         <div
-          role="tabpanel"
-          className="relative max-h-[11.5rem] overflow-y-auto rounded-xl border border-ink-200
-            bg-ink-50/60 px-4 py-3.5 sm:max-h-none sm:overflow-hidden"
+          className="relative rounded-xl border border-ink-200 bg-ink-50/60 px-4 py-3.5"
         >
           {model.recommended && (
             <span className="absolute right-3 top-3 rounded-full bg-brand-600 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider text-white">
@@ -160,7 +119,7 @@ export default function HeadlineModelTour() {
             </div>
             <div className="min-w-0">
               <p className="text-[8.5px] font-bold uppercase tracking-[0.12em] text-brand-700">
-                {model.eyebrow}
+                {model.level}
               </p>
               <h3 className="mt-0.5 font-sinhala text-[18px] font-bold leading-tight text-ink-900">
                 {model.name}
@@ -168,12 +127,10 @@ export default function HeadlineModelTour() {
             </div>
           </div>
 
-          <p className="mt-3 text-[12.5px] font-semibold leading-relaxed text-ink-800">
-            {model.summary}
-          </p>
-          <p className="mt-1.5 text-[11px] leading-relaxed text-ink-600">
-            {model.detail}
-          </p>
+          <div className="mt-3">
+            <p className="text-[8.5px] font-bold uppercase tracking-wider text-ink-400">What it does</p>
+            <p className="mt-1 text-[11.5px] font-medium leading-relaxed text-ink-800">{model.does}</p>
+          </div>
 
           <div className="mt-3 flex items-start gap-2 rounded-lg border border-ink-200/80 bg-white dark:bg-ink-100 px-3 py-2">
             <Check size={13} className="mt-0.5 shrink-0 text-emerald-600" strokeWidth={2.5} />
