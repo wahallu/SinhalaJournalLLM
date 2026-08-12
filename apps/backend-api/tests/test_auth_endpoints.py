@@ -172,6 +172,46 @@ async def test_issued_token_authenticates_a_protected_endpoint(fake_supabase):
 
     assert me.status_code == 200
     assert me.json()["email"] == "new@example.com"
+    assert me.json()["onboarding_completed_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_onboarding_saves_newsroom_profile_and_marks_it_complete(fake_supabase):
+    async with _client() as c:
+        signup = await _signup(c)
+        token = signup.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        response = await c.put(
+            "/api/v1/auth/onboarding",
+            headers=headers,
+            json={
+                "full_name": "  Nisal  ",
+                "newsroom_roles": ["reporter", "editor"],
+                "journalism_interests": ["politics", "fact-checking"],
+            },
+        )
+        me = await c.get("/api/v1/auth/me", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["full_name"] == "Nisal"
+    assert response.json()["onboarding_completed_at"]
+    assert me.json()["newsroom_roles"] == ["reporter", "editor"]
+    assert me.json()["journalism_interests"] == ["politics", "fact-checking"]
+    assert me.json()["onboarding_completed_at"]
+
+
+@pytest.mark.asyncio
+async def test_onboarding_rejects_unknown_roles(fake_supabase):
+    async with _client() as c:
+        signup = await _signup(c)
+        token = signup.json()["access_token"]
+        response = await c.put(
+            "/api/v1/auth/onboarding",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"newsroom_roles": ["administrator"]},
+        )
+
+    assert response.status_code == 422
 
 
 @pytest.mark.asyncio

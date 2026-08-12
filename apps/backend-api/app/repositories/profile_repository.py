@@ -22,10 +22,9 @@ async def update_profile(user_id: str, changes: dict[str, Any]) -> dict[str, Any
     """
     Apply changes to a profile, returning the updated row.
 
-    `role` and `status` are guarded by the `guard_profile_privileges`
-    database trigger, which rejects changes from any caller that is not the
-    service role. This function is therefore the only path that can change
-    them — and it is reachable only from endpoints behind `require_admin`.
+    Admin endpoints may pass privileged fields here. The onboarding endpoint
+    also uses this helper, but constructs its own strict allow-list of
+    self-service fields rather than accepting arbitrary profile changes.
     """
     client = await base.get_supabase()
     response = await client.table(TABLE).update(changes).eq("id", user_id).execute()

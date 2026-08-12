@@ -69,6 +69,10 @@ export function AuthProvider({ children }) {
     setAccount(null);
   }, []);
 
+  const updateAccount = useCallback((nextAccount) => {
+    setAccount((current) => current ? { ...current, ...nextAccount } : nextAccount);
+  }, []);
+
   const value = useMemo(
     () => ({
       // `user` and `profile` are the same object now. Both names are kept
@@ -82,6 +86,7 @@ export function AuthProvider({ children }) {
       signUp,
       signInWithGoogle,
       signOut,
+      updateAccount,
       resetPassword: (email) => authClient.requestPasswordReset(email),
       updatePassword: (token, password) => authClient.resetPassword(token, password),
       verifyEmail: (token) => authClient.verifyEmail(token),
@@ -91,7 +96,7 @@ export function AuthProvider({ children }) {
         return me;
       },
     }),
-    [account, loading, signIn, signUp, signInWithGoogle, signOut]
+    [account, loading, signIn, signUp, signInWithGoogle, signOut, updateAccount]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

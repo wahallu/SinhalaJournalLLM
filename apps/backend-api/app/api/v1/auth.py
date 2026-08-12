@@ -20,6 +20,7 @@ Two rules run through the whole module:
 """
 
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
@@ -32,7 +33,7 @@ from app.core.email import (
     send_verification_email,
 )
 from app.repositories import base, user_repository
-from app.repositories.profile_repository import get_profile
+from app.repositories.profile_repository import get_profile, update_profile
 from app.schemas.auth import (
     AccessTokenResponse,
     AccountResponse,
@@ -40,6 +41,7 @@ from app.schemas.auth import (
     ForgotPasswordRequest,
     GoogleAuthRequest,
     LoginRequest,
+    OnboardingRequest,
     RefreshRequest,
     ResetPasswordRequest,
     SessionResponse,
@@ -77,6 +79,9 @@ def _session(user: dict, profile: dict | None) -> SessionResponse:
             category_id=profile.get("category_id"),
             email_verified=bool(user.get("email_verified")),
             full_name=profile.get("full_name"),
+            newsroom_roles=profile.get("newsroom_roles") or [],
+            journalism_interests=profile.get("journalism_interests") or [],
+            onboarding_completed_at=profile.get("onboarding_completed_at"),
         ),
     )
 
@@ -254,6 +259,42 @@ async def me(user: AuthUser = Depends(require_user)) -> AccountResponse:
         status=user.status,
         category_id=user.category_id,
         email_verified=bool((account or {}).get("email_verified")),
+        full_name=user.full_name,
+        newsroom_roles=user.newsroom_roles,
+        journalism_interests=user.journalism_interests,
+        onboarding_completed_at=user.onboarding_completed_at,
+    )
+
+
+@router.put("/onboarding", response_model=AccountResponse)
+async def complete_onboarding(
+    payload: OnboardingRequest,
+    user: AuthUser = Depends(require_user),
+) -> AccountResponse:
+    """Save the caller's newsroom preferences and mark onboarding complete."""
+    completed_at = datetime.now(timezone.utc).isoformat()
+    updated = await update_profile(
+        user.id,
+        {
+            **payload.model_dump(),
+            "onboarding_completed_at": completed_at,
+        },
+    )
+    if updated is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Profile not found.")
+
+    account = await user_repository.get_by_id(user.id)
+    return AccountResponse(
+        id=user.id,
+        email=user.email,
+        role=updated.get("role", user.role),
+        status=updated.get("status", user.status),
+        category_id=updated.get("category_id"),
+        email_verified=bool((account or {}).get("email_verified")),
+        full_name=updated.get("full_name"),
+        newsroom_roles=updated.get("newsroom_roles") or [],
+        journalism_interests=updated.get("journalism_interests") or [],
+        onboarding_completed_at=updated.get("onboarding_completed_at"),
     )
 
 
