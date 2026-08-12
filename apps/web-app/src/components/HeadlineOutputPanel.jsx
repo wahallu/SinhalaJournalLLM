@@ -114,14 +114,11 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
       </button>
 
       {open && (
-        <div className="p-4 space-y-3">
-          {/* Prompt and image sit side by side when the pane is wide enough,
-              and stack below md. The image box keeps a fixed aspect ratio in
-              every state — placeholder, skeleton, loaded — so generating one
-              never shifts the surrounding layout. */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-start">
-            {/* ── Prompt column ── */}
-            <div className="space-y-2 min-w-0">
+        <div className="p-4 space-y-5">
+          {/* Deliberately vertical: the prompt needs the full pane width for
+              editing, and the generated image is the next step in the flow —
+              not a small preview competing for half of the same row. */}
+          <div className="space-y-2 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-1.5 min-w-0 text-[11px] text-ink-500 font-medium">
                   <Edit3 size={11} className="text-ink-400 shrink-0" />
@@ -137,7 +134,7 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
                   value={prompt}
                   onChange={(e) => { setPrompt(e.target.value); setImageData(null); setImgError(null); }}
                   onBlur={() => saveHeadlineVisualPrompt(historyId, prompt.trim()).catch(() => {})}
-                  rows={5}
+                  rows={6}
                   className="w-full px-3 py-2.5 text-[13px] text-ink-700 bg-ink-50 border border-ink-200
                     rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-brand-200
                     focus:border-brand-300 leading-relaxed font-mono"
@@ -170,15 +167,22 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
                   </ActionButton>
                 )}
               </div>
-            </div>
+          </div>
 
-            {/* ── Image column ── */}
-            <div className="min-w-0">
-              {imgLoading && <Skeleton className="w-full aspect-[16/10] rounded-xl" />}
+          {/* A full-width image stage beneath the prompt. The fixed 16:9
+              frame is substantially larger while preventing layout shifts
+              between placeholder, loading, and completed states. */}
+          <div className="min-w-0 space-y-2">
+              <span className="flex items-center gap-1.5 text-[11px] text-ink-500 font-medium">
+                <ImageIcon size={12} className="text-ink-400" />
+                Generated image
+              </span>
+
+              {imgLoading && <Skeleton className="w-full aspect-video rounded-xl" />}
 
               {imageData && !imgLoading && (
                 <div className="relative group rounded-xl overflow-hidden border border-ink-200
-                  bg-ink-100 aspect-[16/10] animate-in fade-in duration-300">
+                  bg-ink-100 aspect-video animate-in fade-in duration-300 shadow-card">
                   <img src={imageData} alt="AI-generated news image" className="w-full h-full object-cover" />
                   <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0
                     group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
@@ -208,15 +212,14 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
               )}
 
               {!imageData && !imgLoading && (
-                <div className="w-full aspect-[16/10] rounded-xl border border-dashed border-ink-300/70
+                <div className="w-full aspect-video rounded-xl border border-dashed border-ink-300/70
                   flex flex-col items-center justify-center gap-1.5 text-center px-4">
-                  <ImageIcon size={18} className="text-ink-300" />
-                  <p className="text-[11.5px] text-ink-400">
+                  <ImageIcon size={26} className="text-ink-300" />
+                  <p className="text-[12.5px] text-ink-400">
                     {prompt ? 'Generate an image from the prompt' : 'A prompt is generated from your article first'}
                   </p>
                 </div>
               )}
-            </div>
           </div>
 
           {/* ── Image generation error ── */}
