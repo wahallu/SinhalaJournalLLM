@@ -44,30 +44,72 @@ function getSelectedText() {
     return "";
   }
 
-  var textFragments = [];
   var elements = selection.getSelectedElements();
-
-  for (var i = 0; i < elements.length; i++) {
-    var element = elements[i];
-
-    // Check if the element contains text
-    if (element.getElement().editAsText) {
-      var textElement = element.getElement().editAsText();
-      var txt = textElement.getText();
-
-      // If selection is partial (only some characters highlighted)
-      if (element.isPartial()) {
-        var start = element.getStartOffset();
-        var end = element.getEndOffsetInclusive();
-        textFragments.push(txt.substring(start, end + 1));
-      } else {
-        // Complete element selected
-        textFragments.push(txt);
-      }
-    }
+  if (!elements || elements.length === 0) {
+    return "";
   }
 
-  return textFragments.join("\n").trim();
+  var paragraphs = [];
+  var currentBlockText = "";
+  var currentBlockElem = null;
+
+  for (var i = 0; i < elements.length; i++) {
+    var rangeElement = elements[i];
+    var rawElem = rangeElement.getElement();
+
+    // Determine the block container (Paragraph, ListItem, etc.)
+    var blockElem = rawElem;
+    while (blockElem) {
+      var elemType = blockElem.getType ? blockElem.getType() : null;
+      if (elemType === DocumentApp.ElementType.PARAGRAPH ||
+          elemType === DocumentApp.ElementType.LIST_ITEM ||
+          elemType === DocumentApp.ElementType.TABLE_ROW ||
+          elemType === DocumentApp.ElementType.HEADER_SECTION ||
+          elemType === DocumentApp.ElementType.FOOTER_SECTION ||
+          elemType === DocumentApp.ElementType.BODY_SECTION) {
+        break;
+      }
+      if (!blockElem.getParent) break;
+      blockElem = blockElem.getParent();
+    }
+
+    if (currentBlockElem !== null && blockElem !== currentBlockElem) {
+      paragraphs.push(currentBlockText);
+      currentBlockText = "";
+    }
+    currentBlockElem = blockElem;
+
+    var fragment = "";
+    if (rawElem.getType && rawElem.getType() === DocumentApp.ElementType.TEXT) {
+      var textObj = rawElem.asText();
+      var txt = textObj.getText();
+      if (rangeElement.isPartial()) {
+        var start = rangeElement.getStartOffset();
+        var end = rangeElement.getEndOffsetInclusive();
+        fragment = txt.substring(start, end + 1);
+      } else {
+        fragment = txt;
+      }
+    } else if (rawElem.editAsText) {
+      var textObj = rawElem.editAsText();
+      var txt = textObj.getText();
+      if (rangeElement.isPartial()) {
+        var start = rangeElement.getStartOffset();
+        var end = rangeElement.getEndOffsetInclusive();
+        fragment = txt.substring(start, end + 1);
+      } else {
+        fragment = txt;
+      }
+    }
+
+    currentBlockText += fragment;
+  }
+
+  if (currentBlockText !== "") {
+    paragraphs.push(currentBlockText);
+  }
+
+  return paragraphs.join("\n").trim();
 }
 
 // ── Replace Selected Text ──
@@ -78,42 +120,43 @@ function replaceSelectedText(newText) {
   }
 
   var elements = selection.getSelectedElements();
-  var replaced = false;
+  if (!elements || elements.length === 0) {
+    throw new Error("No text selected in the document.");
+  }
 
-  for (var i = 0; i < elements.length; i++) {
-    var element = elements[i];
-
-    if (element.getElement().editAsText) {
-      var textElement = element.getElement().editAsText();
-
-      if (element.isPartial()) {
-        var start = element.getStartOffset();
-        var end = element.getEndOffsetInclusive();
-
-        if (!replaced) {
-          textElement.deleteText(start, end);
-          textElement.insertText(start, newText);
-          replaced = true;
-        } else {
-          // Delete additional partial selections to avoid duplicated insertions
-          textElement.deleteText(start, end);
-        }
+  // Clear trailing elements in reverse order so character offsets in earlier elements stay intact
+  for (var i = elements.length - 1; i >= 1; i--) {
+    var el = elements[i];
+    var raw = el.getElement();
+    if (raw.editAsText) {
+      var tObj = raw.editAsText();
+      if (el.isPartial()) {
+        tObj.deleteText(el.getStartOffset(), el.getEndOffsetInclusive());
       } else {
-        if (!replaced) {
-          textElement.setText(newText);
-          replaced = true;
-        } else {
-          // Remove parent container if it was fully selected to prevent duplicate empty blocks
-          var parent = element.getElement().getParent();
-          if (parent && parent.removeFromParent) {
-            try {
-              parent.removeFromParent();
-            } catch (e) {
-              textElement.setText(""); // fallback clear
-            }
+        var parent = raw.getParent ? raw.getParent() : null;
+        if (parent && parent.removeChild && parent.getNumChildren && parent.getNumChildren() > 1) {
+          try {
+            parent.removeChild(raw);
+          } catch (e) {
+            tObj.setText("");
           }
+        } else {
+          tObj.setText("");
         }
       }
+    }
+  }
+
+  // Replace or insert text into the first selected element
+  var firstEl = elements[0];
+  var firstRaw = firstEl.getElement();
+  if (firstRaw.editAsText) {
+    var firstText = firstRaw.editAsText();
+    if (firstEl.isPartial()) {
+      firstText.deleteText(firstEl.getStartOffset(), firstEl.getEndOffsetInclusive());
+      firstText.insertText(firstEl.getStartOffset(), newText);
+    } else {
+      firstText.setText(newText);
     }
   }
 }

@@ -420,7 +420,7 @@
 
       if (tool === "grammar") {
         resultOutputText.textContent = data.corrected;
-        renderGrammarCorrections(data.corrections || []);
+        renderGrammarCorrections(data.corrections || [], data.suggestions || []);
       } else if (tool === "headlines") {
         resultOutputText.textContent = data.headlines.map((h, i) => (i + 1) + ". " + h).join("\n");
       } else if (tool === "rewriter") {
@@ -430,11 +430,14 @@
       }
     }
 
-    /** Renders corrections into `grammarCorrectionsList`, including the
-     *  suspicious-word substitution guard — mirrors the extension's
-     *  content.js/popup.js treatment exactly, so all three surfaces agree. */
-    function renderGrammarCorrections(corrections) {
-      if (!corrections || corrections.length === 0) {
+    /** Renders corrections and spelling suggestions into `grammarCorrectionsList`,
+     *  including the suspicious-word substitution guard and dictionary suggestions —
+     *  mirroring the web app and extension. */
+    function renderGrammarCorrections(corrections, suggestions) {
+      corrections = corrections || [];
+      suggestions = suggestions || [];
+
+      if (corrections.length === 0 && suggestions.length === 0) {
         grammarCorrectionsList.classList.remove("hidden");
         grammarCorrectionsList.innerHTML =
           '<span style="color:#059669; font-size:0.78rem; text-align:center; display:block; padding-top:4px;">No grammar issues found.</span>';
@@ -444,9 +447,7 @@
       grammarCorrectionsList.classList.remove("hidden");
 
       // Banner first: the model appears to have swapped in a different word
-      // rather than corrected a spelling — most often a name. The
-      // correction IS applied; this flags it for a human to confirm before
-      // it survives scrolling past.
+      // rather than corrected a spelling — most often a name.
       const flagged = corrections.filter((c) => c.suspicious);
       if (flagged.length > 0) {
         const warn = document.createElement("div");
@@ -456,6 +457,21 @@
             ? "1 change may have replaced a word — check it below before using this text."
             : flagged.length + " changes may have replaced words — check them below before using this text.";
         grammarCorrectionsList.appendChild(warn);
+      }
+
+      // Notice banner for spelling suggestions / possible misspellings (matching web-app)
+      if (suggestions.length > 0) {
+        const suggNotice = document.createElement("div");
+        suggNotice.className = "suggestion-warning-banner";
+        if (corrections.length === 0) {
+          suggNotice.innerHTML = "Nothing changed, but <strong>" + suggestions.length + "</strong> word" +
+            (suggestions.length !== 1 ? "s" : "") + " may be misspelled.";
+        } else {
+          suggNotice.innerHTML = "<strong>" + corrections.length + "</strong> correction" +
+            (corrections.length !== 1 ? "s" : "") + " applied, and <strong>" + suggestions.length + "</strong> word" +
+            (suggestions.length !== 1 ? "s" : "") + " worth checking.";
+        }
+        grammarCorrectionsList.appendChild(suggNotice);
       }
 
       corrections.forEach((c) => {
@@ -468,10 +484,30 @@
           '<span class="corr-add">' + escapeHtml(c.corrected) + "</span>" +
           "</div>" +
           '<div class="corr-rule">' +
-          escapeHtml(c.suspicious ? (c.suspicious_reason || "Possible word replacement — verify against your source.") : c.rule) +
+          escapeHtml(c.suspicious ? (c.suspicious_reason || "Possible word replacement — verify against your source.") : (c.rule || "Grammar correction")) +
           "</div>";
         grammarCorrectionsList.appendChild(card);
       });
+
+      // Render spelling suggestions (Possible misspellings)
+      if (suggestions.length > 0) {
+        const heading = document.createElement("div");
+        heading.className = "suggestions-section-title";
+        heading.textContent = "Possible misspellings";
+        grammarCorrectionsList.appendChild(heading);
+
+        suggestions.forEach((s) => {
+          const card = document.createElement("div");
+          card.className = "suggestion-card";
+          card.innerHTML =
+            '<div class="suggestion-comp">' +
+            '<span class="suggestion-orig">' + escapeHtml(s.original) + "</span>" +
+            '<span class="suggestion-arrow">&#10132;</span>' +
+            '<span class="suggestion-new">' + escapeHtml(s.suggestion) + "</span>" +
+            "</div>";
+          grammarCorrectionsList.appendChild(card);
+        });
+      }
     }
 
     // ── Optimize: single-shot pipeline call via Code.js's runOptimize ──
