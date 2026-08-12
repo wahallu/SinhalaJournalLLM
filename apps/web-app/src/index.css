@@ -362,7 +362,10 @@ textarea { resize: vertical; }
   --color-brand-300: #7e2d30;
   --color-brand-400: #b94546;
   --color-brand-500: #dc5b59;
-  --color-brand-600: #e97371;
+  /* Keep the primary brand action identical in both themes. The previous
+     dark override used pale coral (#e97371), so active navigation and main
+     buttons no longer looked like the same SinAi brand as light mode. */
+  --color-brand-600: #cd191a;
   --color-brand-700: #f18b89;
   --color-brand-800: #f5aaa8;
   --color-brand-900: #f8cecd;
@@ -373,7 +376,7 @@ textarea { resize: vertical; }
   --card-foreground: #f8f7f7;
   --popover: #1d1819;
   --popover-foreground: #f8f7f7;
-  --primary: #dc4341;
+  --primary: #cd191a;
   --primary-foreground: #ffffff;
   --secondary: #2c2728;
   --secondary-foreground: #f8f7f7;
@@ -381,18 +384,18 @@ textarea { resize: vertical; }
   --muted-foreground: #a6a2a2;
   --accent: #2c2728;
   --accent-foreground: #f8f7f7;
-  --destructive: #e97371;
+  --destructive: #cd191a;
   --border: rgb(255 255 255 / 10%);
   --input: rgb(255 255 255 / 15%);
   --ring: #dc4341;
-  --chart-1: #dc4341;
+  --chart-1: #cd191a;
   --chart-2: #a6a2a2;
   --chart-3: #d2cfcf;
   --chart-4: #f3a8a7;
   --chart-5: #e4e2e2;
   --sidebar: #1d1819;
   --sidebar-foreground: #f8f7f7;
-  --sidebar-primary: #dc4341;
+  --sidebar-primary: #cd191a;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #2c2728;
   --sidebar-accent-foreground: #f8f7f7;
