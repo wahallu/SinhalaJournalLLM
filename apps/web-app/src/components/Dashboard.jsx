@@ -12,7 +12,9 @@ import Auralis from './ui/auralis';
 import EmptyState from './ui/EmptyState';
 import { OPTIMIZE_META, TOOL_LIST, TOOL_META } from '../lib/toolMeta';
 import { useAuth } from '../auth/useAuth';
-import { getCategories, getHistoryStats, getUnifiedHistory } from '../services/api';
+import {
+  getCategories, getHistoryRun, getHistoryStats, getUnifiedHistory,
+} from '../services/api';
 
 /**
  * Greeting for the current hour in Sri Lanka, not in the reader's browser.
@@ -123,6 +125,8 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
   const [stats, setStats] = useState(null);
   const [error, setError] = useState(null);
   const [categoryNames, setCategoryNames] = useState([]);
+  const [openingId, setOpeningId] = useState(null);
+  const [openError, setOpenError] = useState(null);
   // Bumped by the error state's retry, which re-runs the fetch effect.
   const [reloadKey, setReloadKey] = useState(0);
   // Primitive, not the object: a fresh `user` identity per render would make
@@ -230,6 +234,24 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
     : Object.entries(derived).sort((a, b) => b[1] - a[1])[0]?.[0];
 
   const recent = history.slice(0, 5);
+
+  // The unified feed deliberately contains only 240-character previews.
+  // Fetch the owned, complete workspace before reopening so Recent Activity
+  // restores the exact same input, output, settings, and headline assets as
+  // History → Reopen instead of passing the truncated preview to the editor.
+  const reopenActivity = async (item) => {
+    if (openingId) return;
+    setOpeningId(item.id);
+    setOpenError(null);
+    try {
+      const run = await getHistoryRun(item.tool, item.id);
+      onQuickStart(item.tool, run);
+    } catch (err) {
+      setOpenError(err?.message || 'Could not reopen this activity.');
+    } finally {
+      setOpeningId(null);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -457,37 +479,51 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
                   }
                 />
               ) : (
-                <ul className="divide-y divide-ink-100">
-                  {recent.map((item) => {
-                    const meta = TOOL_META[item.tool];
-                    const Icon = meta?.icon ?? Clock;
-                    return (
-                      <li key={item.id}>
-                        <button
-                          onClick={() => onQuickStart(item.tool, item.input)}
-                          className="w-full flex items-center gap-3.5 px-5 py-3 text-left cursor-pointer
-                            hover:bg-ink-50 transition-colors duration-150 group"
-                          title="Reopen in tool"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-ink-100 text-ink-500 flex items-center justify-center shrink-0
-                            group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors">
-                            <Icon size={14} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">
-                                {meta?.label ?? item.tool}
-                              </span>
-                              <span className="text-[11px] text-ink-400 shrink-0 tabular-nums">{timeAgo(item.timestamp)}</span>
+                <>
+                  {openError && (
+                    <div role="alert" className="border-b border-red-100 bg-red-50 px-5 py-2.5 text-[11.5px] text-red-700">
+                      Could not reopen this activity: {openError}
+                    </div>
+                  )}
+                  <ul className="divide-y divide-ink-100">
+                    {recent.map((item) => {
+                      const meta = TOOL_META[item.tool];
+                      const Icon = meta?.icon ?? Clock;
+                      const isOpening = openingId === item.id;
+                      return (
+                        <li key={item.id}>
+                          <button
+                            onClick={() => reopenActivity(item)}
+                            disabled={Boolean(openingId)}
+                            aria-busy={isOpening}
+                            className="w-full flex items-center gap-3.5 px-5 py-3 text-left cursor-pointer
+                              hover:bg-ink-50 transition-colors duration-150 group
+                              disabled:cursor-wait disabled:opacity-70"
+                            title="Reopen complete activity in tool"
+                          >
+                            <div className={`w-8 h-8 rounded-lg bg-ink-100 text-ink-500 flex items-center justify-center shrink-0
+                              group-hover:bg-brand-50 group-hover:text-brand-600 transition-colors
+                              ${isOpening ? 'animate-pulse' : ''}`}>
+                              <Icon size={14} />
                             </div>
-                            <p className="text-[13px] text-ink-700 truncate mt-0.5">{item.input}</p>
-                          </div>
-                          <ArrowUpRight size={14} className="text-ink-300 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">
+                                  {meta?.label ?? item.tool}
+                                </span>
+                                <span className="text-[11px] text-ink-400 shrink-0 tabular-nums">
+                                  {isOpening ? 'Opening…' : timeAgo(item.timestamp)}
+                                </span>
+                              </div>
+                              <p className="text-[13px] text-ink-700 truncate mt-0.5">{item.input}</p>
+                            </div>
+                            <ArrowUpRight size={14} className="text-ink-300 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
               )}
             </Card>
           </section>
