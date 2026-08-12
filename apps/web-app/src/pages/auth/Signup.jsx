@@ -11,7 +11,6 @@ export default function Signup() {
   const { signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
@@ -24,7 +23,7 @@ export default function Signup() {
     try {
       // Signup returns a session, so the new account is signed in already.
       // The verification link is informational — nothing is gated on it.
-      await signUp(email, password, fullName);
+      await signUp(email, password);
       navigate('/verify-email', {
         replace: true,
         state: { backgroundLocation: location.state?.backgroundLocation },
@@ -80,21 +79,6 @@ export default function Signup() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="name" className={LABEL}>
-            Full name
-          </label>
-          <input
-            id="name"
-            type="text"
-            required
-            autoComplete="name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            className={INPUT}
-          />
-        </div>
-
         <div>
           <label htmlFor="email" className={LABEL}>
             Email

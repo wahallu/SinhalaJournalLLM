@@ -91,10 +91,18 @@ create table if not exists profiles (
     role         text not null default 'user'   check (role in ('user','admin')),
     status       text not null default 'active' check (status in ('active','suspended')),
     category_id  uuid references user_categories(id) on delete set null,
+    newsroom_roles text[] not null default array[]::text[],
+    journalism_interests text[] not null default array[]::text[],
+    onboarding_completed_at timestamptz,
     created_at   timestamptz not null default now(),
     updated_at   timestamptz not null default now(),
     last_seen_at timestamptz
 );
+
+-- Additive onboarding fields for databases created before this flow existed.
+alter table profiles add column if not exists newsroom_roles text[] not null default array[]::text[];
+alter table profiles add column if not exists journalism_interests text[] not null default array[]::text[];
+alter table profiles add column if not exists onboarding_completed_at timestamptz;
 
 create index if not exists idx_profiles_role     on profiles (role);
 create index if not exists idx_profiles_category on profiles (category_id);

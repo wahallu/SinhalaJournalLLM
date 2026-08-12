@@ -43,6 +43,7 @@ import Activity from './admin/pages/Activity';
 import SinLLamaPage from './admin/research/SinLLamaPage';
 import SummarizerPlayground from './admin/research/SummarizerPlayground';
 import ModelComparison from './admin/research/ModelComparison';
+import Onboarding from './components/onboarding/Onboarding';
 
 /* Routes that render as a dialog over whatever page is behind them, rather
    than as a page of their own. In-app navigation to one of these carries the
@@ -313,7 +314,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading, updateAccount } = useAuth();
   const userId = user?.id;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -429,6 +430,10 @@ function App() {
   const toolForPath = PATH_TO_TOOL[backgroundLocation.pathname];
   const toolDisabled = toolForPath in features && features[toolForPath] === false;
 
+  if (authLoading) {
+    return <div className="h-full bg-white" aria-label="Loading your workspace" />;
+  }
+
   /* The admin dashboard has its own shell and token scope — it must not
      render inside the SinAi sidebar layout. */
   if (location.pathname.startsWith('/admin')) {
@@ -461,12 +466,16 @@ function App() {
     );
   }
 
+  if (user && !user.onboarding_completed_at) {
+    return <Onboarding user={user} onComplete={updateAccount} />;
+  }
+
   if (toolDisabled) {
     return <Navigate to="/dashboard" replace />;
   }
 
   return (
-    <div className="relative h-full flex bg-canvas overflow-hidden">
+    <div className="relative h-full flex bg-canvas overflow-hidden animate-in fade-in duration-500">
       <Sidebar
         features={features}
         activeTool={activeTool}

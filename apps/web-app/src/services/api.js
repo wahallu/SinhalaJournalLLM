@@ -298,6 +298,11 @@ export function setMyCategory(categoryId) {
   return request('/categories/me', { category_id: categoryId || null }, 'PUT');
 }
 
+// Persist first-login newsroom personalisation as one atomic profile update.
+export function saveOnboarding(profile) {
+  return request('/auth/onboarding', profile, 'PUT');
+}
+
 // ── Unified history ──
 // Server-side and scoped to the signed-in user; returns 401 when signed out.
 // Response: { items: [{ id, tool, input_preview, output_preview, detail, created_at }] }
