@@ -37,7 +37,7 @@ export default function Dropdown({
         id={id}
         aria-label={label}
         className={`
-          inline-flex items-center gap-1.5 rounded-lg border border-ink-200 bg-white dark:bg-ink-50
+          inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-ink-200 bg-white dark:bg-ink-50
           text-ink-700 font-medium cursor-pointer transition-colors duration-150
           hover:border-ink-300 hover:text-ink-900
           focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]
@@ -51,8 +51,8 @@ export default function Dropdown({
             {label}
           </span>
         )}
-        <Select.Value placeholder={label}>{selected?.label}</Select.Value>
-        <Select.Icon className="text-ink-400">
+        <Select.Value className="whitespace-nowrap" placeholder={label}>{selected?.label}</Select.Value>
+        <Select.Icon className="shrink-0 text-ink-400">
           <ChevronDown size={13} />
         </Select.Icon>
       </Select.Trigger>
