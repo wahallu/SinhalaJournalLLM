@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import {
   ChevronDown, ChevronUp, Trophy, AlertTriangle, Sparkles,
   Camera, RefreshCw, ImageOff, Edit3, FileSearch,
-  Wand2, Download, ExternalLink, ImageIcon,
+  Wand2, Download, ExternalLink, ImageIcon, ShieldX,
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
 import ActionButton from './ui/ActionButton';
 import { Skeleton } from './ui/Skeleton';
 import { generateVisualPrompt, generateImage } from '../services/api';
+import { useAuth } from '../auth/useAuth';
 
 /* ── Single candidate card ──────────────────────────────────────
    Word count and band fit are the only per-candidate facts available:
@@ -44,6 +45,7 @@ function CandidateCard({ candidate }) {
 
 /* ── Visual prompt module ───────────────────────────────────────── */
 function VisualPromptModule({ headline, articleText }) {
+  const { isAdmin } = useAuth();
   const [open, setOpen] = useState(true);
 
   // Visual prompt state
@@ -72,7 +74,7 @@ function VisualPromptModule({ headline, articleText }) {
 
   const handleGenerateImage = () => {
     const cleanPrompt = prompt.trim();
-    if (!cleanPrompt || imgLoading) return;
+    if (!isAdmin || !cleanPrompt || imgLoading) return;
     setImgLoading(true);
     setImgError(null);
     setImageData(null);
@@ -147,15 +149,27 @@ function VisualPromptModule({ headline, articleText }) {
                   Regenerate
                 </ActionButton>
                 {prompt && !loading && (
-                  <ActionButton
-                    variant="primary"
-                    size="sm"
-                    icon={Wand2}
-                    onClick={handleGenerateImage}
-                    loading={imgLoading}
-                  >
-                    {imgLoading ? 'Generating image' : 'Generate image'}
-                  </ActionButton>
+                  isAdmin ? (
+                    <ActionButton
+                      variant="primary"
+                      size="sm"
+                      icon={Wand2}
+                      onClick={handleGenerateImage}
+                      loading={imgLoading}
+                    >
+                      {imgLoading ? 'Generating image' : 'Generate image'}
+                    </ActionButton>
+                  ) : (
+                    <ActionButton
+                      variant="secondary"
+                      size="sm"
+                      icon={ShieldX}
+                      disabled
+                      title="Image generation is available to administrators only"
+                    >
+                      Not eligible — Admin only
+                    </ActionButton>
+                  )
                 )}
               </div>
             </div>
@@ -200,7 +214,9 @@ function VisualPromptModule({ headline, articleText }) {
                   flex flex-col items-center justify-center gap-1.5 text-center px-4">
                   <ImageIcon size={18} className="text-ink-300" />
                   <p className="text-[11.5px] text-ink-400">
-                    {prompt ? 'Generate an image from the prompt' : 'A prompt is generated from your article first'}
+                    {prompt
+                      ? (isAdmin ? 'Generate an image from the prompt' : 'Image generation is available to administrators only')
+                      : 'A prompt is generated from your article first'}
                   </p>
                 </div>
               )}

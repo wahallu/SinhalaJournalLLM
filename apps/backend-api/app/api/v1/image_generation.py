@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.schemas.image_generation import ImageGenerationRequest, ImageGenerationResponse
 from app.schemas.image_generation import DEFAULT_IMAGE_MODEL
-from app.core.deps import require_user
+from app.core.deps import require_admin
 from app.schemas.auth import AuthUser
 from app.services.image_generation_service import generate_image
 
@@ -19,12 +19,13 @@ router = APIRouter(prefix="/image", tags=["Image Generation"])
 @router.post("/generate", response_model=ImageGenerationResponse)
 async def generate_image_endpoint(
     payload: ImageGenerationRequest,
-    _user: AuthUser = Depends(require_user),
+    _admin: AuthUser = Depends(require_admin),
 ):
     """
     Generate a photorealistic image from an English text prompt via OpenAI.
 
     Designed to consume the visual prompt produced by the headline generator.
+    Admin-only because every request bills the project's OpenAI account.
     Proxies the request to OpenAI so the API token never leaves the backend.
     """
     try:
