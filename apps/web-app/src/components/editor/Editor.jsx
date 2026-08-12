@@ -5,6 +5,7 @@ import CopyButton from '../ui/CopyButton';
 import Dropdown from '../ui/Dropdown';
 import EditorToolbar from './EditorToolbar';
 import ConfirmModal from '../ui/ConfirmModal';
+import HeadlineModelTour from '../HeadlineModelTour';
 import { HEADLINE_MODELS } from '../../lib/toolOptions';
 
 // Matches max_length on every tool request schema in apps/backend-api
@@ -75,19 +76,23 @@ export default function Editor({
         {helper && (
           <span className="hidden md:block text-[11px] text-ink-400 truncate pl-1">{helper}</span>
         )}
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
           <CopyButton text={value} label="Copy" className={!value ? 'opacity-40 pointer-events-none' : ''} />
           <ActionButton id="btn-clear" size="sm" variant="ghost" icon={Eraser} onClick={() => setShowClearConfirm(true)} disabled={loading || !value}>
             Clear
           </ActionButton>
           {tool === 'headlines' && (
-            <Dropdown
-              id="headline-model"
-              label="Model"
-              options={HEADLINE_MODELS}
-              value={settings.headlineModel}
-              onChange={(v) => onSettingsChange({ ...settings, headlineModel: v })}
-            />
+            <div className="relative shrink-0">
+              <HeadlineModelTour />
+              <Dropdown
+                id="headline-model"
+                label="Model"
+                options={HEADLINE_MODELS}
+                value={settings.headlineModel}
+                onChange={(v) => onSettingsChange({ ...settings, headlineModel: v })}
+                className="min-w-[8.5rem] justify-between"
+              />
+            </div>
           )}
           <ActionButton
             id="btn-run"
