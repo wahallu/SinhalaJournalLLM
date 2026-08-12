@@ -17,13 +17,15 @@ import { X } from 'lucide-react';
  * @param {(open: boolean) => void} props.onOpenChange  Fires on Escape, overlay click and the close button.
  * @param {string} props.title
  * @param {string} [props.description]
- * @param {'sm'|'md'|'lg'} [props.size='sm']
+ * @param {'sm'|'md'|'lg'|'xl'} [props.size='sm']
  * @param {boolean} [props.showHeader=true]  False when the body renders its own heading.
+ * @param {boolean} [props.inverseClose=false] Use on dark custom headers.
  */
 const WIDTHS = {
   sm: 'max-w-[26rem]',
   md: 'max-w-lg',
   lg: 'max-w-2xl',
+  xl: 'max-w-3xl',
 };
 
 export default function Dialog({
@@ -33,6 +35,7 @@ export default function Dialog({
   description,
   size = 'sm',
   showHeader = true,
+  inverseClose = false,
   children,
 }) {
   return (
@@ -56,10 +59,10 @@ export default function Dialog({
               data-[state=closed]:animate-out data-[state=closed]:fade-out`}
           >
             <RadixDialog.Close
-              className="absolute top-3.5 right-3.5 z-10 flex items-center justify-center w-8 h-8 rounded-lg
-                text-ink-400 hover:text-ink-800 hover:bg-ink-100 cursor-pointer
+              className={`absolute top-3.5 right-3.5 z-10 flex items-center justify-center w-8 h-8 rounded-lg
+                ${inverseClose ? 'text-white/75 hover:text-white hover:bg-white/15' : 'text-ink-400 hover:text-ink-800 hover:bg-ink-100'} cursor-pointer
                 transition-colors duration-150 focus:outline-none
-                focus-visible:ring-2 focus-visible:ring-brand-400"
+                focus-visible:ring-2 ${inverseClose ? 'focus-visible:ring-white/70' : 'focus-visible:ring-brand-400'}`}
               aria-label="Close"
             >
               <X size={17} strokeWidth={2} />

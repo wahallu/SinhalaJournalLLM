@@ -579,8 +579,10 @@ function App() {
             <ProtectedRoute>
               <RouteDialog
                 title="Profile"
-                description="Your account and how you use SinAi."
-                size="md"
+                description="Your identity and newsroom preferences."
+                size="xl"
+                showHeader={false}
+                inverseClose
               >
                 <ProfilePage variant="dialog" />
               </RouteDialog>

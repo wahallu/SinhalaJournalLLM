@@ -1,37 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { saveOnboarding } from '../../services/api';
+import { JOURNALISM_INTERESTS, NEWSROOM_ROLES } from './options';
 import './onboarding.css';
 
 const STEPS = [
   { id: 'name', question: 'What do your friends call you?' },
   { id: 'roles', question: 'Which roles do you play in the newsroom?' },
   { id: 'interests', question: 'What kind of journalism do you care about?' },
-];
-
-const ROLES = [
-  { id: 'reporter', label: 'Reporter', description: 'Research, interview and report stories.' },
-  { id: 'editor', label: 'Editor', description: 'Shape stories and guide editorial quality.' },
-  { id: 'student-journalist', label: 'Student journalist', description: 'Learn and practise newsroom craft.' },
-  { id: 'copy-editor', label: 'Copy editor', description: 'Refine language, clarity and accuracy.' },
-  { id: 'producer', label: 'Producer', description: 'Build broadcast and digital news coverage.' },
-  { id: 'photojournalist', label: 'Photojournalist', description: 'Tell stories through images and video.' },
-  { id: 'researcher', label: 'Researcher', description: 'Find evidence, context and source material.' },
-  { id: 'newsroom-leader', label: 'Newsroom leader', description: 'Coordinate people and editorial direction.' },
-];
-
-const INTERESTS = [
-  ['politics', 'Politics'],
-  ['business', 'Business'],
-  ['investigations', 'Investigations'],
-  ['technology', 'Technology'],
-  ['science', 'Science'],
-  ['health', 'Health'],
-  ['climate', 'Climate'],
-  ['sports', 'Sports'],
-  ['culture', 'Culture'],
-  ['international', 'International'],
-  ['local-affairs', 'Local affairs'],
-  ['fact-checking', 'Fact-checking'],
 ];
 
 export default function Onboarding({ user, onComplete }) {
@@ -164,7 +139,7 @@ export default function Onboarding({ user, onComplete }) {
 
           {step === 1 && (
             <div className="ob-role-grid" aria-label="Select all newsroom roles that apply">
-              {ROLES.map((role) => {
+              {NEWSROOM_ROLES.map((role) => {
                 const selected = roles.includes(role.id);
                 return (
                   <button
@@ -187,19 +162,19 @@ export default function Onboarding({ user, onComplete }) {
 
           {step === 2 && (
             <div className="ob-interests" aria-label="Select up to eight journalism interests">
-              {INTERESTS.map(([id, label]) => {
-                const selected = interests.includes(id);
+              {JOURNALISM_INTERESTS.map((interest) => {
+                const selected = interests.includes(interest.id);
                 const unavailable = !selected && interests.length >= 8;
                 return (
                   <button
-                    key={id}
+                    key={interest.id}
                     type="button"
                     className="ob-chip"
                     aria-pressed={selected}
                     aria-disabled={unavailable}
-                    onClick={() => toggleInterest(id)}
+                    onClick={() => toggleInterest(interest.id)}
                   >
-                    {label}
+                    {interest.label}
                   </button>
                 );
               })}
