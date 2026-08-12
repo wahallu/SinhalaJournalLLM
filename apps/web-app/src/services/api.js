@@ -329,8 +329,9 @@ export function getHistoryStats() {
   return request('/history/stats', null, 'GET');
 }
 
-// ── Image Generation (OpenRouter — Krea 2 Large) ──
-// The backend proxies to OpenRouter and returns a base64 PNG data URL or hosted image URL.
+// ── Image Generation (OpenAI GPT Image 2) ──
+// The authenticated backend proxy keeps OPENAI_API_KEY out of the browser and
+// returns a base64 PNG data URL.
 export function generateImage(prompt) {
   return request('/image/generate', { prompt });
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   ChevronDown, ChevronUp, Trophy, AlertTriangle, Sparkles,
   Camera, RefreshCw, ImageOff, Edit3, FileSearch,
-  Wand2, Download, ExternalLink, ImageIcon, Clock, X,
+  Wand2, Download, ExternalLink, ImageIcon,
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
@@ -55,10 +55,6 @@ function VisualPromptModule({ headline, articleText }) {
   const [imageData, setImageData] = useState(null);   // base64 data URL
   const [imgLoading, setImgLoading] = useState(false);
   const [imgError, setImgError] = useState(null);
-  // Image generation is not launched yet — the button surfaces a notice
-  // instead of calling the API. handleGenerateImage is left in place so
-  // flipping this back on later is a one-line change.
-  const [comingSoon, setComingSoon] = useState(false);
 
   const generate = (cancelledRef) => {
     if (!articleText) return;
@@ -68,7 +64,6 @@ function VisualPromptModule({ headline, articleText }) {
     // Clear previous image when regenerating the prompt
     setImageData(null);
     setImgError(null);
-    setComingSoon(false);
     generateVisualPrompt(articleText, headline)
       .then((res) => { if (!cancelledRef?.cancelled) setPrompt(res.visual_prompt || ''); })
       .catch((err) => { if (!cancelledRef?.cancelled) setError(err.message || 'Failed to generate visual prompt'); })
@@ -76,11 +71,12 @@ function VisualPromptModule({ headline, articleText }) {
   };
 
   const handleGenerateImage = () => {
-    if (!prompt) return;
+    const cleanPrompt = prompt.trim();
+    if (!cleanPrompt || imgLoading) return;
     setImgLoading(true);
     setImgError(null);
     setImageData(null);
-    generateImage(prompt)
+    generateImage(cleanPrompt)
       .then((res) => setImageData(res.image_data || ''))
       .catch((err) => setImgError(err.message || 'Image generation failed'))
       .finally(() => setImgLoading(false));
@@ -155,28 +151,13 @@ function VisualPromptModule({ headline, articleText }) {
                     variant="primary"
                     size="sm"
                     icon={Wand2}
-                    onClick={() => setComingSoon(true)}
+                    onClick={handleGenerateImage}
+                    loading={imgLoading}
                   >
-                    Generate image
+                    {imgLoading ? 'Generating image' : 'Generate image'}
                   </ActionButton>
                 )}
               </div>
-
-              {comingSoon && (
-                <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-50 rounded-lg border border-amber-200/70">
-                  <Clock size={14} className="text-amber-600 shrink-0 mt-0.5" />
-                  <p className="flex-1 text-[12px] text-amber-800 font-medium">
-                    Image generation — Coming soon
-                  </p>
-                  <button
-                    onClick={() => setComingSoon(false)}
-                    aria-label="Dismiss"
-                    className="text-amber-500 hover:text-amber-700 cursor-pointer shrink-0"
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-              )}
             </div>
 
             {/* ── Image column ── */}
