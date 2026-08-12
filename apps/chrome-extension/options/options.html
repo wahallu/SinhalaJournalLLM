@@ -357,6 +357,10 @@
         <h1>SinAi Assistant Settings</h1>
         <p>SinhalaJournal LLM Chrome Extension configuration panel</p>
       </div>
+      <div class="status-badge" id="options-status-badge" style="margin-left: auto;">
+        <span class="status-dot checking"></span>
+        <span class="status-text" style="color: var(--text-muted); font-size: 0.72rem;">Checking...</span>
+      </div>
     </header>
 
     <div class="grid">
@@ -374,21 +378,6 @@
             <input type="checkbox" id="options-inline-enabled" checked>
             <span class="slider"></span>
           </label>
-        </div>
-
-        <div class="form-group">
-          <label for="options-api-host">API Base URL</label>
-          <div class="api-row">
-            <input type="text" id="options-api-host" placeholder="http://localhost:8000/api/v1">
-            <button id="options-btn-test" class="btn btn-secondary">Test Connection</button>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-            <span class="help-text">Address of your SinAi backend (Python FastAPI base API URL)</span>
-            <div class="status-badge" id="options-status-badge">
-              <span class="status-dot checking"></span>
-              <span class="status-text" style="color: var(--text-muted); font-size: 0.72rem;">Checking...</span>
-            </div>
-          </div>
         </div>
 
         <div class="form-group">

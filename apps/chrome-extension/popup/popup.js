@@ -45,8 +45,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnClearHistory = document.getElementById("btn-clear-history");
 
   // Settings Tab
-  const inputApiHost = document.getElementById("input-api-host");
-  const btnTestConnection = document.getElementById("btn-test-connection");
   const selectDefaultTone = document.getElementById("select-default-tone");
   const selectDefaultLength = document.getElementById("select-default-length");
   const inputDefaultHeadlines = document.getElementById("input-default-headlines");
@@ -568,7 +566,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (items.defaultHeadlineCount) extensionSettings.defaultHeadlineCount = items.defaultHeadlineCount;
 
         // Apply to Settings UI
-        inputApiHost.value = extensionSettings.apiHost;
         toggleInlineHelper.checked = extensionSettings.inlineEnabled;
         selectDefaultTone.value = extensionSettings.defaultTone;
         selectDefaultLength.value = extensionSettings.defaultLength;
@@ -594,7 +591,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function setupSettingsEvents() {
     btnSaveSettings.addEventListener("click", () => {
       const updated = {
-        apiHost: inputApiHost.value.trim() || "https://sinhalajournalllm.onrender.com/api/v1",
         defaultTone: selectDefaultTone.value,
         defaultLength: selectDefaultLength.value,
         defaultHeadlineCount: parseInt(inputDefaultHeadlines.value, 10) || 5
@@ -612,7 +608,7 @@ document.addEventListener("DOMContentLoaded", () => {
           btnSaveSettings.style.background = "";
         }, 1500);
 
-        checkApiHealth(); // recheck with new host
+        checkApiHealth(); // recheck with host
       });
     });
 
@@ -621,34 +617,11 @@ document.addEventListener("DOMContentLoaded", () => {
         extensionSettings.inlineEnabled = e.target.checked;
       });
     });
-
-    btnTestConnection.addEventListener("click", () => {
-      const originalText = btnTestConnection.textContent;
-      btnTestConnection.textContent = "Testing...";
-      btnTestConnection.disabled = true;
-
-      checkApiHealth((connected) => {
-        btnTestConnection.textContent = originalText;
-        btnTestConnection.disabled = false;
-
-        if (connected) {
-          btnTestConnection.style.borderColor = "#10B981";
-          btnTestConnection.style.color = "#10B981";
-        } else {
-          btnTestConnection.style.borderColor = "#EF4444";
-          btnTestConnection.style.color = "#EF4444";
-        }
-        setTimeout(() => {
-          btnTestConnection.style.borderColor = "";
-          btnTestConnection.style.color = "";
-        }, 1500);
-      });
-    });
   }
 
   // ── API Health Check ──
   function checkApiHealth(callback) {
-    const apiHost = inputApiHost.value.trim() || extensionSettings.apiHost;
+    const apiHost = extensionSettings.apiHost || "https://sinhalajournalllm.onrender.com/api/v1";
     const healthUrl = apiHost.replace(/\/api\/v1\/?$/, "") + "/health";
 
     apiStatusDot.className = "status-dot warning";

@@ -14,12 +14,10 @@ const DEFAULT_SETTINGS = {
 document.addEventListener("DOMContentLoaded", () => {
   // DOM Elements
   const checkInlineEnabled = document.getElementById("options-inline-enabled");
-  const inputApiHost = document.getElementById("options-api-host");
   const selectDefaultTone = document.getElementById("options-default-tone");
   const selectDefaultLength = document.getElementById("options-default-length");
   const inputDefaultHeadlines = document.getElementById("options-default-headlines");
   
-  const btnTest = document.getElementById("options-btn-test");
   const btnSave = document.getElementById("options-btn-save");
   const btnReset = document.getElementById("options-btn-reset");
   const resetBtnDefaultLabel = btnReset.textContent;
@@ -68,26 +66,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // Event listeners
   btnSave.addEventListener("click", saveSettings);
   btnReset.addEventListener("click", resetToDefaults);
-  btnTest.addEventListener("click", () => checkApiHealth(inputApiHost.value.trim()));
-  inputApiHost.addEventListener("blur", () => checkApiHealth(inputApiHost.value.trim()));
 
   function loadSettings() {
     storage.get(
       ["apiHost", "inlineEnabled", "defaultTone", "defaultLength", "defaultHeadlineCount"],
       (items) => {
         checkInlineEnabled.checked = items.inlineEnabled !== undefined ? items.inlineEnabled : DEFAULT_SETTINGS.inlineEnabled;
-        inputApiHost.value = items.apiHost || DEFAULT_SETTINGS.apiHost;
         selectDefaultTone.value = items.defaultTone || DEFAULT_SETTINGS.defaultTone;
         selectDefaultLength.value = items.defaultLength || DEFAULT_SETTINGS.defaultLength;
         inputDefaultHeadlines.value = items.defaultHeadlineCount || DEFAULT_SETTINGS.defaultHeadlineCount;
 
-        checkApiHealth(inputApiHost.value);
+        checkApiHealth(items.apiHost || DEFAULT_SETTINGS.apiHost);
       }
     );
   }
 
   function saveSettings() {
-    const apiHostVal = inputApiHost.value.trim() || DEFAULT_SETTINGS.apiHost;
     const inlineEnabledVal = checkInlineEnabled.checked;
     const defaultToneVal = selectDefaultTone.value;
     const defaultLengthVal = selectDefaultLength.value;
@@ -95,7 +89,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     storage.set(
       {
-        apiHost: apiHostVal,
         inlineEnabled: inlineEnabledVal,
         defaultTone: defaultToneVal,
         defaultLength: defaultLengthVal,
@@ -112,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
           btnSave.style.background = "";
         }, 2000);
 
-        checkApiHealth(apiHostVal);
+        checkApiHealth(DEFAULT_SETTINGS.apiHost);
       }
     );
   }

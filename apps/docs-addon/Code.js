@@ -3,6 +3,8 @@
  * Handles Google Document DOM operations and proxies external API calls.
  */
 
+var API_BASE_URL = "https://sinhalajournalllm.onrender.com/api/v1";
+
 // ── Lifecycle Hook: Document Opened ──
 function onOpen(e) {
   try {
@@ -139,7 +141,7 @@ function loadSettings() {
   var userProperties = PropertiesService.getUserProperties();
   var props = userProperties.getProperties();
   return {
-    apiHost: props.apiHost || "https://sinhalajournalllm.onrender.com/api/v1",
+    apiHost: API_BASE_URL,
     defaultTone: props.defaultTone || "formal",
     defaultLength: props.defaultLength || "medium",
     defaultHeadlineCount: parseInt(props.defaultHeadlineCount || "5", 10)
@@ -194,8 +196,7 @@ function _clearSession() {
 /** One POST to an /auth/* endpoint that must never carry a Bearer token
  *  (login, signup, forgot-password, and refresh itself). */
 function _rawAuthPost(path, body) {
-  var userProperties = PropertiesService.getUserProperties();
-  var apiHost = userProperties.getProperty("apiHost") || "https://sinhalajournalllm.onrender.com/api/v1";
+  var apiHost = API_BASE_URL;
   if (apiHost.substring(apiHost.length - 1) === "/") {
     apiHost = apiHost.substring(0, apiHost.length - 1);
   }
@@ -300,8 +301,7 @@ function _fetchWithAuth(url, baseOptions, accessToken) {
  * session is cleared and the original failure is what comes back.
  */
 function _authenticatedRequest(endpoint, body, method) {
-  var userProperties = PropertiesService.getUserProperties();
-  var apiHost = userProperties.getProperty("apiHost") || "https://sinhalajournalllm.onrender.com/api/v1";
+  var apiHost = API_BASE_URL;
 
   if (apiHost.substring(apiHost.length - 1) === "/") {
     apiHost = apiHost.substring(0, apiHost.length - 1);

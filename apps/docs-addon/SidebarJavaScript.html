@@ -58,7 +58,6 @@
     const historyListContainer = document.getElementById("history-list-container");
 
     // Settings Panel
-    const inputApiHost = document.getElementById("input-api-host");
     const selectDefaultTone = document.getElementById("select-default-tone");
     const selectDefaultLength = document.getElementById("select-default-length");
     const inputDefaultHeadlines = document.getElementById("input-default-headlines");
@@ -151,7 +150,6 @@
         .withSuccessHandler((settings) => {
           activeSettings = settings;
 
-          inputApiHost.value = settings.apiHost;
           selectDefaultTone.value = settings.defaultTone;
           selectDefaultLength.value = settings.defaultLength;
           inputDefaultHeadlines.value = settings.defaultHeadlineCount;
@@ -809,7 +807,6 @@
     function setupSettingsEvents() {
       btnSaveSettings.addEventListener("click", () => {
         const settings = {
-          apiHost: inputApiHost.value.trim() || "https://sinhalajournalllm.onrender.com/api/v1",
           defaultTone: selectDefaultTone.value,
           defaultLength: selectDefaultLength.value,
           defaultHeadlineCount: inputDefaultHeadlines.value
@@ -826,7 +823,6 @@
 
             activeSettings = {
               ...activeSettings,
-              apiHost: settings.apiHost,
               defaultTone: settings.defaultTone,
               defaultLength: settings.defaultLength,
               defaultHeadlineCount: parseInt(settings.defaultHeadlineCount, 10)
