@@ -40,6 +40,13 @@ def test_registry_covers_the_documented_keys():
         "grammar.chunk_chars",
         "grammar.ensemble_size",
         "grammar.spellcheck_ratio",
+        "grammar.rule_validation_enabled",
+        "grammar.auto_safe_orthography",
+        "grammar.protect_entities",
+        "grammar.protect_numbers",
+        "grammar.protect_quotes",
+        "grammar.agreement_validation",
+        "grammar.contextual_rules",
         "limits.anon_per_hour",
     }
     assert set(REGISTRY) == expected

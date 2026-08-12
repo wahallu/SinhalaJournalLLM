@@ -181,6 +181,18 @@ def _name_suffix(word: str) -> str | None:
     return None
 
 
+def is_probable_name(word: str) -> bool:
+    """Whether a token is a known surname or carries a known name ending.
+
+    The original substitution rule required extra material before an ending,
+    which is correct for comparing formative suffixes but excluded standalone
+    surnames such as පෙරේරා. The hybrid safety gate needs the broader question
+    while retaining the existing rule unchanged.
+    """
+    bare = _bare(word)
+    return any(bare == suffix or bare.endswith(suffix) for suffix in _NAME_SUFFIXES)
+
+
 def is_name_substitution(original: str, corrected: str) -> bool:
     """
     True when a name-shaped word is replaced by one carrying a *different* name

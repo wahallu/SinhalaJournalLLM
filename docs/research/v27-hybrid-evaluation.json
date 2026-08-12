@@ -1,0 +1,225 @@
+{
+  "systems": {
+    "model_only": {
+      "N": 154,
+      "exact_match": 0.6688,
+      "correction_needed_exact": 0.569,
+      "clean_preservation": 0.9737,
+      "overcorrection_rate": 0.0263,
+      "undercorrection_rate": 0.1897,
+      "edit_precision": 0.8827,
+      "edit_recall": 0.7114,
+      "edit_f0.5": 0.8422,
+      "entity_mutation_rate": 0.013,
+      "number_mutation_rate": 0.0,
+      "polarity_mutation_rate": 0.0
+    },
+    "rules_only": {
+      "N": 154,
+      "exact_match": 0.2468,
+      "correction_needed_exact": 0.0,
+      "clean_preservation": 1.0,
+      "overcorrection_rate": 0.0,
+      "undercorrection_rate": 1.0,
+      "edit_precision": 0.0,
+      "edit_recall": 0.0,
+      "edit_f0.5": 0.0,
+      "entity_mutation_rate": 0.0,
+      "number_mutation_rate": 0.0,
+      "polarity_mutation_rate": 0.0
+    },
+    "hybrid": {
+      "N": 154,
+      "exact_match": 0.5714,
+      "correction_needed_exact": 0.4397,
+      "clean_preservation": 0.9737,
+      "overcorrection_rate": 0.0263,
+      "undercorrection_rate": 0.319,
+      "edit_precision": 0.8968,
+      "edit_recall": 0.5622,
+      "edit_f0.5": 0.8014,
+      "entity_mutation_rate": 0.0,
+      "number_mutation_rate": 0.0,
+      "polarity_mutation_rate": 0.0
+    }
+  },
+  "validator_decisions": {
+    "ACCEPT": 146,
+    "SUGGEST": 37,
+    "REJECT": 2
+  },
+  "rule_coverage": {
+    "AMBIG_KEEP_001": {
+      "trigger_count": 4,
+      "correct_blocks": 0,
+      "false_blocks": 4,
+      "precision": 0.0,
+      "decisions": {
+        "SUGGEST": 4
+      }
+    },
+    "CASE_ATTACH_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "precision": null,
+      "decisions": {
+        "ACCEPT": 5
+      }
+    },
+    "ENTITY_PROTECT_001": {
+      "trigger_count": 3,
+      "correct_blocks": 0,
+      "false_blocks": 1,
+      "precision": 0.0,
+      "decisions": {
+        "REJECT": 2,
+        "SUGGEST": 1
+      }
+    },
+    "HONORIFIC_CONTEXT_001": {
+      "trigger_count": 1,
+      "correct_blocks": 0,
+      "false_blocks": 1,
+      "precision": 0.0,
+      "decisions": {
+        "SUGGEST": 1
+      }
+    },
+    "MORPH_LEXICON_001": {
+      "trigger_count": 96,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "precision": null,
+      "decisions": {
+        "ACCEPT": 96
+      }
+    },
+    "MORPH_SUFFIX_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "precision": null,
+      "decisions": {
+        "ACCEPT": 5
+      }
+    },
+    "ORTH_SPACE_001": {
+      "trigger_count": 1,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "precision": null,
+      "decisions": {
+        "ACCEPT": 1
+      }
+    },
+    "ORTH_ZWJ_001": {
+      "trigger_count": 7,
+      "correct_blocks": 2,
+      "false_blocks": 3,
+      "precision": 0.4,
+      "decisions": {
+        "SUGGEST": 7
+      }
+    },
+    "PASSIVE_AUX_001": {
+      "trigger_count": 2,
+      "correct_blocks": 0,
+      "false_blocks": 2,
+      "precision": 0.0,
+      "decisions": {
+        "SUGGEST": 2
+      }
+    },
+    "REGISTER_CONTEXT_001": {
+      "trigger_count": 4,
+      "correct_blocks": 0,
+      "false_blocks": 3,
+      "precision": 0.0,
+      "decisions": {
+        "SUGGEST": 4
+      }
+    },
+    "SANDHI_JOIN_001": {
+      "trigger_count": 5,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "precision": null,
+      "decisions": {
+        "ACCEPT": 5
+      }
+    },
+    "SEMANTIC_EDIT_SIZE_001": {
+      "trigger_count": 13,
+      "correct_blocks": 3,
+      "false_blocks": 8,
+      "precision": 0.2727,
+      "decisions": {
+        "SUGGEST": 13
+      }
+    },
+    "SEMANTIC_ENTITY_001": {
+      "trigger_count": 2,
+      "correct_blocks": 0,
+      "false_blocks": 1,
+      "precision": 0.0,
+      "decisions": {
+        "REJECT": 2
+      }
+    },
+    "SEMANTIC_TENSE_001": {
+      "trigger_count": 5,
+      "correct_blocks": 1,
+      "false_blocks": 3,
+      "precision": 0.25,
+      "decisions": {
+        "SUGGEST": 5
+      }
+    },
+    "SEMANTIC_VOICE_001": {
+      "trigger_count": 2,
+      "correct_blocks": 0,
+      "false_blocks": 2,
+      "precision": 0.0,
+      "decisions": {
+        "SUGGEST": 2
+      }
+    },
+    "SPELL_CONSONANT_CONFUSION_001": {
+      "trigger_count": 89,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "precision": null,
+      "decisions": {
+        "ACCEPT": 89
+      }
+    },
+    "SPELL_VOWEL_LENGTH_001": {
+      "trigger_count": 7,
+      "correct_blocks": 0,
+      "false_blocks": 0,
+      "precision": null,
+      "decisions": {
+        "ACCEPT": 7
+      }
+    },
+    "VERB_TENSE_001": {
+      "trigger_count": 5,
+      "correct_blocks": 1,
+      "false_blocks": 3,
+      "precision": 0.25,
+      "decisions": {
+        "SUGGEST": 5
+      }
+    },
+    "VERB_VOICE_001": {
+      "trigger_count": 2,
+      "correct_blocks": 0,
+      "false_blocks": 2,
+      "precision": 0.0,
+      "decisions": {
+        "SUGGEST": 2
+      }
+    }
+  }
+}

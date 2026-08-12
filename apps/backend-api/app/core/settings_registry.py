@@ -133,6 +133,41 @@ def build_registry() -> dict[str, SettingSpec]:
                 "see grammar_service._pick_consensus()."
             ),
         ),
+        "grammar.rule_validation_enabled": SettingSpec(
+            kind="bool", default=_env_default("GRAMMAR_RULE_VALIDATION_ENABLED", True),
+            group="Grammar Advanced",
+            description="Validate neural grammar candidates with deterministic safety and linguistic rules.",
+        ),
+        "grammar.auto_safe_orthography": SettingSpec(
+            kind="bool", default=_env_default("GRAMMAR_AUTO_SAFE_ORTHOGRAPHY", True),
+            group="Grammar Advanced",
+            description="Apply NFC and semantics-preserving horizontal spacing rules.",
+        ),
+        "grammar.protect_entities": SettingSpec(
+            kind="bool", default=_env_default("GRAMMAR_PROTECT_ENTITIES", True),
+            group="Grammar Advanced",
+            description="Block probable name and protected glossary mutations.",
+        ),
+        "grammar.protect_numbers": SettingSpec(
+            kind="bool", default=_env_default("GRAMMAR_PROTECT_NUMBERS", True),
+            group="Grammar Advanced",
+            description="Block changes to factual numbers, dates, percentages, and quantities.",
+        ),
+        "grammar.protect_quotes": SettingSpec(
+            kind="bool", default=_env_default("GRAMMAR_PROTECT_QUOTES", True),
+            group="Grammar Advanced",
+            description="Downgrade rewrites inside direct quotations to suggestions.",
+        ),
+        "grammar.agreement_validation": SettingSpec(
+            kind="bool", default=_env_default("GRAMMAR_AGREEMENT_VALIDATION", True),
+            group="Grammar Advanced",
+            description="Check known subject/predicate features, including the inanimate-plural exception.",
+        ),
+        "grammar.contextual_rules": SettingSpec(
+            kind="bool", default=_env_default("GRAMMAR_CONTEXTUAL_RULES", True),
+            group="Grammar Advanced",
+            description="Keep deixis, honorific, register, and related context-dependent changes advisory.",
+        ),
 
         # ── Headline Generator ──
         "features.headlines": SettingSpec(

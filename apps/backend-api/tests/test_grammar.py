@@ -209,14 +209,14 @@ async def test_check_grammar_calls_the_model_exactly_once(monkeypatch):
 
     async def fake_model_generate(task, text, **_kwargs):
         calls.append(text)
-        return GatewayResult(text="fixed once", provider="mock", latency_ms=5)
+        return GatewayResult(text="input with an error", provider="mock", latency_ms=5)
 
     monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
 
-    result = await check_grammar("input with an error")
+    result = await check_grammar("input with an eror")
 
-    assert result.corrected == "fixed once"
-    assert calls == ["input with an error"]
+    assert result.corrected == "input with an error"
+    assert calls == ["input with an eror"]
 
 
 @pytest.mark.asyncio
@@ -234,13 +234,13 @@ async def test_check_grammar_returns_the_model_output_unchanged_when_correct(mon
 @pytest.mark.asyncio
 async def test_check_grammar_persists_the_single_call_latency(monkeypatch, fake_supabase):
     async def fake_model_generate(task, text, **_kwargs):
-        return GatewayResult(text="halfway fixed", provider="mock", latency_ms=30)
+        return GatewayResult(text="needs fixing", provider="mock", latency_ms=30)
 
     monkeypatch.setattr(grammar_service, "model_generate", fake_model_generate)
 
-    result = await check_grammar("needs fixing", user_id="55555555-5555-5555-5555-555555555555")
+    result = await check_grammar("needs fixng", user_id="55555555-5555-5555-5555-555555555555")
 
-    assert result.corrected == "halfway fixed"
+    assert result.corrected == "needs fixing"
     [record] = fake_supabase.store["grammar_corrections"]
     assert record["latency_ms"] == 30
 

@@ -92,6 +92,16 @@ class Settings(BaseSettings):
     SINLLAMA_COMPARISON_API_URL: str = "http://localhost:8000"
     SINLLAMA_TIMEOUT_SECONDS: float = 120.0
 
+    # Conservative post-generation grammar validation. These are startup
+    # defaults; the runtime settings registry lets an admin override them.
+    GRAMMAR_RULE_VALIDATION_ENABLED: bool = True
+    GRAMMAR_AUTO_SAFE_ORTHOGRAPHY: bool = True
+    GRAMMAR_PROTECT_ENTITIES: bool = True
+    GRAMMAR_PROTECT_NUMBERS: bool = True
+    GRAMMAR_PROTECT_QUOTES: bool = True
+    GRAMMAR_AGREEMENT_VALIDATION: bool = True
+    GRAMMAR_CONTEXTUAL_RULES: bool = True
+
     @field_validator("SINLLAMA_API_URL", "SINLLAMA_COMPARISON_API_URL")
     @classmethod
     def _strip_model_url_slash(cls, v: str) -> str:

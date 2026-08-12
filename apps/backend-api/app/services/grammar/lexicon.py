@@ -343,3 +343,29 @@ def _verdict(
     if best is None or best_count < min_ratio * max(written, 1):
         return None
     return best, written, best_count
+
+
+def contains(word: str) -> bool:
+    """Whether the shared SINAI news lexicon attests ``word`` at least once."""
+    return _lexicon().get(unicodedata.normalize("NFC", word), 0) > 0
+
+
+def supports_replacement(
+    original: str,
+    candidate: str,
+    min_ratio: int = 3,
+) -> bool:
+    """Return whether the existing spell checker independently proposes this pair.
+
+    This is validation evidence, not a general dictionary-membership claim. It
+    deliberately reuses the same conservative candidate generators, rarity bar,
+    and frequency ratio as :func:`check`, so the hybrid validator cannot drift
+    into a second incompatible lexicon implementation.
+    """
+    original = unicodedata.normalize("NFC", original)
+    candidate = unicodedata.normalize("NFC", candidate)
+    lexicon = _lexicon()
+    if not lexicon or not original or not candidate:
+        return False
+    verdict = _verdict(original, lexicon, min_ratio)
+    return verdict is not None and verdict[0] == candidate

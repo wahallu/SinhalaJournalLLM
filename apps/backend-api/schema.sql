@@ -20,6 +20,8 @@ create table if not exists grammar_corrections (
 alter table grammar_corrections add column if not exists model_provider text;
 alter table grammar_corrections add column if not exists latency_ms integer;
 alter table grammar_corrections add column if not exists suggestions jsonb not null default '[]'::jsonb;
+alter table grammar_corrections add column if not exists model_candidate text;
+alter table grammar_corrections add column if not exists validation jsonb not null default '{}'::jsonb;
 
 -- Which LoRA adapter actually served the request (server-resolved: an admin
 -- override, or whatever the model server picked as newest at its own last
@@ -192,6 +194,8 @@ create table if not exists request_telemetry (
 -- Added after the first deploy (no-op on fresh databases) — same field as
 -- grammar_corrections.adapter above, for the per-request telemetry row.
 alter table request_telemetry add column if not exists adapter text;
+-- Privacy-safe rule counts and triggered IDs only; never full submitted text.
+alter table request_telemetry add column if not exists grammar_validation jsonb;
 
 create index if not exists idx_telemetry_created  on request_telemetry (created_at desc);
 create index if not exists idx_telemetry_user     on request_telemetry (user_id, created_at desc);

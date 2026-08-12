@@ -26,6 +26,8 @@ from app.schemas.grammar import (
     GrammarCheckRequest,
     GrammarCheckResponse,
     GrammarHistoryResponse,
+    GrammarValidation,
+    SpellingSuggestion,
 )
 from app.services.grammar.grammar_service import check_grammar
 
@@ -36,8 +38,14 @@ def _record_to_response(record: dict) -> GrammarCheckResponse:
     return GrammarCheckResponse(
         id=str(record["id"]),
         corrected=record.get("corrected_text", ""),
+        model_candidate=record.get("model_candidate"),
+        validation=(
+            GrammarValidation(**record["validation"])
+            if record.get("validation") else None
+        ),
         corrections=[CorrectionDetail(**c) for c in record.get("corrections") or []],
         correction_count=record.get("correction_count", 0),
+        suggestions=[SpellingSuggestion(**s) for s in record.get("suggestions") or []],
         created_at=record.get("created_at"),
         model_used=record.get("model_provider"),
     )
@@ -84,6 +92,15 @@ async def grammar_check_endpoint(
         adapter=result._adapter,
         input_tokens=result.input_tokens,
         output_tokens=result.output_tokens,
+        grammar_validation=(
+            {
+                **result.validation.counts,
+                "decision": result.validation.decision,
+                "failed_open": result.validation.failed_open,
+                "rules": [rule.id for rule in result.validation.rules_triggered],
+            }
+            if result.validation else None
+        ),
         ip_hash=hash_ip(client_ip(request)),
     )
     return result

@@ -4,6 +4,8 @@ Defines request/response shapes independently of ORM models.
 """
 
 from datetime import datetime
+from typing import Any, Literal
+
 from pydantic import BaseModel, Field, PrivateAttr
 
 
@@ -35,15 +37,69 @@ class CorrectionDetail(BaseModel):
         default=False,
         description=(
             "The model appears to have swapped in a different word rather than "
-            "corrected a spelling — most often a name. The correction IS applied; "
-            "this flags it for a human to confirm. See services/grammar/"
-            "substitution_guard.py."
+            "corrected a spelling — most often a name. In the hybrid pipeline "
+            "such an edit is normally blocked before it reaches this applied list."
         ),
     )
     suspicious_reason: str | None = Field(
         default=None,
         description="Why the replacement was flagged. None when not suspicious.",
     )
+    decision: Literal["ACCEPT"] = Field(
+        default="ACCEPT",
+        description="Applied corrections are ACCEPT decisions; non-applied edits live under validation.",
+    )
+    rule_ids: list[str] = Field(
+        default_factory=list,
+        description="Stable research rule IDs that validated this applied edit.",
+    )
+    confidence: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Validator confidence when available.",
+    )
+
+
+class ValidationRule(BaseModel):
+    """One stable rule signal, with a user-readable explanation."""
+
+    id: str
+    category: str
+    tier: Literal["AUTO", "CHECK", "NEURAL", "PROTECT"]
+    severity: Literal["info", "warning", "error"]
+    message: str
+
+
+class ValidationEditDetail(BaseModel):
+    """A model edit that was accepted, downgraded, or rejected."""
+
+    operation: str
+    original: str
+    candidate: str
+    decision: Literal["ACCEPT", "SUGGEST", "REJECT", "KEEP"]
+    rule_ids: list[str] = Field(default_factory=list)
+    confidence: float = Field(ge=0.0, le=1.0)
+    reason: str
+    category: str
+    severity: Literal["info", "warning", "error"]
+    original_start: int | None = None
+    original_end: int | None = None
+    candidate_start: int | None = None
+    candidate_end: int | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class GrammarValidation(BaseModel):
+    """Explainable hybrid-validation summary added without changing old fields."""
+
+    enabled: bool = True
+    failed_open: bool = False
+    decision: Literal["ACCEPT", "SUGGEST", "REJECT", "KEEP"]
+    confidence: float = Field(ge=0.0, le=1.0)
+    rules_triggered: list[ValidationRule] = Field(default_factory=list)
+    edits: list[ValidationEditDetail] = Field(default_factory=list)
+    counts: dict[str, int] = Field(default_factory=dict)
 
 
 # ── Response ──
@@ -73,6 +129,14 @@ class GrammarCheckResponse(BaseModel):
     """Output payload after grammar checking."""
     id: str = Field(description="Unique correction record ID")
     corrected: str = Field(description="Full corrected text")
+    model_candidate: str | None = Field(
+        default=None,
+        description="Raw neural candidate before rule validation; null on legacy history rows.",
+    )
+    validation: GrammarValidation | None = Field(
+        default=None,
+        description="Hybrid rule/safety decision metadata; additive and backward compatible.",
+    )
     corrections: list[CorrectionDetail] = Field(
         default_factory=list,
         description="List of individual corrections applied",

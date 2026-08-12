@@ -1,0 +1,4 @@
+{
+  "documentation": "Every entry requires rule_id, incorrect, corrected, explanation, source_or_reviewer, and approved_date. Empty by design until native-speaker review.",
+  "entries": []
+}

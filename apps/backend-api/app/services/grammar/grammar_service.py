@@ -29,10 +29,20 @@ from app.repositories.grammar_repository import save_correction
 from app.schemas.grammar import (
     CorrectionDetail,
     GrammarCheckResponse,
+    GrammarValidation,
     SpellingSuggestion,
 )
+from app.services.grammar.rule_types import (
+    Decision,
+    RuleTrigger,
+    ValidationConfig,
+    ValidationEdit,
+    ValidationResult,
+)
+from app.services.grammar.rule_validator import get_rule_validator
+from app.services.grammar.safety_gate import tokenize as safety_tokenize
 from app.services.grammar import sentence_final
-from app.services.grammar.substitution_guard import inspect_substitution
+from app.services.grammar.substitution_guard import inspect_substitution, is_probable_name
 from app.services.grammar import lexicon
 from app.services.grammar.chunking import chunk_text
 
@@ -84,7 +94,12 @@ def _classify(original: str, corrected: str) -> tuple[str, str]:
     return "grammar", "Grammar correction (ව්‍යාකරණ නිවැරදි කිරීම)"
 
 
-def derive_corrections(original: str, corrected: str) -> list[CorrectionDetail]:
+def derive_corrections(
+    original: str,
+    corrected: str,
+    *,
+    validation_edits: list[ValidationEdit] | None = None,
+) -> list[CorrectionDetail]:
     """
     Word-level diff between input and model output.
 
@@ -106,11 +121,21 @@ def derive_corrections(original: str, corrected: str) -> list[CorrectionDetail]:
         else:
             position = len(original)
         kind, rule = _classify(original_fragment, corrected_fragment)
-        # A replacement that looks like a different word rather than a fixed
-        # spelling — most dangerously a swapped name — is still applied, but
-        # carries a flag so a client can put it in front of a human.
+        # This legacy annotation remains useful when rule validation is
+        # disabled or fails open. With validation enabled, probable name
+        # substitutions are reverted before this applied-edit diff is built.
         suspicious, suspicious_reason = inspect_substitution(
             original_fragment, corrected_fragment
+        )
+        validation_edit = next(
+            (
+                edit for edit in (validation_edits or [])
+                if edit.decision == Decision.ACCEPT
+                and edit.original_start is not None
+                and edit.original_end is not None
+                and edit.original_start <= position <= edit.original_end
+            ),
+            None,
         )
         corrections.append(
             CorrectionDetail(
@@ -121,9 +146,83 @@ def derive_corrections(original: str, corrected: str) -> list[CorrectionDetail]:
                 type=kind,
                 suspicious=suspicious,
                 suspicious_reason=suspicious_reason,
+                rule_ids=list(validation_edit.rule_ids) if validation_edit else [],
+                confidence=validation_edit.confidence if validation_edit else None,
             )
         )
     return corrections
+
+
+async def _validation_config() -> ValidationConfig:
+    """Resolve the runtime/env-backed grammar rule flags for one request."""
+    return ValidationConfig(
+        enabled=bool(await runtime_settings.get("grammar.rule_validation_enabled")),
+        auto_safe_orthography=bool(await runtime_settings.get("grammar.auto_safe_orthography")),
+        protect_entities=bool(await runtime_settings.get("grammar.protect_entities")),
+        protect_numbers=bool(await runtime_settings.get("grammar.protect_numbers")),
+        protect_quotes=bool(await runtime_settings.get("grammar.protect_quotes")),
+        agreement_validation=bool(await runtime_settings.get("grammar.agreement_validation")),
+        contextual_rules=bool(await runtime_settings.get("grammar.contextual_rules")),
+    )
+
+
+def _validation_decision(results: list[ValidationResult]) -> Decision:
+    decisions = {result.decision for result in results}
+    for decision in (Decision.REJECT, Decision.SUGGEST, Decision.ACCEPT, Decision.KEEP):
+        if decision in decisions:
+            return decision
+    return Decision.KEEP
+
+
+def _validation_summary(
+    results: list[ValidationResult],
+    edits: list[ValidationEdit],
+    triggers: list[RuleTrigger],
+    *,
+    enabled: bool,
+) -> GrammarValidation:
+    counts = {
+        "proposed": len(edits),
+        "accepted": sum(edit.decision == Decision.ACCEPT for edit in edits),
+        "suggested": sum(edit.decision == Decision.SUGGEST for edit in edits),
+        "rejected": sum(edit.decision == Decision.REJECT for edit in edits),
+    }
+    return GrammarValidation(
+        enabled=enabled,
+        failed_open=any(result.failed_open for result in results),
+        decision=_validation_decision(results).value,
+        confidence=round(min((result.confidence for result in results), default=1.0), 3),
+        rules_triggered=[trigger.to_dict() for trigger in triggers],
+        edits=[edit.to_dict() for edit in edits],
+        counts=counts,
+    )
+
+
+def _filter_unsafe_advisories(suggestions: list, text: str) -> list:
+    """Prevent the legacy lexicon UI from bypassing hybrid protection.
+
+    The web app's Auto mode can apply ordinary spelling suggestions. A
+    both-valid pair, probable name, or quoted word therefore must not be
+    emitted through that legacy channel after the validator deliberately kept
+    it unchanged.
+    """
+    validator = get_rule_validator()
+    quoted = [
+        (token.start, token.end)
+        for token in safety_tokenize(text)
+        if "quote" in token.kinds
+    ]
+    filtered = []
+    for suggestion in suggestions:
+        start, end = suggestion.position, suggestion.position + len(suggestion.original)
+        if validator.is_protected_pair(suggestion.original, suggestion.suggestion):
+            continue
+        if is_probable_name(suggestion.original):
+            continue
+        if any(start < quote_end and quote_start < end for quote_start, quote_end in quoted):
+            continue
+        filtered.append(suggestion)
+    return filtered
 
 
 def _sanitize_correction(raw: str | None, fallback: str) -> str:
@@ -203,13 +302,19 @@ async def check_grammar(
     ensemble_size = await runtime_settings.get("grammar.ensemble_size")
     max_chars = await runtime_settings.get("grammar.chunk_chars")
     spell_ratio = await runtime_settings.get("grammar.spellcheck_ratio")
+    validation_config = await _validation_config()
 
     chunks = chunk_text(text, max_chars)
     if not chunks:
         chunks = []
 
     pieces: list[str] = []
+    candidate_pieces: list[str] = []
     corrections: list[CorrectionDetail] = []
+    validation_results: list[ValidationResult] = []
+    validation_edits: list[ValidationEdit] = []
+    validation_triggers: list[RuleTrigger] = []
+    seen_trigger_ids: set[str] = set()
     provider: str | None = None
     adapter: str | None = None
     total_latency = 0
@@ -221,11 +326,51 @@ async def check_grammar(
 
         candidates = result.meta.get("candidates") or [result.text]
         raw = _pick_consensus(candidates)
-        corrected_chunk = _sanitize_correction(raw, fallback=chunk.text)
+        candidate_chunk = _sanitize_correction(raw, fallback=chunk.text)
+
+        candidate_start = sum(len(piece) for piece in candidate_pieces) + len(chunk.lead)
+        candidate_pieces.append(chunk.rebuild(candidate_chunk))
+
+        try:
+            validation = get_rule_validator().validate(
+                original_text=chunk.text,
+                candidate_text=candidate_chunk,
+                config=validation_config,
+            )
+        except Exception:
+            # The validator is a safety layer, not an availability dependency.
+            # Preserve the pre-integration model behavior if it fails internally.
+            logger.exception("Grammar rule validation failed open for one chunk")
+            fallback_decision = (
+                Decision.KEEP if candidate_chunk == chunk.text else Decision.ACCEPT
+            )
+            validation = ValidationResult(
+                original_text=chunk.text,
+                model_candidate=candidate_chunk,
+                final_text=candidate_chunk,
+                decision=fallback_decision,
+                confidence=0.0,
+                enabled=validation_config.enabled,
+                failed_open=True,
+            )
+        validation_results.append(validation)
+        corrected_chunk = validation.final_text
+
+        local_edits = validation.edits
+        for edit in local_edits:
+            validation_edits.append(edit.rebased(chunk.start, candidate_start))
+        for trigger in validation.rules_triggered:
+            if trigger.id not in seen_trigger_ids:
+                validation_triggers.append(trigger)
+                seen_trigger_ids.add(trigger.id)
 
         # Positions are rebased onto the original article, not the chunk, so
         # the clients' underlining lands on the right characters.
-        for correction in derive_corrections(chunk.text, corrected_chunk):
+        for correction in derive_corrections(
+            chunk.text,
+            corrected_chunk,
+            validation_edits=local_edits,
+        ):
             corrections.append(
                 correction.model_copy(update={"position": correction.position + chunk.start})
             )
@@ -240,10 +385,30 @@ async def check_grammar(
     # Whitespace-only input produces no chunks; return it untouched rather
     # than calling the model with nothing.
     corrected_text = "".join(pieces) if chunks else text
+    model_candidate = "".join(candidate_pieces) if chunks else text
+    if not validation_results:
+        validation_results.append(
+            ValidationResult(
+                original_text=text,
+                model_candidate=text,
+                final_text=text,
+                decision=Decision.KEEP,
+                confidence=1.0,
+                enabled=validation_config.enabled,
+            )
+        )
+    validation_summary = _validation_summary(
+        validation_results,
+        validation_edits,
+        validation_triggers,
+        enabled=validation_config.enabled,
+    )
 
     record = {
         "original_text": text,
         "corrected_text": corrected_text,
+        "model_candidate": model_candidate,
+        "validation": validation_summary.model_dump(mode="json"),
         "corrections": [c.model_dump() for c in corrections],
         "correction_count": len(corrections),
         # Filled after the advisory lexicon pass below. Kept here as an empty
@@ -277,6 +442,7 @@ async def check_grammar(
                 s for s in sentence_final.check(corrected_text, lexicon._lexicon())
                 if s.position not in taken
             ]
+            found = _filter_unsafe_advisories(found, corrected_text)
             found.sort(key=lambda s: s.position)
 
             suggestions = [
@@ -298,6 +464,8 @@ async def check_grammar(
     response = GrammarCheckResponse(
         id=str(saved["id"]),
         corrected=corrected_text,
+        model_candidate=model_candidate,
+        validation=validation_summary,
         corrections=corrections,
         correction_count=len(corrections),
         suggestions=suggestions,

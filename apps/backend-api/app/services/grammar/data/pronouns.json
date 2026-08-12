@@ -1,0 +1,11 @@
+{
+  "source": "manual dataset/pronoun.jsonl; features are limited to forms occurring in that repository dataset",
+  "entries": {
+    "මම": {"lemma": "මම", "person": 1, "number": "singular", "animacy": "animate", "case": "nominative"},
+    "අපි": {"lemma": "අපි", "person": 1, "number": "plural", "animacy": "animate", "case": "nominative"},
+    "ඔබ": {"lemma": "ඔබ", "person": 2, "number": null, "animacy": "animate", "case": "nominative", "honorific": true},
+    "ඔහු": {"lemma": "ඔහු", "person": 3, "number": "singular", "gender": "masculine", "animacy": "animate", "case": "nominative"},
+    "ඇය": {"lemma": "ඇය", "person": 3, "number": "singular", "gender": "feminine", "animacy": "animate", "case": "nominative"},
+    "ඔවුන්": {"lemma": "ඔවුන්", "person": 3, "number": "plural", "animacy": "animate", "case": "nominative"}
+  }
+}
