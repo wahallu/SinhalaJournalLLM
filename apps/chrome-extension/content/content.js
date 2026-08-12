@@ -393,6 +393,43 @@
       color: #b91c1c;
     }
 
+    /* Suggestions / Possible misspellings */
+    .inline-sugg-warning {
+      padding: 7px 9px;
+      border-radius: 8px;
+      background: #fefce8;
+      border: 1px solid #fef08a;
+      color: #854d0e;
+      font-size: 11.5px;
+      font-weight: 500;
+      line-height: 1.35;
+    }
+    .inline-sugg-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #726c6c;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+      margin-bottom: 2px;
+    }
+    .inline-sugg-item {
+      padding: 6px 9px;
+      border-radius: 8px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-left: 3px solid #22c55e;
+    }
+    .inline-sugg-orig {
+      color: #4b5563;
+      text-decoration: underline dotted #38bdf8;
+      text-underline-offset: 3px;
+    }
+    .inline-sugg-new {
+      color: #15803d;
+      font-weight: 600;
+    }
+
     .action-controls { display: flex; gap: 6px; flex-shrink: 0; }
     .btn-inline-primary {
       flex: 1;
@@ -923,14 +960,19 @@
     if (currentTool === "grammar") {
       outputText.textContent = data.corrected;
 
-      if (data.corrections && data.corrections.length > 0) {
+      const corrections = data.corrections || [];
+      const suggestions = data.suggestions || [];
+
+      if (corrections.length === 0 && suggestions.length === 0) {
+        inlineCorrectionsList.classList.remove("hidden");
+        inlineCorrectionsList.innerHTML = `<span style="color:#059669; font-size:11.5px; display:block; text-align:center;">No grammar issues found.</span>`;
+      } else {
         inlineCorrectionsList.classList.remove("hidden");
 
         // The backend's substitution guard marks edits that look like a
         // different word rather than a fixed spelling — usually a swapped
-        // name. Banner first: the card is small and scrolls, and a renamed
-        // person must not be something the user scrolls past.
-        const flagged = data.corrections.filter((c) => c.suspicious);
+        // name.
+        const flagged = corrections.filter((c) => c.suspicious);
         if (flagged.length > 0) {
           const warn = document.createElement("div");
           warn.className = "inline-corr-warning";
@@ -941,7 +983,26 @@
           inlineCorrectionsList.appendChild(warn);
         }
 
-        data.corrections.forEach((c) => {
+        // Suggestions / Possible misspellings notice banner
+        if (suggestions.length > 0) {
+          const suggNotice = document.createElement("div");
+          suggNotice.className = "inline-sugg-warning";
+          if (corrections.length === 0) {
+            suggNotice.innerHTML = `Nothing changed, but <strong>${suggestions.length}</strong> word${
+              suggestions.length !== 1 ? "s" : ""
+            } may be misspelled.`;
+          } else {
+            suggNotice.innerHTML = `<strong>${corrections.length}</strong> correction${
+              corrections.length !== 1 ? "s" : ""
+            } applied, and <strong>${suggestions.length}</strong> word${
+              suggestions.length !== 1 ? "s" : ""
+            } worth checking.`;
+          }
+          inlineCorrectionsList.appendChild(suggNotice);
+        }
+
+        // Render applied corrections
+        corrections.forEach((c) => {
           const div = document.createElement("div");
           div.className = c.suspicious ? "inline-corr-item is-flagged" : "inline-corr-item";
           div.innerHTML = `
@@ -960,9 +1021,27 @@
           `;
           inlineCorrectionsList.appendChild(div);
         });
-      } else {
-        inlineCorrectionsList.classList.remove("hidden");
-        inlineCorrectionsList.innerHTML = `<span style="color:#059669; font-size:11.5px; display:block; text-align:center;">No grammar issues found.</span>`;
+
+        // Render suggestions (Possible misspellings)
+        if (suggestions.length > 0) {
+          const title = document.createElement("div");
+          title.className = "inline-sugg-title";
+          title.textContent = "Possible misspellings";
+          inlineCorrectionsList.appendChild(title);
+
+          suggestions.forEach((s) => {
+            const div = document.createElement("div");
+            div.className = "inline-sugg-item";
+            div.innerHTML = `
+              <div class="inline-corr-comp">
+                <span class="inline-sugg-orig">${escapeHtml(s.original)}</span>
+                <span class="inline-corr-arrow">➔</span>
+                <span class="inline-sugg-new">${escapeHtml(s.suggestion)}</span>
+              </div>
+            `;
+            inlineCorrectionsList.appendChild(div);
+          });
+        }
       }
     } else if (currentTool === "headlines") {
       outputText.textContent = data.headlines.map((h, i) => `${i + 1}. ${h}`).join("\n");
