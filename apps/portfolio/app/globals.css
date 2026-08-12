@@ -45,7 +45,7 @@
 @theme {
   --font-display: 'Gwen', Georgia, serif;
   --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-sinhala: 'Noto Sans Sinhala', 'Inter', system-ui, sans-serif;
+  --font-sinhala: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-legacy-sinhala: 'UBIN16S', sans-serif;
 
   --color-page-bg: #FAF9F5;

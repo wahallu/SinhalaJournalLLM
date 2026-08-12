@@ -145,7 +145,7 @@ export default function PrivacyPolicy() {
               If you have any questions, concerns, or requests regarding this Privacy Policy or your data, please contact the SinAi Research &amp; Engineering Group:
             </p>
             <p className="font-medium text-[#181818]">
-              Email: <a href="mailto:support@sinai.ai" className="text-[#cd191a] underline">support@sinai.ai</a> • GitHub: <a href="https://github.com/wahallu/SinhalaJournalLLM" target="_blank" rel="noopener noreferrer" className="text-[#cd191a] underline">github.com/wahallu/SinhalaJournalLLM</a>
+              Email: <a href="mailto:support@sin-ai.app" className="text-[#cd191a] underline">support@sin-ai.app</a> • GitHub: <a href="https://github.com/wahallu/SinhalaJournalLLM" target="_blank" rel="noopener noreferrer" className="text-[#cd191a] underline">github.com/wahallu/SinhalaJournalLLM</a>
             </p>
           </section>
         </div>

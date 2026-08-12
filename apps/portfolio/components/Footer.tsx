@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Sparkles, BookOpen } from "lucide-react";
 
 export default function Footer() {
@@ -12,16 +13,20 @@ export default function Footer() {
           {/* Brand Column (2 cols wide on lg) */}
           <div className="sm:col-span-2 flex flex-col gap-4 sm:gap-6">
             <div className="flex items-center gap-2.5 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-[#cd191a] to-[#8d1213] flex items-center justify-center shadow-md">
-                <span className="text-white font-display font-bold text-lg sm:text-xl leading-none">S</span>
-              </div>
+              <Image
+                src="/brand/web-app-manifest-192x192.png"
+                alt="SinAi Logo"
+                width={36}
+                height={36}
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl shadow-md object-cover"
+              />
               <span className="font-display text-xl sm:text-2xl font-bold tracking-tight text-white">
                 SinAi
               </span>
             </div>
 
             <p className="text-xs sm:text-sm text-white/60 max-w-sm leading-relaxed">
-              The domain-adapted AI writing &amp; journalistic intelligence ecosystem for the Sinhala language. Powered by SinLLaMA and specialized task LoRA adapters.
+              The domain-adapted AI writing &amp; journalistic intelligence ecosystem for the Sinhala language. Powered by the Sinhala Journal LLM research project and specialized task LoRA adapters.
             </p>
 
             <div className="flex gap-2.5 sm:gap-3 pt-1 sm:pt-2">
@@ -37,11 +42,11 @@ export default function Footer() {
                 </svg>
               </a>
               <a
-                href="http://localhost:5173"
+                href="https://chat.sin-ai.app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/15 flex items-center justify-center hover:bg-[#cd191a] hover:border-[#cd191a] transition-all text-white/80 hover:text-white"
-                aria-label="Web App Workspace"
+                aria-label="Try SinAi Workspace"
               >
                 <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </a>
@@ -65,12 +70,12 @@ export default function Footer() {
             <ul className="space-y-2 sm:space-y-3 text-[11px] sm:text-xs text-white/60">
               <li>
                 <a
-                  href="http://localhost:5173"
+                  href="https://chat.sin-ai.app"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-white transition-colors"
                 >
-                  Web App Playground
+                  SinAi Workspace
                 </a>
               </li>
               <li>
@@ -103,28 +108,23 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 sm:space-y-3 text-[11px] sm:text-xs text-white/60">
               <li>
-                <Link href="#research" className="hover:text-white transition-colors">
-                  SinLLaMA Base Model
+                <Link href="/research/grammar-checker" className="hover:text-white transition-colors">
+                  Grammar Checker (v22)
                 </Link>
               </li>
               <li>
-                <Link href="#capabilities" className="hover:text-white transition-colors">
-                  grammar_sinllama_v13
+                <Link href="/research/headline-generator" className="hover:text-white transition-colors">
+                  Headline Generator (v19)
                 </Link>
               </li>
               <li>
-                <Link href="#capabilities" className="hover:text-white transition-colors">
-                  headline_sinllama_v17
+                <Link href="/research/style-rewriter" className="hover:text-white transition-colors">
+                  Style Rewriter (v07)
                 </Link>
               </li>
               <li>
-                <Link href="#capabilities" className="hover:text-white transition-colors">
-                  style_sinllama_v07
-                </Link>
-              </li>
-              <li>
-                <Link href="#capabilities" className="hover:text-white transition-colors">
-                  summarization_sinllama_v04
+                <Link href="/research/news-summarizer" className="hover:text-white transition-colors">
+                  News Summarizer (v06)
                 </Link>
               </li>
             </ul>
@@ -190,7 +190,7 @@ export default function Footer() {
           <div className="flex items-center gap-3 sm:gap-6">
             <span>Built for Sri Lankan Journalism</span>
             <span>•</span>
-            <span className="text-[#cd191a] font-bold">SinLLaMA 2.4</span>
+            <span className="text-[#cd191a] font-bold">SinAi Beta</span>
           </div>
         </div>
       </div>

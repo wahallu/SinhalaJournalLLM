@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowUpRight, Sparkles, Menu, X, BookOpen, Layers, Cpu } from "lucide-react";
 
 export default function Navbar() {
@@ -25,13 +26,17 @@ export default function Navbar() {
       >
         {/* Left: Brand Identity */}
         <Link href="#hero" className="flex items-center gap-1.5 sm:gap-2.5 pl-1 group">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-[#cd191a] to-[#ab1112] flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-300 shrink-0">
-            <span className="text-white font-bold text-xs sm:text-sm leading-none font-display">S</span>
-          </div>
+          <Image
+            src="/brand/web-app-manifest-192x192.png"
+            alt="SinAi Logo"
+            width={32}
+            height={32}
+            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md group-hover:scale-105 transition-transform duration-300 shrink-0 object-cover"
+          />
           <div className="flex items-center gap-1 sm:gap-1.5">
             <span className="text-white font-display text-base sm:text-lg font-bold tracking-tight">SinAi</span>
             <span className="hidden xs:inline text-[8px] sm:text-[9px] uppercase tracking-widest px-1 sm:px-1.5 py-0.5 rounded bg-white/10 text-white/70 font-semibold border border-white/10">
-              v2.4
+              Beta
             </span>
           </div>
         </Link>
@@ -67,20 +72,19 @@ export default function Navbar() {
             className="text-[11px] lg:text-xs uppercase tracking-wider font-semibold text-[#fca5a5] hover:text-white hover:bg-[#cd191a]/30 px-2.5 lg:px-3 py-1 rounded-full transition-all duration-200 flex items-center gap-1"
           >
             <Sparkles className="w-3 h-3 text-[#f87171]" />
-            Live Demo
+            Try SinAi
           </Link>
         </nav>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           <a
-            href="http://localhost:5173"
+            href="https://chat.sin-ai.app"
             target="_blank"
             rel="noopener noreferrer"
-            className="group relative inline-flex items-center gap-1 sm:gap-1.5 bg-gradient-to-r from-[#cd191a] to-[#dc4341] hover:from-[#b01e1f] hover:to-[#cd191a] text-white px-3 sm:px-4 py-1.5 sm:py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider shadow-lg shadow-[#cd191a]/25 hover:shadow-[#cd191a]/45 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shrink-0"
+            className="group relative inline-flex items-center gap-1 sm:gap-1.5 bg-gradient-to-r from-[#cd191a] to-[#dc4341] hover:from-[#b01e1f] hover:to-[#cd191a] text-white px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider shadow-lg shadow-[#cd191a]/25 hover:shadow-[#cd191a]/45 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shrink-0"
           >
-            <span className="hidden xxs:inline">Playground</span>
-            <span className="xxs:hidden">Demo</span>
+            <span>Try SinAi</span>
             <ArrowUpRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </a>
 
@@ -104,7 +108,7 @@ export default function Navbar() {
             className="flex items-center gap-3 text-xs sm:text-sm font-semibold text-white/80 hover:text-white py-2 border-b border-white/10"
           >
             <Cpu className="w-4 h-4 text-[#cd191a]" />
-            SinLLaMA Research
+            Sinhala Journal LLM Research
           </Link>
           <Link
             href="#capabilities"
@@ -128,16 +132,16 @@ export default function Navbar() {
             className="flex items-center gap-3 text-xs sm:text-sm font-semibold text-[#f87171] hover:text-white py-2 border-b border-white/10"
           >
             <Sparkles className="w-4 h-4 text-[#f87171]" />
-            Interactive Tool Simulator
+            Interactive Workspace
           </Link>
           <div className="pt-2 flex flex-col gap-2">
             <a
-              href="http://localhost:5173"
+              href="https://chat.sin-ai.app"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full flex items-center justify-center gap-2 bg-[#cd191a] text-white py-2.5 sm:py-3 rounded-full text-xs font-bold uppercase tracking-wider text-center shadow-lg"
             >
-              <span>Open Web App Playground</span>
+              <span>Try SinAi Workspace</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </a>
           </div>

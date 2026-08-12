@@ -16,20 +16,26 @@ export default function VisualCollage() {
   return (
     <section
       id="capabilities"
-      className="relative min-h-[850px] lg:min-h-[950px] w-full max-w-[1560px] mx-auto overflow-hidden bg-[#FAF9F5] py-16 sm:py-24 md:py-32 px-4 sm:px-6 lg:px-12 flex flex-col justify-center items-center"
+      className="relative w-full max-w-[1560px] mx-auto overflow-hidden bg-[#FAF9F5] pt-20 sm:pt-28 md:pt-36 pb-16 sm:pb-24 md:pb-32 px-4 sm:px-6 lg:px-12 flex flex-col justify-center items-center border-t border-[#D9D7D0]/60 scroll-mt-20 sm:scroll-mt-28"
     >
-      {/* Background Central Atmospheric Anchor */}
-      <div className="absolute inset-0 flex flex-col justify-center items-center pointer-events-none select-none opacity-100 z-0">
-        <span className="text-[10px] sm:text-xs uppercase tracking-[0.3em] font-bold text-[#cd191a] mb-2 sm:mb-4">
-          Core NLP Capabilities
-        </span>
-        <h2 className="font-display text-4xl sm:text-6xl md:text-8xl lg:text-[110px] font-bold text-[#181818]/10 text-center tracking-tighter leading-[0.95] max-w-5xl">
-          Linguistic <br /> Intelligence
+      {/* Ambient background glow accents */}
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] sm:w-[900px] h-[350px] bg-gradient-to-b from-[#cd191a]/5 via-amber-500/5 to-transparent rounded-full blur-3xl pointer-events-none -z-0" />
+
+      {/* Prominent Section Header */}
+      <div className="relative z-10 text-center max-w-3xl mx-auto mb-12 sm:mb-16">
+        <div className="inline-flex items-center gap-2 px-3 sm:px-3.5 py-1 rounded-full bg-[#cd191a]/10 text-[#cd191a] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-3 sm:mb-4 border border-[#cd191a]/20">
+          <span>Core NLP Capabilities</span>
+        </div>
+        <h2 className="font-display text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-[#181818] tracking-tight leading-[1.08] mb-4 sm:mb-5">
+          Linguistic Intelligence
         </h2>
+        <p className="text-xs sm:text-base md:text-lg text-[#615e58] max-w-2xl mx-auto leading-relaxed">
+          Six domain-adapted neural capabilities fine-tuned for authentic Sinhala grammar, multi-tone registers, and legacy print newsroom systems.
+        </p>
       </div>
 
       {/* Floating Collage Grid Layout */}
-      <div className="relative z-10 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto my-auto">
+      <div className="relative z-10 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-6xl mx-auto">
         {/* Card 1: Syntactic & Morphological Analysis (Top-Left) */}
         <div className="bg-white/80 backdrop-blur-xl border border-[#D9D7D0] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-[0_16px_40px_rgba(0,0,0,0.06)] hover:border-[#cd191a]/40 transition-all duration-300 group">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -67,7 +73,7 @@ export default function VisualCollage() {
           </div>
 
           <div className="flex items-center justify-between text-[11px] sm:text-xs pt-2 border-t border-[#D9D7D0]/40">
-            <span className="text-[#8C8880] font-medium">Adapter: grammar_sinllama_v13</span>
+            <span className="text-[#8C8880] font-medium">Adapter: grammar_v13</span>
             <span className="font-bold text-[#cd191a]">99.4% Precision</span>
           </div>
         </div>
@@ -180,7 +186,7 @@ export default function VisualCollage() {
           </div>
         </div>
 
-        {/* Card 4: Multi-Surface Ecosystem Sync (Focused only on client apps) */}
+        {/* Card 4: Multi-Surface Ecosystem Sync */}
         <div className="bg-white/80 backdrop-blur-xl border border-[#D9D7D0] rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-[0_16px_40px_rgba(0,0,0,0.06)] hover:border-[#cd191a]/40 transition-all duration-300">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div className="flex items-center gap-2">
@@ -213,7 +219,7 @@ export default function VisualCollage() {
             <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-[#F0EFEB] border border-[#D9D7D0]/50 text-[11px] sm:text-xs">
               <span className="font-semibold text-[#181818]">1. SinAi Web App</span>
               <span className="text-[9px] sm:text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 sm:px-2 py-0.5 rounded-full">
-                Playground
+                Workspace
               </span>
             </div>
             <div className="flex items-center justify-between p-2 sm:p-2.5 rounded-lg sm:rounded-xl bg-[#F0EFEB] border border-[#D9D7D0]/50 text-[11px] sm:text-xs">
@@ -281,7 +287,7 @@ export default function VisualCollage() {
               <span className="flex text-amber-500 text-xs">★★★★★</span>
             </div>
 
-            <p className="font-display text-xs sm:text-sm md:text-base text-[#181818] italic leading-relaxed mb-3 sm:mb-4">
+            <p className="text-xs sm:text-sm md:text-[15px] text-[#181818] font-serif italic leading-relaxed mb-3 sm:mb-4">
               &ldquo;SinAi is the first AI tool that genuinely understands the syntactic complexity of formal Sinhala grammar and news registers.&rdquo;
             </p>
           </div>

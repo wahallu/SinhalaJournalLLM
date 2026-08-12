@@ -114,7 +114,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
 
     # ── CORS ──
-    CORS_ORIGINS: str = "http://localhost:5173,https://sinai.onrender.com"
+    CORS_ORIGINS: str = "http://localhost:5173,https://sinai.onrender.com,https://chat.sin-ai.app"
 
     @property
     def cors_origin_list(self) -> list[str]:

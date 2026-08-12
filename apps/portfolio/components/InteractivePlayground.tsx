@@ -159,7 +159,7 @@ export default function InteractivePlayground() {
       <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-16">
         <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-[#cd191a]/10 text-[#cd191a] text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-3 sm:mb-4">
           <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-          <span>Interactive Browser Simulator</span>
+          <span>Interactive Browser Workspace</span>
         </div>
         <h2 className="font-display text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#181818] tracking-tight leading-tight mb-3 sm:mb-4">
           Test SinAi in real time.
@@ -223,12 +223,12 @@ export default function InteractivePlayground() {
 
           {/* Right Action: Launch Full Web App */}
           <a
-            href="http://localhost:5173"
+            href="https://chat.sin-ai.app"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold uppercase tracking-wider text-white bg-white/10 hover:bg-[#cd191a] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-200"
           >
-            <span>Open Full App</span>
+            <span>Try SinAi</span>
             <ArrowUpRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           </a>
         </div>
@@ -338,7 +338,7 @@ export default function InteractivePlayground() {
             </div>
 
             <div className="text-[11px] sm:text-xs text-[#8C8880] font-medium">
-              <span>{inputText.length} Chars</span> • <span>SinLLaMA 2.4</span>
+              <span>{inputText.length} Chars</span> • <span>SinAi Beta (Sinhala Journal LLM)</span>
             </div>
           </div>
 

@@ -69,7 +69,7 @@ export default function TermsOfService() {
               <span>3. AI-Generated Output and Editorial Responsibility</span>
             </div>
             <p>
-              SinAi utilizes domain-adapted neural language models (SinLLaMA) to provide grammatical corrections, headline suggestions, stylistic rewrites, and summaries in the Sinhala language.
+              SinAi utilizes domain-adapted neural language models (Sinhala Journal LLM) to provide grammatical corrections, headline suggestions, stylistic rewrites, and summaries in the Sinhala language.
             </p>
             <ul className="list-disc pl-5 space-y-2 text-[#443f40]">
               <li>
@@ -124,7 +124,7 @@ export default function TermsOfService() {
               For legal questions or notices regarding these Terms, please reach out to:
             </p>
             <p className="font-medium text-[#181818]">
-              Email: <a href="mailto:support@sinai.ai" className="text-[#cd191a] underline">support@sinai.ai</a> • Project: <a href="https://github.com/wahallu/SinhalaJournalLLM" target="_blank" rel="noopener noreferrer" className="text-[#cd191a] underline">SinAi Research &amp; Engineering</a>
+              Email: <a href="mailto:support@sin-ai.app" className="text-[#cd191a] underline">support@sin-ai.app</a> • Project: <a href="https://github.com/wahallu/SinhalaJournalLLM" target="_blank" rel="noopener noreferrer" className="text-[#cd191a] underline">SinAi Research &amp; Engineering</a>
             </p>
           </section>
         </div>

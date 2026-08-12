@@ -38,28 +38,28 @@ export default function Benchmarks() {
   const adapters = [
     {
       task: "Grammar Correction",
-      version: "grammar_sinllama_v13",
+      version: "grammar_v13",
       rank: "r=32",
       samples: "45,000+ synthetic & human annotated sentences",
       focus: "Morphological agreement, Case markers, UBIN16S transliteration",
     },
     {
       task: "Headline Generation",
-      version: "headline_sinllama_v17",
+      version: "headline_v17",
       rank: "r=32",
       samples: "80,000+ national newspaper front-pages & headlines",
       focus: "Click-worthy, Formal, Breaking & Analytical angles",
     },
     {
       task: "5-Tone Style Rewriter",
-      version: "style_sinllama_v07",
+      version: "style_v07",
       rank: "r=16",
       samples: "25,000+ multi-register journalistic rewrites",
       focus: "Formal, Casual, Sensational, Analytical & Neutral registers",
     },
     {
       task: "News Summarizer",
-      version: "summarization_sinllama_v04",
+      version: "summarization_v04",
       rank: "r=32",
       samples: "35,000+ long-form articles & multi-source syntheses",
       focus: "Abstractive bullets, length-conditioned briefs, fact retention",
@@ -77,7 +77,7 @@ export default function Benchmarks() {
           Benchmarked against generalist models.
         </h2>
         <p className="text-xs sm:text-base md:text-lg text-[#615e58] leading-relaxed">
-          Generic multilingual models frequently hallucinate Sinhala characters and fail subtle syntactic rules. SinLLaMA was designed to eliminate these limitations.
+          Generic multilingual models frequently hallucinate Sinhala characters and fail subtle syntactic rules. Sinhala Journal LLM was designed to eliminate these limitations.
         </p>
       </div>
 
@@ -101,7 +101,7 @@ export default function Benchmarks() {
               <div className="space-y-2.5 sm:space-y-3 mb-4 sm:mb-6">
                 <div>
                   <div className="flex justify-between text-[11px] sm:text-xs font-bold mb-1">
-                    <span className="text-[#cd191a]">SinAi (SinLLaMA Domain Model)</span>
+                    <span className="text-[#cd191a]">SinAi (Sinhala Journal LLM)</span>
                     <span className="text-[#cd191a]">{m.sinai}</span>
                   </div>
                   <div className="w-full bg-[#F0EFEB] rounded-full h-2.5 sm:h-3 overflow-hidden">
