@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ChevronDown, ChevronUp, Trophy, AlertTriangle, Sparkles,
   Camera, RefreshCw, ImageOff, Edit3, FileSearch,
-  Wand2, Download, ExternalLink, ImageIcon,
+  Wand2, Download, ExternalLink, ImageIcon, UploadCloud, X,
 } from 'lucide-react';
 import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
@@ -46,9 +46,15 @@ function CandidateCard({ candidate }) {
 }
 
 /* ── Visual prompt module ───────────────────────────────────────── */
+const REFERENCE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const REFERENCE_IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp']);
+const MAX_REFERENCE_IMAGE_BYTES = 10 * 1024 * 1024;
+
 function VisualPromptModule({ headline, articleText, historyId, initialPrompt = '', initialImage = '' }) {
   const { isAdmin } = useAuth();
   const [open, setOpen] = useState(true);
+  const fileInputRef = useRef(null);
+  const previewUrlRef = useRef(null);
 
   // Visual prompt state
   const [prompt, setPrompt] = useState(initialPrompt);
@@ -59,6 +65,41 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
   const [imageData, setImageData] = useState(initialImage || null);
   const [imgLoading, setImgLoading] = useState(false);
   const [imgError, setImgError] = useState(null);
+  const [referenceImage, setReferenceImage] = useState(null);
+  const [referencePreview, setReferencePreview] = useState('');
+  const [uploadError, setUploadError] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
+
+  const clearReferenceImage = () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = null;
+    setReferenceImage(null);
+    setReferencePreview('');
+    setUploadError(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const selectReferenceImage = (file) => {
+    if (!file) return;
+    setUploadError(null);
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    if (!REFERENCE_IMAGE_TYPES.has(file.type) && !REFERENCE_IMAGE_EXTENSIONS.has(extension)) {
+      setUploadError('Choose a PNG, JPG, JPEG, or WEBP image.');
+      return;
+    }
+    if (file.size > MAX_REFERENCE_IMAGE_BYTES) {
+      setUploadError('Reference image must be 10 MB or smaller.');
+      return;
+    }
+
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    const previewUrl = URL.createObjectURL(file);
+    previewUrlRef.current = previewUrl;
+    setReferenceImage(file);
+    setReferencePreview(previewUrl);
+    setImageData(null);
+    setImgError(null);
+  };
 
   const generate = (cancelledRef) => {
     if (!articleText) return;
@@ -80,7 +121,7 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
     setImgLoading(true);
     setImgError(null);
     setImageData(null);
-    generateImage(cleanPrompt, historyId)
+    generateImage(cleanPrompt, historyId, referenceImage)
       .then((res) => setImageData(res.image_data || ''))
       .catch((err) => setImgError(err.message || 'Image generation failed'))
       .finally(() => setImgLoading(false));
@@ -98,6 +139,10 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [articleText, headline, historyId, initialPrompt, initialImage]);
+
+  useEffect(() => () => {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+  }, []);
 
   return (
     <Card className="overflow-hidden">
@@ -143,6 +188,85 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
                 />
               )}
 
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium text-ink-500">
+                    Reference image <span className="font-normal text-ink-400">(optional)</span>
+                  </span>
+                  <span className="text-[9.5px] text-ink-400">PNG, JPG or WEBP · max 10 MB</span>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+                  className="sr-only"
+                  disabled={imgLoading}
+                  onChange={(event) => selectReferenceImage(event.target.files?.[0])}
+                  aria-label="Upload optional reference image"
+                />
+
+                {referenceImage ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-ink-200 bg-ink-50 p-2">
+                    <img
+                      src={referencePreview}
+                      alt="Selected reference"
+                      className="h-14 w-20 shrink-0 rounded-md border border-ink-200 object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[11.5px] font-medium text-ink-700">{referenceImage.name}</p>
+                      <p className="mt-0.5 text-[9.5px] text-ink-400">
+                        {(referenceImage.size / (1024 * 1024)).toFixed(1)} MB · used as visual reference
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={imgLoading}
+                        className="mt-1 text-[10.5px] font-semibold text-brand-700 hover:underline cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Change image
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={clearReferenceImage}
+                      disabled={imgLoading}
+                      aria-label="Remove reference image"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-ink-400
+                        hover:bg-white hover:text-ink-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragEnter={(event) => { event.preventDefault(); setDragActive(true); }}
+                    onDragOver={(event) => { event.preventDefault(); setDragActive(true); }}
+                    onDragLeave={(event) => { event.preventDefault(); setDragActive(false); }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      setDragActive(false);
+                      selectReferenceImage(event.dataTransfer.files?.[0]);
+                    }}
+                    disabled={imgLoading}
+                    className={`flex w-full items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-3
+                      text-[11px] font-medium transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50
+                      ${dragActive
+                        ? 'border-brand-400 bg-brand-50 text-brand-700'
+                        : 'border-ink-300 bg-ink-50/60 text-ink-500 hover:border-brand-300 hover:text-brand-700'}`}
+                  >
+                    <UploadCloud size={15} />
+                    Click or drop an optional reference image
+                  </button>
+                )}
+
+                {uploadError && (
+                  <p role="alert" className="text-[10.5px] font-medium text-brand-700">{uploadError}</p>
+                )}
+              </div>
+
               <div className="flex items-center gap-1.5 flex-wrap">
                 <ActionButton
                   variant="secondary"
@@ -163,7 +287,9 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
                     disabled={!isAdmin}
                     title={!isAdmin ? 'Image generation is available to administrators only' : undefined}
                   >
-                    {imgLoading ? 'Generating image' : 'Generate image'}
+                    {imgLoading
+                      ? (referenceImage ? 'Applying reference' : 'Generating image')
+                      : (referenceImage ? 'Generate with reference' : 'Generate image')}
                   </ActionButton>
                 )}
               </div>

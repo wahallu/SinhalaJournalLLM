@@ -55,6 +55,35 @@ async def test_generate_image_requires_openai_api_key(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_edit_image_sends_reference_to_gpt_image_2(monkeypatch):
+    reference = b"\x89PNG\r\n\x1a\nreference-bytes"
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert str(request.url) == service.OPENAI_IMAGE_EDIT_ENDPOINT
+        assert request.headers["authorization"] == "Bearer test-openai-key"
+        assert request.headers["content-type"].startswith("multipart/form-data; boundary=")
+        body = request.content
+        assert b'name="model"' in body and b"gpt-image-2" in body
+        assert b'name="prompt"' in body and b"Make this a breaking-news photograph" in body
+        assert b'name="image[]"; filename="reference.png"' in body
+        assert b"Content-Type: image/png" in body
+        assert reference in body
+        return httpx.Response(200, json={"data": [{"b64_json": "ZWRpdGVk"}]})
+
+    monkeypatch.setattr(service, "get_settings", _settings)
+    _mock_client(monkeypatch, handler)
+
+    result = await service.edit_image(
+        "Make this a breaking-news photograph",
+        reference,
+        "image/png",
+        "reference.png",
+    )
+
+    assert result == "data:image/png;base64,ZWRpdGVk"
+
+
+@pytest.mark.asyncio
 async def test_user_error_is_not_retried(monkeypatch):
     calls = 0
 

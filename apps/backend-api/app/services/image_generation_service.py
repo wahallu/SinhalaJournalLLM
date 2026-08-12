@@ -6,6 +6,7 @@ only from the backend environment and is never returned to the browser.
 
 Endpoint:
     POST https://api.openai.com/v1/images/generations
+    POST https://api.openai.com/v1/images/edits
 
 Auth:
     Authorization: Bearer {OPENAI_API_KEY}
@@ -19,6 +20,7 @@ from app.core.config import get_settings
 from app.schemas.image_generation import DEFAULT_IMAGE_MODEL
 
 OPENAI_IMAGE_ENDPOINT = "https://api.openai.com/v1/images/generations"
+OPENAI_IMAGE_EDIT_ENDPOINT = "https://api.openai.com/v1/images/edits"
 REQUEST_TIMEOUT = 180.0
 MAX_RETRIES = 3
 IMAGE_SIZE = "1536x1024"
@@ -80,11 +82,7 @@ async def generate_image(prompt: str) -> str:
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY is not configured on the backend.")
 
-    # 1. Sanitize the prompt: convert newlines to spaces and strip leading/trailing spaces/quotes
-    sanitized_prompt = " ".join(prompt.splitlines()).strip()
-    if (sanitized_prompt.startswith('"') and sanitized_prompt.endswith('"')) or \
-       (sanitized_prompt.startswith("'") and sanitized_prompt.endswith("'")):
-        sanitized_prompt = sanitized_prompt[1:-1].strip()
+    sanitized_prompt = _sanitize_prompt(prompt)
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -122,30 +120,11 @@ async def generate_image(prompt: str) -> str:
                     raise RuntimeError(message)
                 last_error = RuntimeError(message)
             else:
-                try:
-                    data = response.json()
-                except Exception as exc:
-                    last_error = RuntimeError("OpenAI returned an unreadable image response.")
-                    logger.warning(
-                        "OpenAI image response was not JSON request_id=%s: %s",
-                        request_id,
-                        exc,
-                    )
-                else:
-                    results = data.get("data", []) if isinstance(data, dict) else []
-                    first_result = results[0] if results and isinstance(results[0], dict) else {}
-                    image_data = first_result.get("b64_json") or first_result.get("url")
-
-                    if image_data:
-                        if not image_data.startswith(("http://", "https://", "data:")):
-                            image_data = f"data:image/png;base64,{image_data}"
-                        return image_data
-
-                    last_error = RuntimeError("OpenAI returned no generated image data.")
-                    logger.warning(
-                        "OpenAI image response had no image request_id=%s",
-                        request_id,
-                    )
+                image_data = _response_image_data(response, request_id)
+                if image_data:
+                    return image_data
+                last_error = RuntimeError("OpenAI returned no generated image data.")
+                logger.warning("OpenAI image response had no image request_id=%s", request_id)
 
         if attempt < MAX_RETRIES - 1:
             await _retry_delay(2 ** attempt)
@@ -153,6 +132,100 @@ async def generate_image(prompt: str) -> str:
     raise RuntimeError(
         f"OpenAI image generation failed after {MAX_RETRIES} attempts. {last_error}"
     )
+
+
+async def edit_image(
+    prompt: str,
+    image_bytes: bytes,
+    image_mime: str,
+    image_filename: str,
+) -> str:
+    """Generate an image using an uploaded image as a visual reference.
+
+    The upload is forwarded to OpenAI directly from memory. No temporary or
+    permanent local file is created, which keeps this safe on Render's
+    ephemeral filesystem.
+    """
+    settings = get_settings()
+    api_key = settings.OPENAI_API_KEY
+
+    if not api_key:
+        raise RuntimeError("OPENAI_API_KEY is not configured on the backend.")
+
+    sanitized_prompt = _sanitize_prompt(prompt)
+    headers = {"Authorization": f"Bearer {api_key}"}
+    data = {
+        "model": DEFAULT_IMAGE_MODEL,
+        "prompt": sanitized_prompt,
+        "n": "1",
+        "size": IMAGE_SIZE,
+        "quality": IMAGE_QUALITY,
+    }
+    # OpenAI's GPT Image edit endpoint uses image[] for one or more reference
+    # images. httpx creates the multipart boundary and per-file headers.
+    files = {"image[]": (image_filename, image_bytes, image_mime)}
+    last_error: RuntimeError | None = None
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+                response = await client.post(
+                    OPENAI_IMAGE_EDIT_ENDPOINT,
+                    headers=headers,
+                    data=data,
+                    files=files,
+                )
+        except httpx.HTTPError as exc:
+            last_error = RuntimeError("Could not reach OpenAI image editing. Please try again.")
+            logger.warning("OpenAI image edit request failed: %s", exc)
+        else:
+            request_id = response.headers.get("x-request-id")
+            if response.status_code != 200:
+                message, retryable = _api_error(response)
+                logger.warning(
+                    "OpenAI image edit failed status=%s request_id=%s retryable=%s",
+                    response.status_code,
+                    request_id,
+                    retryable,
+                )
+                if not retryable:
+                    raise RuntimeError(message)
+                last_error = RuntimeError(message)
+            else:
+                image_data = _response_image_data(response, request_id)
+                if image_data:
+                    return image_data
+                last_error = RuntimeError("OpenAI returned no edited image data.")
+
+        if attempt < MAX_RETRIES - 1:
+            await _retry_delay(2 ** attempt)
+
+    raise RuntimeError(
+        f"OpenAI image editing failed after {MAX_RETRIES} attempts. {last_error}"
+    )
+
+
+def _sanitize_prompt(prompt: str) -> str:
+    sanitized = " ".join(prompt.splitlines()).strip()
+    if (sanitized.startswith('"') and sanitized.endswith('"')) or \
+       (sanitized.startswith("'") and sanitized.endswith("'")):
+        sanitized = sanitized[1:-1].strip()
+    return sanitized
+
+
+def _response_image_data(response: httpx.Response, request_id: str | None) -> str | None:
+    try:
+        data = response.json()
+    except Exception as exc:
+        logger.warning("OpenAI image response was not JSON request_id=%s: %s", request_id, exc)
+        return None
+
+    results = data.get("data", []) if isinstance(data, dict) else []
+    first_result = results[0] if results and isinstance(results[0], dict) else {}
+    image_data = first_result.get("b64_json") or first_result.get("url")
+    if image_data and not image_data.startswith(("http://", "https://", "data:")):
+        return f"data:image/png;base64,{image_data}"
+    return image_data
 
 
 async def _retry_delay(seconds: float) -> None:

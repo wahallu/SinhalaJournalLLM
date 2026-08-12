@@ -55,6 +55,32 @@ async function request(endpoint, body = null, method = 'POST') {
   return res.json();
 }
 
+/** Authenticated multipart request. The browser owns the Content-Type
+ * boundary; setting it manually would produce an invalid upload. */
+async function multipartRequest(endpoint, formData) {
+  const send = (token) => fetch(`${getApiBase()}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      ...researchHeaders(),
+      ...authHeaders(token),
+    },
+    body: formData,
+  });
+
+  const token = getAccessToken();
+  let res = await send(token);
+  if (res.status === 401 && token) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) res = await send(refreshed);
+  }
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Request failed (${res.status})`);
+  }
+  return res.json();
+}
+
 /**
  * One API call whose body is a stream of NDJSON objects.
  *
@@ -362,8 +388,16 @@ export function getHistoryStats() {
 // ── Image Generation (OpenAI GPT Image 2) ──
 // The authenticated backend proxy keeps OPENAI_API_KEY out of the browser and
 // returns a base64 PNG data URL.
-export function generateImage(prompt, historyId = null) {
-  return request('/image/generate', { prompt, history_id: historyId });
+export function generateImage(prompt, historyId = null, referenceImage = null) {
+  if (!referenceImage) {
+    return request('/image/generate', { prompt, history_id: historyId });
+  }
+
+  const formData = new FormData();
+  formData.append('prompt', prompt);
+  if (historyId) formData.append('history_id', historyId);
+  formData.append('image', referenceImage);
+  return multipartRequest('/image/generate', formData);
 }
 
 // ── Capabilities ──

@@ -92,6 +92,56 @@ async def test_admin_can_generate_images(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_admin_can_generate_with_reference_image(monkeypatch):
+    reference = b"RIFF\x08\x00\x00\x00WEBPtest"
+
+    async def fake_edit_image(prompt, image_bytes, image_mime, image_filename):
+        assert prompt == "Use this car in a night-time news scene"
+        assert image_bytes == reference
+        assert image_mime == "image/webp"
+        assert image_filename == "reference.webp"
+        return "data:image/png;base64,ZWRpdGVk"
+
+    monkeypatch.setattr("app.api.v1.image_generation.edit_image", fake_edit_image)
+
+    async with _client() as client:
+        response = await client.post(
+            ENDPOINT,
+            data={"prompt": "Use this car in a night-time news scene"},
+            files={"image": ("car.webp", reference, "image/webp")},
+            headers=_auth(ADMIN_ID),
+        )
+
+    assert response.status_code == 200
+    assert response.json()["image_data"] == "data:image/png;base64,ZWRpdGVk"
+    assert response.json()["model"] == "gpt-image-2"
+
+
+@pytest.mark.asyncio
+async def test_reference_image_type_is_verified_from_file_content(monkeypatch):
+    called = False
+
+    async def fake_edit_image(*_args, **_kwargs):
+        nonlocal called
+        called = True
+        return "data:image/png;base64,bm90LXJlYWNoZWQ="
+
+    monkeypatch.setattr("app.api.v1.image_generation.edit_image", fake_edit_image)
+
+    async with _client() as client:
+        response = await client.post(
+            ENDPOINT,
+            data={"prompt": "Use this reference"},
+            files={"image": ("fake.png", b"this is not an image", "image/png")},
+            headers=_auth(ADMIN_ID),
+        )
+
+    assert response.status_code == 415
+    assert "valid PNG, JPG, JPEG, or WEBP" in response.json()["detail"]
+    assert called is False
+
+
+@pytest.mark.asyncio
 async def test_admin_image_is_uploaded_and_attached_to_own_headline(monkeypatch, fake_supabase):
     fake_supabase.store["headline_generations"] = [{
         "id": "headline-1",
