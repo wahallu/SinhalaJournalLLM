@@ -12,6 +12,7 @@ const jakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL("https://sin-ai.app"),
   title: "SinAI Document Assistant — AI for Sinhala Journalism & Writing",
+  applicationName: "SinAI Document Assistant",
   description:
     "SinAI Document Assistant is an AI-powered Sinhala writing and editorial intelligence platform for Google Docs and newsrooms. Features real-time grammar checking, headline generation, 5-tone style rewriting, and article summarization.",
   keywords: [
@@ -51,6 +52,27 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "SinAI Document Assistant",
+  applicationCategory: "ProductivityApplication",
+  operatingSystem: "Google Workspace / Google Docs / Web",
+  description:
+    "SinAI Document Assistant is an AI-powered Sinhala writing and editorial intelligence platform for Google Docs and newsrooms. Features real-time grammar checking, headline generation, 5-tone rewriting, and summarization.",
+  url: "https://sin-ai.app",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  creator: {
+    "@type": "Organization",
+    name: "SinAi Research & Engineering Group",
+    url: "https://sin-ai.app",
+  },
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -59,6 +81,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${jakartaSans.variable}`}>
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <link rel="icon" href="/brand/web-app-manifest-192x192.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
