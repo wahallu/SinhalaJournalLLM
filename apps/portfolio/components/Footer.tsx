@@ -15,18 +15,18 @@ export default function Footer() {
             <div className="flex items-center gap-2.5 sm:gap-3">
               <Image
                 src="/brand/web-app-manifest-192x192.png"
-                alt="SinAi Logo"
+                alt="SinAI Document Assistant Logo"
                 width={36}
                 height={36}
                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl shadow-md object-cover"
               />
               <span className="font-display text-xl sm:text-2xl font-bold tracking-tight text-white">
-                SinAi
+                SinAI Document Assistant
               </span>
             </div>
 
             <p className="text-xs sm:text-sm text-white/60 max-w-sm leading-relaxed">
-              The domain-adapted AI writing &amp; journalistic intelligence ecosystem for the Sinhala language. Powered by the Sinhala Journal LLM research project and specialized task LoRA adapters.
+              SinAI Document Assistant is the domain-adapted AI writing &amp; journalistic intelligence ecosystem for the Sinhala language. Powered by specialized LoRA adapters for Google Docs, Web, and newsrooms.
             </p>
 
             <div className="flex gap-2.5 sm:gap-3 pt-1 sm:pt-2">

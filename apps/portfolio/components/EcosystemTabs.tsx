@@ -65,8 +65,8 @@ const ECOSYSTEM_DATA: EcosystemItem[] = [
   },
   {
     id: "docs",
-    title: "Google Docs Add-on",
-    category: "Newsroom Collaboration",
+    title: "SinAI Document Assistant",
+    category: "Newsroom Collaboration (Google Docs)",
     badge: "Google Workspace Add-on",
     icon: <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5 text-[#cd191a]" />,
     headline: "SinAI Document Assistant for Google Docs newsroom workflows.",

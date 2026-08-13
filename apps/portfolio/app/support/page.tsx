@@ -16,8 +16,8 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "Support & Help Center — SinAi Google Docs Add-on",
-  description: "Setup guide, support resources, troubleshooting, and issue reporting for the SinAi Google Docs Add-on and writing platform.",
+  title: "Support & Help Center — SinAI Document Assistant",
+  description: "Setup guide, support resources, troubleshooting, and issue reporting for the SinAI Document Assistant Google Docs Add-on and writing platform.",
 };
 
 export default function SupportCenter() {

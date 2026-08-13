@@ -11,7 +11,7 @@ const jakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://sin-ai.app"),
-  title: "SinAI Document Assistant — AI for Sinhala Journalism & Writing",
+  title: "SinAI Document Assistant",
   applicationName: "SinAI Document Assistant",
   description:
     "SinAI Document Assistant is an AI-powered Sinhala writing and editorial intelligence platform for Google Docs and newsrooms. Features real-time grammar checking, headline generation, 5-tone style rewriting, and article summarization.",

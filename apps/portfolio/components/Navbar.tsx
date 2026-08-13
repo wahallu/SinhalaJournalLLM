@@ -28,13 +28,15 @@ export default function Navbar() {
         <Link href="/" className="flex items-center gap-1.5 sm:gap-2.5 pl-1 group">
           <Image
             src="/brand/web-app-manifest-192x192.png"
-            alt="SinAi Logo"
+            alt="SinAI Document Assistant Logo"
             width={32}
             height={32}
             className="w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md group-hover:scale-105 transition-transform duration-300 shrink-0 object-cover"
           />
           <div className="flex items-center gap-1 sm:gap-1.5">
-            <span className="text-white font-display text-base sm:text-lg font-bold tracking-tight">SinAi</span>
+            <span className="text-white font-display text-xs sm:text-sm md:text-base font-bold tracking-tight">
+              SinAI Document Assistant
+            </span>
             <span className="hidden xs:inline text-[8px] sm:text-[9px] uppercase tracking-widest px-1 sm:px-1.5 py-0.5 rounded bg-white/10 text-white/70 font-semibold border border-white/10">
               Beta
             </span>
