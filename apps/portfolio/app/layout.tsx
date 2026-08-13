@@ -11,7 +11,7 @@ const jakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://sin-ai.app"),
-  title: "SinAi — The Intelligent Foundation for Sinhala Journalism & Writing",
+  title: "SinAI Document Assistant",
   description:
     "An advanced AI writing and editorial intelligence platform powered by specialized Large Language Models for Sinhala journalism (Sinhala Journal LLM). Features real-time grammar checking, journalistic headline generation, 5-tone rewriting, and news summarization.",
   keywords: [
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     apple: "/brand/web-app-manifest-192x192.png",
   },
   openGraph: {
-    title: "SinAi — The Intelligent Foundation for Sinhala Journalism & Writing",
+    title: "SinAI Document Assistant",
     description:
       "Domain-adapted Sinhala AI Assistant and Writing Workspace (Sinhala Journal LLM). Transforming newsroom workflows with precision linguistic intelligence.",
     url: "https://sin-ai.app",
