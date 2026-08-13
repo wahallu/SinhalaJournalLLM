@@ -11,10 +11,11 @@ const jakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://sin-ai.app"),
-  title: "SinAi — The Intelligent Foundation for Sinhala Journalism & Writing",
+  title: "SinAI Document Assistant — AI for Sinhala Journalism & Writing",
   description:
-    "An advanced AI writing and editorial intelligence platform powered by specialized Large Language Models for Sinhala journalism (Sinhala Journal LLM). Features real-time grammar checking, journalistic headline generation, 5-tone rewriting, and news summarization.",
+    "SinAI Document Assistant is an AI-powered Sinhala writing and editorial intelligence platform for Google Docs and newsrooms. Features real-time grammar checking, headline generation, 5-tone style rewriting, and article summarization.",
   keywords: [
+    "SinAI Document Assistant",
     "Sinhala LLM",
     "SinAi",
     "Sinhala Journal LLM",
@@ -32,17 +33,17 @@ export const metadata: Metadata = {
     apple: "/brand/web-app-manifest-192x192.png",
   },
   openGraph: {
-    title: "SinAi — The Intelligent Foundation for Sinhala Journalism & Writing",
+    title: "SinAI Document Assistant",
     description:
-      "Domain-adapted Sinhala AI Assistant and Writing Workspace (Sinhala Journal LLM). Transforming newsroom workflows with precision linguistic intelligence.",
+      "SinAI Document Assistant is an AI-powered Sinhala writing and editorial intelligence platform for Google Docs and newsrooms. Features real-time grammar checking, headline generation, 5-tone rewriting, and summarization.",
     url: "https://sin-ai.app",
-    siteName: "SinAi (Sinhala Journal LLM)",
+    siteName: "SinAI Document Assistant",
     images: [
       {
         url: "/brand/hero.png",
         width: 1200,
         height: 630,
-        alt: "SinAi Journalistic Intelligence Platform",
+        alt: "SinAI Document Assistant",
       },
     ],
     locale: "en_US",

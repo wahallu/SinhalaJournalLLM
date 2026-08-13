@@ -157,34 +157,63 @@ export default function Hero() {
 
       {/* Main Architectural Headline */}
       <div className="text-center max-w-5xl mx-auto mb-8 sm:mb-10">
-        <h1 className="font-display text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[84px] font-bold text-[#181818] tracking-tight leading-[1.08] sm:leading-[1.05] mb-4 sm:mb-6 text-balance">
-          The Intelligent Foundation for <br className="hidden sm:inline" />
-          <span className="italic font-normal font-display text-[#cd191a]">Sinhala Journalism</span> and Writing
+        <h1 className="font-display text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[80px] font-bold text-[#181818] tracking-tight leading-[1.08] sm:leading-[1.05] mb-3 sm:mb-4 text-balance">
+          SinAI Document Assistant
         </h1>
-        <p className="text-xs sm:text-base md:text-lg lg:text-xl text-[#615e58] max-w-3xl mx-auto font-normal leading-relaxed text-balance px-2">
-          Empowering Sri Lankan newsrooms, editors, and writers with <strong>SinAI Document Assistant</strong> and domain-adapted AI writing tools. Fine-tuned on authentic journalistic corpora with specialized LoRA adapters for Sinhala grammar correction, headline generation, 5-tone rewriting, and news summarization.
+        <p className="font-display text-lg sm:text-2xl md:text-3xl font-semibold text-[#cd191a] mb-4 sm:mb-6">
+          The Intelligent Foundation for Sinhala Journalism &amp; Writing
+        </p>
+
+        {/* Application Purpose Box directly on Root Homepage */}
+        <div className="max-w-2xl mx-auto p-4 sm:p-5 rounded-2xl bg-white border border-[#D9D7D0] shadow-sm mb-6 text-left space-y-2">
+          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#cd191a]">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Application Purpose &amp; Overview</span>
+          </div>
+          <p className="text-xs sm:text-sm text-[#443f40] leading-relaxed">
+            <strong>SinAI Document Assistant</strong> is an AI-powered Sinhala writing and editorial intelligence platform for Google Docs, Chrome, and newsroom workflows. It provides real-time grammatical error correction, front-page headline generation, 5-tone style rewriting, and abstractive news summarization.
+          </p>
+        </div>
+
+        <p className="text-xs sm:text-base md:text-lg text-[#615e58] max-w-3xl mx-auto font-normal leading-relaxed text-balance px-2">
+          Empowering Sri Lankan newsrooms, editors, and writers with specialized LoRA adapters fine-tuned on authentic Sinhala journalistic corpora.
         </p>
       </div>
 
       {/* Call to Actions */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-20 px-2">
+      <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-12 sm:mb-20 px-2">
         <a
           href="https://chat.sin-ai.app"
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#181818] hover:bg-[#cd191a] text-white px-5 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-xs sm:text-sm uppercase tracking-wider shadow-xl hover:shadow-[#cd191a]/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+          className="inline-flex items-center justify-center gap-2 bg-[#181818] hover:bg-[#cd191a] text-white px-5 sm:px-8 py-3 sm:py-4 rounded-full font-bold text-xs sm:text-sm uppercase tracking-wider shadow-xl hover:shadow-[#cd191a]/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
         >
           <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#ff8a8a]" />
           <span>Try SinAi Workspace</span>
           <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </a>
 
-        <a
-          href="#playground-simulator"
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white hover:bg-[#F0EFEB] text-[#1B1B1B] border border-[#D9D7D0] px-5 sm:px-7 py-3 sm:py-4 rounded-full font-bold text-xs sm:text-sm uppercase tracking-wider transition-all duration-200 shadow-sm"
+        <Link
+          href="/docs-addon"
+          className="inline-flex items-center justify-center gap-2 bg-[#cd191a] hover:bg-[#b01e1f] text-white px-5 sm:px-7 py-3 sm:py-4 rounded-full font-bold text-xs sm:text-sm uppercase tracking-wider shadow-lg shadow-[#cd191a]/25 transition-all duration-200"
         >
-          <span>Explore Features</span>
-        </a>
+          <span>Google Docs Add-on</span>
+          <ArrowUpRight className="w-3.5 h-3.5" />
+        </Link>
+
+        <Link
+          href="/docs-addon/privacy"
+          className="inline-flex items-center justify-center gap-2 bg-white hover:bg-[#F0EFEB] text-[#181818] border border-[#D9D7D0] px-4 py-3 sm:py-4 rounded-full font-bold text-xs sm:text-sm uppercase tracking-wider transition-all duration-200 shadow-sm"
+        >
+          <span>Privacy Policy</span>
+        </Link>
+
+        <Link
+          href="/docs-addon/terms"
+          className="inline-flex items-center justify-center gap-2 bg-white hover:bg-[#F0EFEB] text-[#181818] border border-[#D9D7D0] px-4 py-3 sm:py-4 rounded-full font-bold text-xs sm:text-sm uppercase tracking-wider transition-all duration-200 shadow-sm"
+        >
+          <span>Terms</span>
+        </Link>
       </div>
 
       {/* Interactive Hero Stage (2-Pane Workspace Mockup) */}
