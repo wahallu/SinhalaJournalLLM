@@ -89,13 +89,20 @@ export default function DocsAddonPage() {
                 SinAI Document Assistant
               </h1>
 
-              <p className="text-base sm:text-lg lg:text-xl font-semibold text-[#cd191a] mb-5">
+              <p className="text-base sm:text-lg lg:text-xl font-semibold text-[#cd191a] mb-4">
                 AI-powered Sinhala writing assistant for Google Docs™
               </p>
 
-              <p className="text-sm sm:text-base lg:text-lg text-[#615e58] leading-relaxed max-w-2xl mb-8">
-                Empower your newsroom and drafting workflows with specialized Sinhala linguistic intelligence directly inside Google Docs. Instantly audit grammatical concord, generate captivating editorial headlines, rewrite between 5 journalistic registers, and summarize long-form articles without ever leaving your document editor.
-              </p>
+              {/* Purpose & Overview Box for Google Verification */}
+              <div className="w-full p-4 sm:p-5 rounded-2xl bg-white border border-[#D9D7D0] shadow-sm mb-6 space-y-2">
+                <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-[#cd191a]">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Application Purpose &amp; Overview</span>
+                </div>
+                <p className="text-xs sm:text-sm text-[#443f40] leading-relaxed">
+                  <strong>SinAI Document Assistant</strong> is an editorial productivity add-on for Google Docs designed to help journalists, writers, and editors draft and refine Sinhala language content. It connects to the specialized Sinhala Journal LLM to provide real-time grammatical error correction, front-page headline generation, 5-tone style rewriting, and abstractive article summarization directly inside the Google Docs editor.
+                </p>
+              </div>
 
               {/* Primary Action Group */}
               <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full sm:w-auto mb-8">

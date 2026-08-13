@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   Sparkles,
   ArrowUpRight,
@@ -137,16 +138,21 @@ export default function Hero() {
       {/* Background ambient lighting */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] sm:w-[500px] md:w-[700px] h-[300px] sm:h-[400px] md:h-[500px] bg-gradient-to-br from-[#cd191a]/10 via-[#ff4b2b]/5 to-transparent rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {/* Top Status Pill */}
+      {/* Top Status Pill & App Link */}
       <div className="flex justify-center mb-6 sm:mb-8">
-        <div className="inline-flex items-center gap-1.5 sm:gap-2.5 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white border border-[#D9D7D0] shadow-sm hover:border-[#cd191a]/40 transition-all duration-300">
+        <Link
+          href="/docs-addon"
+          className="inline-flex items-center gap-1.5 sm:gap-2.5 px-3.5 sm:px-4 py-1.5 rounded-full bg-white border border-[#D9D7D0] shadow-sm hover:border-[#cd191a]/60 hover:shadow-md transition-all duration-300 group"
+        >
           <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#cd191a] animate-pulse shrink-0" />
-          <span className="text-[10px] sm:text-xs font-semibold text-[#1B1B1B] tracking-wide uppercase">
-            Sinhala Journal LLM Beta
+          <span className="text-[10px] sm:text-xs font-bold text-[#1B1B1B] tracking-wide uppercase">
+            SinAI Document Assistant for Google Docs
           </span>
           <span className="text-xs text-[#8C8880]">•</span>
-          <span className="text-[10px] sm:text-xs font-medium text-[#8C8880]">Domain-Adapted AI</span>
-        </div>
+          <span className="text-[10px] sm:text-xs font-bold text-[#cd191a] group-hover:underline flex items-center gap-0.5">
+            Explore Add-on <ArrowUpRight className="w-3 h-3" />
+          </span>
+        </Link>
       </div>
 
       {/* Main Architectural Headline */}
@@ -156,8 +162,7 @@ export default function Hero() {
           <span className="italic font-normal font-display text-[#cd191a]">Sinhala Journalism</span> and Writing
         </h1>
         <p className="text-xs sm:text-base md:text-lg lg:text-xl text-[#615e58] max-w-3xl mx-auto font-normal leading-relaxed text-balance px-2">
-          Empowering Sri Lankan newsrooms, editors, and writers with domain-adapted LLMs.
-          Fine-tuned on authentic journalistic corpora with specialized LoRA adapters for grammar, headlines, style, and summarization.
+          Empowering Sri Lankan newsrooms, editors, and writers with <strong>SinAI Document Assistant</strong> and domain-adapted AI writing tools. Fine-tuned on authentic journalistic corpora with specialized LoRA adapters for Sinhala grammar correction, headline generation, 5-tone rewriting, and news summarization.
         </p>
       </div>
 
