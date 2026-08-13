@@ -5,8 +5,8 @@ import Footer from "@/components/Footer";
 import { FileText, ArrowLeft, CheckCircle2, AlertCircle, Mail } from "lucide-react";
 
 export const metadata = {
-  title: "Terms of Service — SinAi & Google Workspace Add-on",
-  description: "Terms of Service for SinAi writing assistant, Google Docs Add-on, and web services. Outlines acceptable use, AI output disclaimers, and user rights.",
+  title: "Terms of Service — SinAi & SinAI Document Assistant",
+  description: "Terms of Service for SinAi writing assistant, SinAI Document Assistant for Google Docs, and web services. Outlines acceptable use, AI output disclaimers, and user rights.",
 };
 
 export default function TermsOfService() {
@@ -16,13 +16,21 @@ export default function TermsOfService() {
 
       <main className="flex-1 pt-28 sm:pt-36 pb-20 px-4 sm:px-6 lg:px-12 max-w-4xl mx-auto w-full">
         {/* Back Link */}
-        <div className="mb-8">
+        <div className="mb-8 flex items-center gap-4">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#8C8880] hover:text-[#cd191a] transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Home</span>
+          </Link>
+          <span className="text-[#D9D7D0]">•</span>
+          <Link
+            href="/docs-addon/terms"
+            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#cd191a] hover:underline"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>SinAI Document Assistant Specific Terms</span>
           </Link>
         </div>
 
@@ -36,7 +44,7 @@ export default function TermsOfService() {
             Terms of Service
           </h1>
           <p className="text-xs sm:text-sm text-[#8C8880]">
-            Effective Date: August 10, 2026 • Applies to SinAi Web App, Chrome Extension, and Google Docs Add-on
+            Effective Date: August 13, 2026 • Applies to SinAi Web App, Chrome Extension, and SinAI Document Assistant (Google Docs Add-on)
           </p>
         </div>
 
@@ -48,7 +56,7 @@ export default function TermsOfService() {
               1. Acceptance of Terms
             </h2>
             <p>
-              By accessing or using the SinAi Web App, Chrome Extension, or the <strong>SinAi Google Docs Add-on</strong> (collectively, the &quot;Services&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree with these Terms, please do not install or use our Services.
+              By accessing or using the SinAi Web App, Chrome Extension, or <strong>SinAI Document Assistant</strong> for Google Docs (collectively, the &quot;Services&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you do not agree with these Terms, please do not install or use our Services.
             </p>
           </section>
 

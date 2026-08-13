@@ -5,8 +5,8 @@ import Footer from "@/components/Footer";
 import { ShieldCheck, Lock, EyeOff, Server, ArrowLeft, Mail } from "lucide-react";
 
 export const metadata = {
-  title: "Privacy Policy — SinAi & Google Workspace Add-on",
-  description: "Privacy Policy for SinAi, including the SinAi Google Docs Add-on and web applications. Details on data handling, Google user data compliance, and security.",
+  title: "Privacy Policy — SinAi & SinAI Document Assistant",
+  description: "Privacy Policy for SinAi, including SinAI Document Assistant for Google Docs and web applications. Details on data handling, Google user data compliance, and security.",
 };
 
 export default function PrivacyPolicy() {
@@ -16,13 +16,21 @@ export default function PrivacyPolicy() {
 
       <main className="flex-1 pt-28 sm:pt-36 pb-20 px-4 sm:px-6 lg:px-12 max-w-4xl mx-auto w-full">
         {/* Back Link */}
-        <div className="mb-8">
+        <div className="mb-8 flex items-center gap-4">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#8C8880] hover:text-[#cd191a] transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Home</span>
+          </Link>
+          <span className="text-[#D9D7D0]">•</span>
+          <Link
+            href="/docs-addon/privacy"
+            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#cd191a] hover:underline"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>SinAI Document Assistant Specific Policy</span>
           </Link>
         </div>
 
@@ -36,7 +44,7 @@ export default function PrivacyPolicy() {
             Privacy Policy
           </h1>
           <p className="text-xs sm:text-sm text-[#8C8880]">
-            Effective Date: August 10, 2026 • Applies to SinAi Web App, Chrome Extension, and SinAi Google Docs Add-on
+            Effective Date: August 13, 2026 • Applies to SinAi Web App, Chrome Extension, and SinAI Document Assistant (Google Docs Add-on)
           </p>
         </div>
 
@@ -48,7 +56,7 @@ export default function PrivacyPolicy() {
               1. Overview and Commitment to Privacy
             </h2>
             <p>
-              SinAi (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) provides AI-assisted journalistic writing, grammar checking, headline generation, style rewriting, and summarization tools. We are committed to protecting your privacy and ensuring transparency in how your data is handled across our web applications, browser extensions, and the <strong>SinAi Google Docs Add-on</strong>.
+              SinAi (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) provides AI-assisted journalistic writing, grammar checking, headline generation, style rewriting, and summarization tools. We are committed to protecting your privacy and ensuring transparency in how your data is handled across our web applications, browser extensions, and <strong>SinAI Document Assistant</strong> for Google Docs.
             </p>
           </section>
 
@@ -59,7 +67,7 @@ export default function PrivacyPolicy() {
               <span>2. Google Workspace User Data Policy and Limited Use</span>
             </div>
             <p>
-              When you use the <strong>SinAi Google Docs Add-on</strong>, our access to your Google Docs data is strictly limited to the functions you explicitly trigger:
+              When you use <strong>SinAI Document Assistant</strong> for Google Docs, our access to your Google Docs data is strictly limited to the functions you explicitly trigger:
             </p>
             <ul className="list-disc pl-5 space-y-2">
               <li>

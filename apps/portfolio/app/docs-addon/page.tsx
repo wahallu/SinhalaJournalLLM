@@ -108,27 +108,43 @@ export default function DocsAddonPage() {
               <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full sm:w-auto mb-8">
                 <a
                   href="#interactive-demo"
-                  className="inline-flex items-center justify-center gap-2 bg-[#cd191a] hover:bg-[#b01e1f] text-white px-6 py-3.5 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider shadow-lg shadow-[#cd191a]/25 hover:shadow-[#cd191a]/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className="inline-flex items-center justify-center gap-2 bg-[#cd191a] hover:bg-[#b01e1f] text-white px-5 py-3 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg shadow-[#cd191a]/25 hover:shadow-[#cd191a]/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Try Interactive Demo</span>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Try Demo</span>
                 </a>
-
-                <Link
-                  href="/support#setup"
-                  className="inline-flex items-center justify-center gap-2 bg-white hover:bg-[#F0EFEB] text-[#181818] border border-[#D9D7D0] px-5 py-3.5 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider shadow-sm transition-all"
-                >
-                  <BookOpen className="w-4 h-4 text-[#615e58]" />
-                  <span>Setup Guide</span>
-                </Link>
 
                 <a
                   href="#permissions"
-                  className="inline-flex items-center justify-center gap-2 bg-[#FAF9F5] hover:bg-[#F0EFEB] text-[#615e58] hover:text-[#181818] px-4 py-3.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors"
+                  className="inline-flex items-center justify-center gap-2 bg-white hover:bg-[#F0EFEB] text-[#181818] border border-[#D9D7D0] px-4 py-3 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm transition-all"
                 >
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                  <span>OAuth Scopes &amp; Privacy</span>
+                  <Key className="w-3.5 h-3.5 text-[#cd191a]" />
+                  <span>OAuth Scopes</span>
                 </a>
+
+                <Link
+                  href="/docs-addon/privacy"
+                  className="inline-flex items-center justify-center gap-2 bg-white hover:bg-[#F0EFEB] text-[#181818] border border-[#D9D7D0] px-4 py-3 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm transition-all"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Privacy Policy</span>
+                </Link>
+
+                <Link
+                  href="/docs-addon/terms"
+                  className="inline-flex items-center justify-center gap-2 bg-white hover:bg-[#F0EFEB] text-[#181818] border border-[#D9D7D0] px-4 py-3 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm transition-all"
+                >
+                  <FileText className="w-3.5 h-3.5 text-[#615e58]" />
+                  <span>Terms</span>
+                </Link>
+
+                <Link
+                  href="/support#setup"
+                  className="inline-flex items-center justify-center gap-2 bg-[#FAF9F5] hover:bg-[#F0EFEB] text-[#615e58] hover:text-[#181818] px-3.5 py-3 rounded-full text-xs font-bold uppercase tracking-wider transition-colors"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-[#615e58]" />
+                  <span>Setup Guide</span>
+                </Link>
               </div>
 
               {/* Quick Trust Highlights */}
@@ -932,11 +948,11 @@ export default function DocsAddonPage() {
                 </li>
               </ul>
               <div className="pt-2 flex flex-wrap items-center gap-4 text-xs font-bold uppercase tracking-wider">
-                <Link href="/privacy" className="text-[#cd191a] hover:underline flex items-center gap-1">
-                  <span>Read Full Privacy Policy</span>
+                <Link href="/docs-addon/privacy" className="text-[#cd191a] hover:underline flex items-center gap-1">
+                  <span>Read Privacy Policy</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </Link>
-                <Link href="/terms" className="text-[#615e58] hover:text-[#181818] flex items-center gap-1">
+                <Link href="/docs-addon/terms" className="text-[#615e58] hover:text-[#181818] flex items-center gap-1">
                   <span>Terms of Service</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </Link>
