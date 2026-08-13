@@ -55,12 +55,21 @@ export default function SupportCenter() {
         <div className="space-y-12 text-xs sm:text-sm leading-relaxed text-[#443f40]">
           {/* Section 1: Google Docs Add-on Setup Guide */}
           <section id="setup" className="space-y-4 p-6 sm:p-8 bg-white rounded-2xl sm:rounded-3xl border border-[#D9D7D0] shadow-sm">
-            <div className="flex items-center gap-2.5 text-[#cd191a] font-bold text-sm sm:text-base uppercase tracking-wider">
-              <FileSpreadsheet className="w-5 h-5" />
-              <span>Google Docs Add-on: Step-by-Step Setup Guide</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[#cd191a] font-bold text-sm sm:text-base uppercase tracking-wider">
+              <div className="flex items-center gap-2.5">
+                <FileSpreadsheet className="w-5 h-5" />
+                <span>Google Docs Add-on: Step-by-Step Setup Guide</span>
+              </div>
+              <Link
+                href="/docs-addon"
+                className="text-xs font-bold text-[#181818] hover:text-[#cd191a] inline-flex items-center gap-1 normal-case tracking-normal"
+              >
+                <span>View Full Add-on Landing Page</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
             <p className="text-xs sm:text-sm text-[#615e58]">
-              Once you have installed <strong>SinAi for Google Docs</strong> from the Google Workspace Marketplace, follow these steps to start editing:
+              Once you have installed <strong>SinAI Document Assistant</strong> from the Google Workspace Marketplace, follow these steps to start editing:
             </p>
 
             <div className="space-y-3 pt-2">

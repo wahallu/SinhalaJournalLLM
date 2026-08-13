@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import {
   Laptop,
   Globe,
@@ -66,20 +67,20 @@ const ECOSYSTEM_DATA: EcosystemItem[] = [
     id: "docs",
     title: "Google Docs Add-on",
     category: "Newsroom Collaboration",
-    badge: "Google Apps Script",
+    badge: "Google Workspace Add-on",
     icon: <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5 text-[#cd191a]" />,
-    headline: "Integrated sidebar assistant built for newsroom drafting in Google Docs.",
+    headline: "SinAI Document Assistant for Google Docs newsroom workflows.",
     description:
-      "Built with Google Apps Script. Journalists can draft articles in Google Docs while SinAi's sidebar continuously checks grammatical harmony, suggests front-page titles, and condenses paragraphs into bullet summaries.",
+      "Integrated Google Docs editor sidebar powered by Google Apps Script. Journalists can draft articles in Google Docs while SinAi's sidebar continuously checks grammatical harmony, suggests front-page titles, and condenses paragraphs into bullet summaries.",
     highlights: [
       "Integrated sidebar interface docked directly beside your Google Doc",
       "Single-click replace for corrected paragraphs and suggested headlines",
       "Built-in legacy UBIN16S font transcoder for older archives",
-      "Deployed seamlessly across enterprise Google Workspace domains",
+      "Strict compliance with Google Workspace Limited Use security policies",
     ],
-    ctaLabel: "View Docs Add-on Specs",
-    ctaUrl: "https://github.com/wahallu/SinhalaJournalLLM/tree/main/apps/docs-addon",
-    techStack: ["Google Apps Script", "clasp CLI", "REST Gateway"],
+    ctaLabel: "View Doc Addon",
+    ctaUrl: "/docs-addon",
+    techStack: ["Google Apps Script", "V8 Engine", "Docs API", "REST Gateway"],
   },
 ];
 
@@ -152,15 +153,25 @@ export default function EcosystemTabs() {
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-[#F0EFEB]">
-              <a
-                href={current.ctaUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 bg-[#181818] hover:bg-[#cd191a] text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-full text-xs font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
-              >
-                <span>{current.ctaLabel}</span>
-                <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </a>
+              {current.ctaUrl.startsWith("http") ? (
+                <a
+                  href={current.ctaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 bg-[#181818] hover:bg-[#cd191a] text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-full text-xs font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all"
+                >
+                  <span>{current.ctaLabel}</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </a>
+              ) : (
+                <Link
+                  href={current.ctaUrl}
+                  className="inline-flex items-center justify-center gap-2 bg-[#cd191a] hover:bg-[#b01e1f] text-white px-5 sm:px-7 py-2.5 sm:py-3 rounded-full text-xs font-bold uppercase tracking-wider shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <span>{current.ctaLabel}</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </Link>
+              )}
 
               <div className="flex flex-wrap gap-1 sm:gap-1.5">
                 {current.techStack.map((tech, idx) => (

@@ -89,14 +89,12 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a
-                  href="https://github.com/wahallu/SinhalaJournalLLM/tree/main/apps/docs-addon"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/docs-addon"
                   className="hover:text-white transition-colors"
                 >
-                  Google Docs Add-on
-                </a>
+                  SinAI Document Assistant (Docs)
+                </Link>
               </li>
             </ul>
           </div>
