@@ -85,10 +85,13 @@ export default function DocsAddonPage() {
                 <span>Google Workspace Marketplace Add-on</span>
               </div>
 
-              <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-extrabold text-[#181818] tracking-tight leading-[1.1] mb-5">
-                SinAI Document Assistant <br className="hidden sm:inline" />
-                <span className="text-[#cd191a]">for Google Docs</span>
+              <h1 className="font-display text-3xl sm:text-5xl lg:text-6xl font-extrabold text-[#181818] tracking-tight leading-[1.1] mb-3">
+                SinAI Document Assistant
               </h1>
+
+              <p className="text-base sm:text-lg lg:text-xl font-semibold text-[#cd191a] mb-5">
+                AI-powered Sinhala writing assistant for Google Docs™
+              </p>
 
               <p className="text-sm sm:text-base lg:text-lg text-[#615e58] leading-relaxed max-w-2xl mb-8">
                 Empower your newsroom and drafting workflows with specialized Sinhala linguistic intelligence directly inside Google Docs. Instantly audit grammatical concord, generate captivating editorial headlines, rewrite between 5 journalistic registers, and summarize long-form articles without ever leaving your document editor.
