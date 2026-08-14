@@ -112,6 +112,10 @@ export function getChats({ limit = 100 } = {}) {
   return request(`/admin/activity/chats?limit=${limit}`);
 }
 
+export function getChatRun(tool, id) {
+  return request(`/admin/activity/chats/${encodeURIComponent(tool)}/${encodeURIComponent(id)}`);
+}
+
 // ── Adapters ──
 // The model server owns this list; /comparison/adapters is already
 // admin-only, so the Settings page reuses it rather than adding an endpoint.

@@ -8,7 +8,7 @@ dashboard becoming a record of who read what.
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.deps import require_admin
 from app.repositories import audit_repository, base, history_repository
@@ -107,3 +107,16 @@ async def chats(
         # say "not reported" instead of showing a confident zero.
         "total_tokens": sum(reported) if reported else None,
     }
+
+
+@router.get("/chats/{tool}/{record_id}")
+async def chat_detail(
+    tool: str,
+    record_id: str,
+    _admin: AuthUser = Depends(require_admin),
+) -> dict[str, Any]:
+    """Complete stored input, output, settings and media for one tool run."""
+    run = await history_repository.get_run_for_admin(tool, record_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Chat run not found.")
+    return run

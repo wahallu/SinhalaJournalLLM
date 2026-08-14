@@ -158,6 +158,23 @@ async def get_run(
     }
 
 
+async def get_run_for_admin(tool: str, record_id: str) -> dict[str, Any] | None:
+    """Return any owner's complete run for a ``require_admin`` route only.
+
+    Resolve the owner first, then reuse the same normalized workspace builder
+    as History → Reopen. Keeping this separate prevents a future user-facing
+    caller from accidentally omitting the ownership boundary.
+    """
+    source = _SOURCES.get(tool)
+    if source is None:
+        return None
+    table, _, _ = source
+    row = await fetch_by_id(table, record_id)
+    if not row or not row.get("user_id"):
+        return None
+    return await get_run(tool, record_id, user_id=str(row["user_id"]))
+
+
 async def list_recent(limit: int = 50, *, user_id: str | None = None) -> list[dict[str, Any]]:
     """
     Newest `limit` items across every tool, shaped as:

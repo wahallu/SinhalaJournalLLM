@@ -50,7 +50,14 @@ const REFERENCE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp'])
 const REFERENCE_IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'webp']);
 const MAX_REFERENCE_IMAGE_BYTES = 10 * 1024 * 1024;
 
-function VisualPromptModule({ headline, articleText, historyId, initialPrompt = '', initialImage = '' }) {
+function VisualPromptModule({
+  headline,
+  articleText,
+  historyId,
+  initialPrompt = '',
+  initialImage = '',
+  readOnly = false,
+}) {
   const { isAdmin } = useAuth();
   const [open, setOpen] = useState(true);
   const fileInputRef = useRef(null);
@@ -130,7 +137,7 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
   // Restore saved media as-is. Only new/legacy headline records without a
   // prompt make a provider call.
   useEffect(() => {
-    if (initialPrompt) return undefined;
+    if (readOnly || initialPrompt) return undefined;
     const ref = { cancelled: false };
     const timer = window.setTimeout(() => generate(ref), 0);
     return () => {
@@ -138,7 +145,7 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
       window.clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [articleText, headline, historyId, initialPrompt, initialImage]);
+  }, [articleText, headline, historyId, initialPrompt, initialImage, readOnly]);
 
   useEffect(() => () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
@@ -177,8 +184,17 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
               ) : (
                 <textarea
                   value={prompt}
-                  onChange={(e) => { setPrompt(e.target.value); setImageData(null); setImgError(null); }}
-                  onBlur={() => saveHeadlineVisualPrompt(historyId, prompt.trim()).catch(() => {})}
+                  onChange={(e) => {
+                    if (!readOnly) {
+                      setPrompt(e.target.value);
+                      setImageData(null);
+                      setImgError(null);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!readOnly) saveHeadlineVisualPrompt(historyId, prompt.trim()).catch(() => {});
+                  }}
+                  readOnly={readOnly}
                   rows={6}
                   className="w-full px-3 py-2.5 text-[13px] text-ink-700 bg-ink-50 border border-ink-200
                     rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-brand-200
@@ -188,7 +204,7 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
                 />
               )}
 
-              <div className="space-y-1.5">
+              {!readOnly && <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] font-medium text-ink-500">
                     Reference image <span className="font-normal text-ink-400">(optional)</span>
@@ -265,9 +281,9 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
                 {uploadError && (
                   <p role="alert" className="text-[10.5px] font-medium text-brand-700">{uploadError}</p>
                 )}
-              </div>
+              </div>}
 
-              <div className="flex items-center gap-1.5 flex-wrap">
+              {!readOnly && <div className="flex items-center gap-1.5 flex-wrap">
                 <ActionButton
                   variant="secondary"
                   size="sm"
@@ -292,7 +308,7 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
                       : (referenceImage ? 'Generate with reference' : 'Generate image')}
                   </ActionButton>
                 )}
-              </div>
+              </div>}
           </div>
 
           {/* A full-width image stage beneath the prompt. The fixed 16:9
@@ -388,7 +404,7 @@ function VisualPromptModule({ headline, articleText, historyId, initialPrompt = 
 }
 
 /* ── Main export ────────────────────────────────────────────────── */
-export default function HeadlineOutputPanel({ output, loading, error, articleText }) {
+export default function HeadlineOutputPanel({ output, loading, error, articleText, readOnly = false }) {
   if (loading) {
     return (
       <div id="headline-loading" className="space-y-3">
@@ -477,6 +493,7 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
         historyId={output.id}
         initialPrompt={output.visual_prompt || ''}
         initialImage={output.image_url || ''}
+        readOnly={readOnly}
       />
 
       {/* Candidates list */}

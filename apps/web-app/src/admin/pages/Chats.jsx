@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { getChats } from '../adminApi';
+import { getChatRun, getChats } from '../adminApi';
 import { Skeleton } from '../../components/ui/Skeleton';
+import OutputPanel from '../../components/OutputPanel';
+import HeadlineOutputPanel from '../../components/HeadlineOutputPanel';
+import { hydrateHeadlineOutput } from '../../services/api';
 
 /**
  * Every user's tool runs in one feed, with token usage.
@@ -29,13 +32,28 @@ function Tokens({ value }) {
 
 function Row({ chat }) {
   const [open, setOpen] = useState(false);
+  const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState(null);
+
+  const toggle = () => {
+    const nextOpen = !open;
+    setOpen(nextOpen);
+    if (!nextOpen || detail || detailLoading) return;
+    setDetailLoading(true);
+    setDetailError(null);
+    getChatRun(chat.tool, chat.id)
+      .then(setDetail)
+      .catch((error) => setDetailError(error.message || 'Could not load this run.'))
+      .finally(() => setDetailLoading(false));
+  };
 
   return (
     <>
       <tr className="border-t" style={{ borderColor: 'var(--border)' }}>
         <td className="px-3 py-2.5">
           <button
-            onClick={() => setOpen((v) => !v)}
+            onClick={toggle}
             aria-expanded={open}
             aria-label={open ? 'Hide full text' : 'Show full text'}
             className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground
@@ -75,24 +93,63 @@ function Row({ chat }) {
         <tr className="border-t bg-muted/40" style={{ borderColor: 'var(--border)' }}>
           <td />
           <td colSpan={9} className="px-3 py-3">
-            <div className="grid gap-3 md:grid-cols-2">
-              <div>
-                <p className="text-[10.5px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Input</p>
-                <p className="text-[12.5px] text-card-foreground whitespace-pre-wrap leading-relaxed">
-                  {chat.input_preview || '—'}
-                </p>
+            {detailLoading && (
+              <div className="space-y-3 py-2" aria-label="Loading complete chat details">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-40 w-full" />
               </div>
-              <div>
-                <p className="text-[10.5px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Output</p>
-                <p className="text-[12.5px] text-card-foreground whitespace-pre-wrap leading-relaxed">
-                  {chat.output_preview || '—'}
-                </p>
+            )}
+            {detailError && (
+              <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-[12.5px] text-red-700">
+                {detailError}
+              </p>
+            )}
+            {detail && (
+              <div className="space-y-5 rounded-xl bg-background p-4">
+                <section>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-[10.5px] font-semibold text-muted-foreground uppercase tracking-wider">Complete input</p>
+                    <span className="text-[10.5px] tabular-nums text-muted-foreground">
+                      {detail.input.length.toLocaleString()} characters
+                    </span>
+                  </div>
+                  <div className="max-h-[28rem] overflow-y-auto rounded-xl border bg-card px-5 py-4" style={{ borderColor: 'var(--border)' }}>
+                    <p className="font-sinhala whitespace-pre-wrap text-[14px] leading-[1.85] text-card-foreground">
+                      {detail.input || '—'}
+                    </p>
+                  </div>
+                </section>
+
+                <section>
+                  <p className="mb-2 text-[10.5px] font-semibold text-muted-foreground uppercase tracking-wider">Complete output</p>
+                  <div className="rounded-xl border bg-card p-4" style={{ borderColor: 'var(--border)' }}>
+                    {chat.tool === 'headlines' ? (
+                      <HeadlineOutputPanel
+                        output={hydrateHeadlineOutput(detail.output, detail.settings?.headlineLength)}
+                        articleText={detail.input}
+                        readOnly
+                      />
+                    ) : (
+                      <OutputPanel
+                        output={detail.output}
+                        input={detail.input}
+                        type="text"
+                        showCorrections={chat.tool === 'grammar'}
+                        readOnly
+                      />
+                    )}
+                  </div>
+                </section>
+
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                  {Object.entries(detail.settings || {}).map(([key, value]) => (
+                    <span key={key}><span className="font-medium">{key}:</span> {String(value)}</span>
+                  ))}
+                  {chat.latency_ms != null && <span><span className="font-medium">latency:</span> {chat.latency_ms} ms</span>}
+                </div>
               </div>
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-2.5">
-              Previews are truncated to 240 characters at the API.
-              {chat.latency_ms != null && ` · ${chat.latency_ms} ms`}
-            </p>
+            )}
           </td>
         </tr>
       )}

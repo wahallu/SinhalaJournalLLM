@@ -131,3 +131,29 @@ async def test_totals_summarize_the_page(_seeded):
     assert body["total"] == 2
     # Only the sinllama run reported usage.
     assert body["total_tokens"] == 17
+
+
+@pytest.mark.asyncio
+async def test_admin_can_open_complete_chat_detail(_seeded):
+    async with _client() as c:
+        response = await c.get(
+            "/api/v1/admin/activity/chats/grammar/g1",
+            headers=_auth(_ADMIN),
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["input"] == "වැරදි පෙළ"
+    assert body["output"]["corrected"] == "නිවැරදි පෙළ"
+    assert body["output"]["correction_count"] == 1
+
+
+@pytest.mark.asyncio
+async def test_chat_detail_requires_admin(_seeded):
+    async with _client() as c:
+        response = await c.get(
+            "/api/v1/admin/activity/chats/grammar/g1",
+            headers=_auth(_ALICE),
+        )
+
+    assert response.status_code == 403

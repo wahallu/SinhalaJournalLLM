@@ -48,7 +48,16 @@ function TextCard({ children, muted = false, className = '' }) {
   );
 }
 
-export default function OutputPanel({ output, loading, error, type, input, summaryView = 'paragraph', showCorrections = false }) {
+export default function OutputPanel({
+  output,
+  loading,
+  error,
+  type,
+  input,
+  summaryView = 'paragraph',
+  showCorrections = false,
+  readOnly = false,
+}) {
   /* Above the early returns: hooks cannot be called conditionally, and the
      loading/error branches below return before the grammar block. Reads
      defensively because `output` is null on both of those paths. */
@@ -63,17 +72,20 @@ export default function OutputPanel({ output, loading, error, type, input, summa
      needs the callback the hook returns. */
   const [pendingEdits, setPendingEdits] = useState(NO_SUGGESTIONS);
   const { onDecision } = useSuggestionTelemetry({
-    runId: output?.id,
+    runId: readOnly ? null : output?.id,
     edits: pendingEdits,
     tool: 'grammar',
   });
   const resolved = useResolvedText(grammarSource, {
     corrections: grammarCorrections,
     suggestions: grammarSuggestions,
-    autoApply: mode === 'auto',
-    onDecision,
+    autoApply: !readOnly && mode === 'auto',
+    onDecision: readOnly ? undefined : onDecision,
   });
   useEffect(() => {
+    // The telemetry hook needs the resolver's normalized edit list, while the
+    // resolver needs the telemetry callback. This effect bridges that cycle.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPendingEdits(resolved.edits);
   }, [resolved.edits]);
 
@@ -216,7 +228,7 @@ export default function OutputPanel({ output, loading, error, type, input, summa
               <CorrectedText
                 text={resolved.text}
                 marks={resolved.marks}
-                onToggle={resolved.toggle}
+                onToggle={readOnly ? undefined : resolved.toggle}
               />
             </p>
           </Card>
@@ -294,8 +306,8 @@ export default function OutputPanel({ output, loading, error, type, input, summa
         <SuggestionsList
           suggestions={suggestions}
           acceptedKeys={resolved.activeKeys}
-          onAccept={resolved.toggle}
-          onAcceptAll={resolved.applyAllSuggestions}
+          onAccept={readOnly ? undefined : resolved.toggle}
+          onAcceptAll={readOnly ? undefined : resolved.applyAllSuggestions}
         />
       )}
 
