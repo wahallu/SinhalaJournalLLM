@@ -8,6 +8,7 @@ import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
 import ActionButton from './ui/ActionButton';
 import { Skeleton } from './ui/Skeleton';
+import { ImageGeneration } from '@/components/ui/image-generation';
 import {
   generateAndSaveVisualPrompt, generateImage, saveHeadlineVisualPrompt,
 } from '../services/api';
@@ -71,11 +72,13 @@ function VisualPromptModule({
   // Image generation state
   const [imageData, setImageData] = useState(initialImage || null);
   const [imgLoading, setImgLoading] = useState(false);
+  const [imageReady, setImageReady] = useState(false);
   const [imgError, setImgError] = useState(null);
   const [referenceImage, setReferenceImage] = useState(null);
   const [referencePreview, setReferencePreview] = useState('');
   const [uploadError, setUploadError] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const imagePending = imgLoading || Boolean(imageData && !imageReady);
 
   const clearReferenceImage = () => {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
@@ -104,6 +107,7 @@ function VisualPromptModule({
     previewUrlRef.current = previewUrl;
     setReferenceImage(file);
     setReferencePreview(previewUrl);
+    setImageReady(false);
     setImageData(null);
     setImgError(null);
   };
@@ -114,6 +118,7 @@ function VisualPromptModule({
     setError(null);
     setPrompt('');
     // Clear previous image when regenerating the prompt
+    setImageReady(false);
     setImageData(null);
     setImgError(null);
     generateAndSaveVisualPrompt(articleText, headline, historyId)
@@ -124,12 +129,16 @@ function VisualPromptModule({
 
   const handleGenerateImage = () => {
     const cleanPrompt = prompt.trim();
-    if (!isAdmin || !cleanPrompt || imgLoading) return;
+    if (!isAdmin || !cleanPrompt || imagePending) return;
     setImgLoading(true);
     setImgError(null);
+    setImageReady(false);
     setImageData(null);
     generateImage(cleanPrompt, historyId, referenceImage)
-      .then((res) => setImageData(res.image_data || ''))
+      .then((res) => {
+        if (!res.image_data) throw new Error('Image generation returned no image');
+        setImageData(res.image_data);
+      })
       .catch((err) => setImgError(err.message || 'Image generation failed'))
       .finally(() => setImgLoading(false));
   };
@@ -187,6 +196,7 @@ function VisualPromptModule({
                   onChange={(e) => {
                     if (!readOnly) {
                       setPrompt(e.target.value);
+                      setImageReady(false);
                       setImageData(null);
                       setImgError(null);
                     }
@@ -217,7 +227,7 @@ function VisualPromptModule({
                   type="file"
                   accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
                   className="sr-only"
-                  disabled={imgLoading}
+                  disabled={imagePending}
                   onChange={(event) => selectReferenceImage(event.target.files?.[0])}
                   aria-label="Upload optional reference image"
                 />
@@ -237,7 +247,7 @@ function VisualPromptModule({
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        disabled={imgLoading}
+                        disabled={imagePending}
                         className="mt-1 text-[10.5px] font-semibold text-brand-700 hover:underline cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         Change image
@@ -246,7 +256,7 @@ function VisualPromptModule({
                     <button
                       type="button"
                       onClick={clearReferenceImage}
-                      disabled={imgLoading}
+                      disabled={imagePending}
                       aria-label="Remove reference image"
                       className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-ink-400
                         hover:bg-white hover:text-ink-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
@@ -266,7 +276,7 @@ function VisualPromptModule({
                       setDragActive(false);
                       selectReferenceImage(event.dataTransfer.files?.[0]);
                     }}
-                    disabled={imgLoading}
+                    disabled={imagePending}
                     className={`flex w-full items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-3
                       text-[11px] font-medium transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50
                       ${dragActive
@@ -299,11 +309,11 @@ function VisualPromptModule({
                     size="sm"
                     icon={Wand2}
                     onClick={handleGenerateImage}
-                    loading={imgLoading}
-                    disabled={!isAdmin}
+                    loading={imagePending}
+                    disabled={!isAdmin || imagePending}
                     title={!isAdmin ? 'Image generation is available to administrators only' : undefined}
                   >
-                    {imgLoading
+                    {imagePending
                       ? (referenceImage ? 'Applying reference' : 'Generating image')
                       : (referenceImage ? 'Generate with reference' : 'Generate image')}
                   </ActionButton>
@@ -320,40 +330,58 @@ function VisualPromptModule({
                 Generated image
               </span>
 
-              {imgLoading && <Skeleton className="w-full aspect-video rounded-xl" />}
+              {(imagePending || imageData) && (
+                <div className="relative w-full aspect-video overflow-hidden rounded-xl border border-ink-200 bg-ink-100 shadow-card">
+                  {imagePending && (
+                    <div className="absolute inset-0 z-10">
+                      <ImageGeneration prompt={prompt} resolution="1536 × 1024" />
+                    </div>
+                  )}
 
-              {imageData && !imgLoading && (
-                <div className="relative group rounded-xl overflow-hidden border border-ink-200
-                  bg-ink-100 aspect-video animate-in fade-in duration-300 shadow-card">
-                  <img src={imageData} alt="AI-generated news image" className="w-full h-full object-cover" />
-                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0
-                    group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                    <a
-                      href={imageData} target="_blank" rel="noopener noreferrer" title="Open full size"
-                      className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur flex items-center justify-center
-                        text-ink-600 hover:text-ink-900"
-                    >
-                      <ExternalLink size={13} />
-                    </a>
-                    <a
-                      href={imageData} download="sinai-image.png" title="Download"
-                      className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur flex items-center justify-center
-                        text-ink-600 hover:text-ink-900"
-                    >
-                      <Download size={13} />
-                    </a>
-                  </div>
-                  <button
-                    onClick={handleGenerateImage}
-                    className="absolute inset-x-0 bottom-0 py-1.5 text-[11px] font-medium text-white
-                      bg-ink-950/55 dark:bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                  >
-                    ↺ Generate a different image
-                  </button>
+                  {imageData && (
+                    <div className={`absolute inset-0 group transition-opacity duration-1000 ease-out
+                      ${imageReady ? 'opacity-100' : 'opacity-0'}`}>
+                      <img
+                        src={imageData}
+                        alt="AI-generated news image"
+                        className="w-full h-full object-cover"
+                        onLoad={() => setImageReady(true)}
+                        onError={() => {
+                          setImageReady(false);
+                          setImageData(null);
+                          setImgError('The generated image could not be displayed. Please try again.');
+                        }}
+                      />
+                      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0
+                        group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                        <a
+                          href={imageData} target="_blank" rel="noopener noreferrer" title="Open full size"
+                          className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur flex items-center justify-center
+                            text-ink-600 hover:text-ink-900"
+                        >
+                          <ExternalLink size={13} />
+                        </a>
+                        <a
+                          href={imageData} download="sinai-image.png" title="Download"
+                          className="w-7 h-7 rounded-lg bg-white/90 backdrop-blur flex items-center justify-center
+                            text-ink-600 hover:text-ink-900"
+                        >
+                          <Download size={13} />
+                        </a>
+                      </div>
+                      <button
+                        onClick={handleGenerateImage}
+                        className="absolute inset-x-0 bottom-0 py-1.5 text-[11px] font-medium text-white
+                          bg-ink-950/55 dark:bg-black/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                      >
+                        ↺ Generate a different image
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {!imageData && !imgLoading && (
+              {!imageData && !imagePending && (
                 <div className="w-full aspect-video rounded-xl border border-dashed border-ink-300/70
                   flex flex-col items-center justify-center gap-1.5 text-center px-4">
                   <ImageIcon size={26} className="text-ink-300" />
@@ -365,7 +393,7 @@ function VisualPromptModule({
           </div>
 
           {/* ── Image generation error ── */}
-          {imgError && !imgLoading && (
+          {imgError && !imagePending && (
             <div className="p-3 bg-brand-50 rounded-lg border border-brand-200/70 flex items-start gap-2.5">
               <ImageOff size={15} className="text-brand-500 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
