@@ -58,22 +58,15 @@ def _preview(value: str | None) -> str:
     return value[:_PREVIEW_CHARS]
 
 
-async def get_run(
-    tool: str,
-    record_id: str,
-    *,
-    user_id: str,
-) -> dict[str, Any] | None:
-    """Return one complete, normalized workspace owned by ``user_id``."""
+def _normalize_run(tool: str, row: dict[str, Any]) -> dict[str, Any]:
+    """Build the complete workspace response from one already-authorized row."""
     source = _SOURCES.get(tool)
+    # Callers validate the tool before fetching, but keeping this guard makes
+    # the helper safe if another admin/history path reuses it later.
     if source is None:
-        return None
+        raise ValueError(f"Unknown history tool: {tool}")
 
-    table, input_column, _ = source
-    row = await fetch_by_id(table, record_id, user_id=user_id)
-    if not row:
-        return None
-
+    _, input_column, _ = source
     created_at = row.get("created_at")
     common = {
         "id": str(row.get("id")),
@@ -158,21 +151,40 @@ async def get_run(
     }
 
 
-async def get_run_for_admin(tool: str, record_id: str) -> dict[str, Any] | None:
-    """Return any owner's complete run for a ``require_admin`` route only.
+async def get_run(
+    tool: str,
+    record_id: str,
+    *,
+    user_id: str,
+) -> dict[str, Any] | None:
+    """Return one complete, normalized workspace owned by ``user_id``."""
+    source = _SOURCES.get(tool)
+    if source is None:
+        return None
 
-    Resolve the owner first, then reuse the same normalized workspace builder
-    as History → Reopen. Keeping this separate prevents a future user-facing
-    caller from accidentally omitting the ownership boundary.
+    table, _, _ = source
+    row = await fetch_by_id(table, record_id, user_id=user_id)
+    if not row:
+        return None
+    return _normalize_run(tool, row)
+
+
+async def get_run_for_admin(tool: str, record_id: str) -> dict[str, Any] | None:
+    """Return any registered or anonymous run for a require-admin route only.
+
+    This intentionally fetches without a user filter. Keeping it separate from
+    ``get_run`` prevents user-facing callers from accidentally widening their
+    ownership boundary while allowing admins to inspect ``user_id = NULL``
+    research rows.
     """
     source = _SOURCES.get(tool)
     if source is None:
         return None
     table, _, _ = source
     row = await fetch_by_id(table, record_id)
-    if not row or not row.get("user_id"):
+    if not row:
         return None
-    return await get_run(tool, record_id, user_id=str(row["user_id"]))
+    return _normalize_run(tool, row)
 
 
 async def list_recent(limit: int = 50, *, user_id: str | None = None) -> list[dict[str, Any]]:
@@ -226,8 +238,7 @@ async def list_all_recent(limit: int = 100) -> list[dict[str, Any]]:
     shape carries `user_id` and token counts, and the user-facing /history
     response should not widen just because the admin console needs more.
 
-    Anonymous runs are not stored at all (see persist_if_owned), so every
-    row here has an owner.
+    Includes registered runs and anonymous research runs carrying ``anon_id``.
     """
 
     async def _load(tool: str) -> list[dict[str, Any]]:
@@ -241,6 +252,8 @@ async def list_all_recent(limit: int = 100) -> list[dict[str, Any]]:
             {
                 "id": str(row.get("id")),
                 "user_id": row.get("user_id"),
+                "anon_id": row.get("anon_id"),
+                "session_id": row.get("session_id"),
                 "tool": tool,
                 "input_preview": _preview(row.get(input_column)),
                 "output_preview": _preview(extract_output(row)),

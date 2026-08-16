@@ -7,10 +7,7 @@ import HeadlineOutputPanel from '../../components/HeadlineOutputPanel';
 import { hydrateHeadlineOutput } from '../../services/api';
 
 /**
- * Every user's tool runs in one feed, with token usage.
- *
- * Anonymous runs are never persisted (persist_if_owned), so this is
- * signed-in activity only — which is why there is no "anonymous" row here.
+ * Registered and anonymous tool runs in one feed, with token usage.
  */
 const TOOLS = ['', 'grammar', 'headlines', 'rewriter', 'summarizer'];
 
@@ -28,6 +25,19 @@ function Tokens({ value }) {
     return <span className="text-muted-foreground" title="This provider does not report token counts">—</span>;
   }
   return <span className="tabular-nums">{value.toLocaleString()}</span>;
+}
+
+function UserIdentity({ chat }) {
+  if (chat.user_email) return chat.user_email;
+  if (chat.anon_id) {
+    const shortId = chat.anon_id.slice(-8);
+    return (
+      <span title={`Anonymous device ${chat.anon_id}`}>
+        Anonymous <span className="text-muted-foreground">· {shortId}</span>
+      </span>
+    );
+  }
+  return <span className="text-muted-foreground">Anonymous</span>;
 }
 
 function Row({ chat }) {
@@ -66,7 +76,7 @@ function Row({ chat }) {
           {chat.created_at ? new Date(chat.created_at).toLocaleString() : '—'}
         </td>
         <td className="px-3 py-2.5 text-card-foreground font-mono text-[12px] whitespace-nowrap">
-          {chat.user_email ?? <span className="text-muted-foreground">unknown</span>}
+          <UserIdentity chat={chat} />
         </td>
         <td className="px-3 py-2.5 text-card-foreground whitespace-nowrap">
           {TOOL_LABEL[chat.tool] ?? chat.tool}
@@ -296,8 +306,7 @@ export default function Chats() {
               ) : visible.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground">
-                    No runs recorded yet. Only signed-in activity is stored — anonymous
-                    runs are never persisted.
+                    No registered or anonymous runs have been recorded yet.
                   </td>
                 </tr>
               ) : (

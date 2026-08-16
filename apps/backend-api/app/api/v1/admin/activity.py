@@ -89,8 +89,8 @@ async def chats(
     has the token columns but none of the text, and nothing joins a
     telemetry row to the run it describes. Tokens are written to both.
 
-    Anonymous runs are never persisted (see persist_if_owned), so this is
-    only ever signed-in activity.
+    Includes registered-user runs and research runs saved against an anonymous
+    device id. The id groups activity without claiming to identify a person.
     """
     items = await history_repository.list_all_recent(limit)
     emails = await _emails_by_id()

@@ -149,6 +149,48 @@ async def test_admin_can_open_complete_chat_detail(_seeded):
 
 
 @pytest.mark.asyncio
+async def test_admin_can_list_and_open_anonymous_chat_detail(_seeded):
+    _seeded.store["grammar_corrections"].append({
+        "id": "anonymous-g1",
+        "user_id": None,
+        "anon_id": "device-anonymous-12345678",
+        "session_id": "session-anonymous-12345678",
+        "original_text": "නිර්නාමික වැරදි පෙළ",
+        "corrected_text": "නිර්නාමික නිවැරදි පෙළ",
+        "correction_count": 1,
+        "model_provider": "sinllama",
+        "adapter": "grammar_sinllama_v13",
+        "latency_ms": 90,
+        "input_tokens": 10,
+        "output_tokens": 4,
+        "created_at": "2026-08-02T12:00:00Z",
+    })
+
+    async with _client() as c:
+        chats = await c.get(
+            "/api/v1/admin/activity/chats",
+            headers=_auth(_ADMIN),
+        )
+        detail = await c.get(
+            "/api/v1/admin/activity/chats/grammar/anonymous-g1",
+            headers=_auth(_ADMIN),
+        )
+
+    assert chats.status_code == 200
+    anonymous = next(
+        item for item in chats.json()["items"] if item["id"] == "anonymous-g1"
+    )
+    assert anonymous["user_id"] is None
+    assert anonymous["user_email"] is None
+    assert anonymous["anon_id"] == "device-anonymous-12345678"
+    assert anonymous["session_id"] == "session-anonymous-12345678"
+
+    assert detail.status_code == 200
+    assert detail.json()["input"] == "නිර්නාමික වැරදි පෙළ"
+    assert detail.json()["output"]["corrected"] == "නිර්නාමික නිවැරදි පෙළ"
+
+
+@pytest.mark.asyncio
 async def test_chat_detail_requires_admin(_seeded):
     async with _client() as c:
         response = await c.get(

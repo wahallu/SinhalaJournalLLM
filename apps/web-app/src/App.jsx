@@ -44,7 +44,6 @@ import SinLLamaPage from './admin/research/SinLLamaPage';
 import SummarizerPlayground from './admin/research/SummarizerPlayground';
 import ModelComparison from './admin/research/ModelComparison';
 import Onboarding from './components/onboarding/Onboarding';
-import ImageGenerationPreview from './pages/dev/ImageGenerationPreview';
 
 /* Routes that render as a dialog over whatever page is behind them, rather
    than as a page of their own. In-app navigation to one of these carries the
@@ -446,10 +445,6 @@ function App() {
      purely so a user does not land on a 503. */
   const toolForPath = PATH_TO_TOOL[backgroundLocation.pathname];
   const toolDisabled = toolForPath in features && features[toolForPath] === false;
-
-  if (import.meta.env.DEV && location.pathname === '/loader-preview') {
-    return <ImageGenerationPreview />;
-  }
 
   if (authLoading) {
     return <div className="h-full bg-white" aria-label="Loading your workspace" />;
