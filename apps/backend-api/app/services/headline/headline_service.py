@@ -26,6 +26,7 @@ is the actual guarantee: no tag reaches a caller, full stop.
 
 import asyncio
 import logging
+from typing import TYPE_CHECKING
 
 from app.core.model_gateway import add_tokens, model_generate
 from app.core.prompts import (
@@ -37,6 +38,9 @@ from app.core.text_cleaning import strip_headline_artifacts
 from app.repositories.base import persist_if_owned
 from app.repositories.headline_repository import save_generation
 from app.schemas.headline import HeadlineLengthInfo, HeadlineResponse
+
+if TYPE_CHECKING:
+    from app.core.research import Actor
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +115,7 @@ async def generate_headlines(
     length: str | None = None,
     user_id: str | None = None,
     adapter: str | None = None,
+    actor: "Actor | None" = None,
 ) -> HeadlineResponse:
     """
     Generate up to `count` distinct headline candidates inside the requested
@@ -217,7 +222,7 @@ async def generate_headlines(
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
     }
-    saved = await persist_if_owned(save_generation, record, user_id)
+    saved = await persist_if_owned(save_generation, record, user_id, actor)
 
     return HeadlineResponse(
         id=str(saved["id"]),

@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.core.features import require_tool_enabled
 from app.core.deps import optional_user, require_user
 from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
+from app.core.research import actor_from
 from app.repositories.headline_repository import get_generations, update_generation_assets
 from app.repositories.telemetry_repository import record_request
 from app.schemas.auth import AuthUser
@@ -43,17 +44,21 @@ async def generate_headlines_endpoint(
     Generate multiple headline variants from the input Sinhala text.
     """
     await enforce_anonymous_limit(request, user)
+    actor = actor_from(request, user)
 
     started = time.perf_counter()
     result = await generate_headlines(
         payload.text, payload.count, category=payload.category,
         length=payload.length, user_id=user.id if user else None,
         adapter=payload.adapter,
+        actor=actor,
     )
     latency_ms = int((time.perf_counter() - started) * 1000)
 
     await record_request(
         user_id=user.id if user else None,
+        anon_id=actor.anon_id,
+        session_id=actor.session_id,
         endpoint="/api/v1/headlines/generate",
         method="POST",
         tool="headline",

@@ -6,15 +6,23 @@ fully-formed prompt with a scaled word target — the server's own template
 hardcodes ~10% (see app/core/prompts.py SUMMARY_LENGTHS).
 """
 
+from typing import TYPE_CHECKING
+
 from app.core.model_gateway import model_generate
 from app.core.prompts import resolve_length
 from app.repositories.base import persist_if_owned
 from app.repositories.summarizer_repository import save_summary
 from app.schemas.summarizer import SummarizerResponse
 
+if TYPE_CHECKING:
+    from app.core.research import Actor
+
 
 async def summarize_text(
-    text: str, length: str = "medium", user_id: str | None = None
+    text: str,
+    length: str = "medium",
+    user_id: str | None = None,
+    actor: "Actor | None" = None,
 ) -> SummarizerResponse:
     """Summarize `text` at the requested length, persist for a known caller, and return."""
     resolved = resolve_length(length)
@@ -32,7 +40,7 @@ async def summarize_text(
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
     }
-    saved = await persist_if_owned(save_summary, record, user_id)
+    saved = await persist_if_owned(save_summary, record, user_id, actor)
 
     return SummarizerResponse(
         id=str(saved["id"]),

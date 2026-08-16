@@ -190,6 +190,73 @@ async def test_admin_can_list_and_open_anonymous_chat_detail(_seeded):
     assert detail.json()["output"]["corrected"] == "නිර්නාමික නිවැරදි පෙළ"
 
 
+@pytest.mark.parametrize(
+    ("tool", "table", "row", "output_key", "expected_output"),
+    [
+        (
+            "headlines",
+            "headline_generations",
+            {
+                "id": "anonymous-headline",
+                "user_id": None,
+                "anon_id": "device-anonymous-12345678",
+                "article_text": "නිර්නාමික ශීර්ෂ ලිපිය",
+                "headlines": ["නිර්නාමික ශීර්ෂය"],
+                "length": "short",
+                "category": "General",
+                "created_at": "2026-08-02T12:00:00Z",
+            },
+            "headlines",
+            ["නිර්නාමික ශීර්ෂය"],
+        ),
+        (
+            "rewriter",
+            "style_rewrites",
+            {
+                "id": "anonymous-rewriter",
+                "user_id": None,
+                "anon_id": "device-anonymous-12345678",
+                "original_text": "නිර්නාමික මුල් ලිපිය",
+                "rewritten_text": "නිර්නාමික නැවත ලියූ ලිපිය",
+                "style": "formal",
+                "created_at": "2026-08-02T12:00:00Z",
+            },
+            "rewritten",
+            "නිර්නාමික නැවත ලියූ ලිපිය",
+        ),
+        (
+            "summarizer",
+            "summaries",
+            {
+                "id": "anonymous-summary",
+                "user_id": None,
+                "anon_id": "device-anonymous-12345678",
+                "original_text": "නිර්නාමික දිගු ලිපිය",
+                "summary_text": "නිර්නාමික සාරාංශය",
+                "length": "short",
+                "created_at": "2026-08-02T12:00:00Z",
+            },
+            "summary",
+            "නිර්නාමික සාරාංශය",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_admin_can_open_every_anonymous_tool_detail(
+    _seeded, tool, table, row, output_key, expected_output
+):
+    _seeded.store.setdefault(table, []).append(row)
+
+    async with _client() as c:
+        response = await c.get(
+            f"/api/v1/admin/activity/chats/{tool}/{row['id']}",
+            headers=_auth(_ADMIN),
+        )
+
+    assert response.status_code == 200
+    assert response.json()["output"][output_key] == expected_output
+
+
 @pytest.mark.asyncio
 async def test_chat_detail_requires_admin(_seeded):
     async with _client() as c:

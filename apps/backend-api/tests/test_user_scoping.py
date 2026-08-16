@@ -65,10 +65,50 @@ async def test_anonymous_summarize_still_works(fake_supabase):
 
 @pytest.mark.asyncio
 async def test_anonymous_result_is_not_persisted(fake_supabase):
-    """'Login to save' means anonymous runs leave no row."""
+    """A caller with neither login nor device identity leaves no history row."""
     async with _client() as c:
         await c.post("/api/v1/summarize", json={"text": _ARTICLE, "length": "short"})
     assert fake_supabase.store.get("summaries", []) == []
+
+
+@pytest.mark.parametrize(
+    ("endpoint", "payload", "table"),
+    [
+        ("/api/v1/grammar/check", {"text": _ARTICLE}, "grammar_corrections"),
+        (
+            "/api/v1/headlines/generate",
+            {"text": _ARTICLE, "count": 3, "category": "General", "length": "short"},
+            "headline_generations",
+        ),
+        (
+            "/api/v1/rewrite",
+            {"text": _ARTICLE, "tone": "formal"},
+            "style_rewrites",
+        ),
+        (
+            "/api/v1/summarize",
+            {"text": _ARTICLE, "length": "short"},
+            "summaries",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_all_tools_persist_anonymous_device_runs(
+    fake_supabase, endpoint, payload, table
+):
+    headers = {
+        "X-Anon-Id": "device-all-tools-12345678",
+        "X-Session-Id": "session-all-tools-12345678",
+    }
+    async with _client() as c:
+        response = await c.post(endpoint, json=payload, headers=headers)
+
+    assert response.status_code == 200
+    rows = fake_supabase.store[table]
+    assert len(rows) == 1
+    assert rows[0]["user_id"] is None
+    assert rows[0]["anon_id"] == "device-all-tools-12345678"
+    assert rows[0]["session_id"] == "session-all-tools-12345678"
 
 
 @pytest.mark.asyncio

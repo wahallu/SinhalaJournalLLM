@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from app.core.features import require_tool_enabled
 from app.core.deps import optional_user, require_user
 from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
+from app.core.research import actor_from
 from app.repositories.style_repository import get_rewrites
 from app.repositories.telemetry_repository import record_request
 from app.schemas.auth import AuthUser
@@ -37,13 +38,21 @@ async def rewrite_style_endpoint(
     Rewrite Sinhala text in a different newspaper style.
     """
     await enforce_anonymous_limit(request, user)
+    actor = actor_from(request, user)
 
     started = time.perf_counter()
-    result = await rewrite_style(payload.text, payload.tone, user_id=user.id if user else None)
+    result = await rewrite_style(
+        payload.text,
+        payload.tone,
+        user_id=user.id if user else None,
+        actor=actor,
+    )
     latency_ms = int((time.perf_counter() - started) * 1000)
 
     await record_request(
         user_id=user.id if user else None,
+        anon_id=actor.anon_id,
+        session_id=actor.session_id,
         endpoint="/api/v1/rewrite",
         method="POST",
         tool="style",

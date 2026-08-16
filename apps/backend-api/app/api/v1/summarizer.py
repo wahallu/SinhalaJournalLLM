@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from app.core.features import require_tool_enabled
 from app.core.deps import optional_user, require_user
 from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
+from app.core.research import actor_from
 from app.repositories.summarizer_repository import get_summaries
 from app.repositories.telemetry_repository import record_request
 from app.schemas.auth import AuthUser
@@ -36,16 +37,25 @@ async def summarize_news_endpoint(
     """
     Summarize long-form Sinhala articles/texts.
 
-    Usable anonymously; results are only persisted for a signed-in caller.
+    Usable anonymously; identified anonymous sessions are persisted for the
+    research/admin feed without appearing in any user's personal history.
     """
     await enforce_anonymous_limit(request, user)
+    actor = actor_from(request, user)
 
     started = time.perf_counter()
-    result = await summarize_text(payload.text, payload.length, user_id=user.id if user else None)
+    result = await summarize_text(
+        payload.text,
+        payload.length,
+        user_id=user.id if user else None,
+        actor=actor,
+    )
     latency_ms = int((time.perf_counter() - started) * 1000)
 
     await record_request(
         user_id=user.id if user else None,
+        anon_id=actor.anon_id,
+        session_id=actor.session_id,
         endpoint="/api/v1/summarize",
         method="POST",
         tool="summarizer",
