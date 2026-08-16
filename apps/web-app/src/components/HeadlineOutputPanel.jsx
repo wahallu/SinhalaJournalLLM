@@ -339,7 +339,7 @@ function VisualPromptModule({
                   )}
 
                   {imageData && (
-                    <div className={`absolute inset-0 group transition-opacity duration-1000 ease-out
+                    <div className={`absolute inset-0 group transition-opacity duration-[1500ms] ease-out
                       ${imageReady ? 'opacity-100' : 'opacity-0'}`}>
                       <img
                         src={imageData}
