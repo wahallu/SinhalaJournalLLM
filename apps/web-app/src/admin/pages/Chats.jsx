@@ -181,6 +181,7 @@ export default function Chats() {
   const [chats, setChats] = useState([]);
   const [totalTokens, setTotalTokens] = useState(null);
   const [tool, setTool] = useState('');
+  const [userType, setUserType] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -208,8 +209,13 @@ export default function Chats() {
   // four tools, so re-fetching per tool would just discard three quarters of
   // the same response.
   const visible = useMemo(
-    () => (tool ? chats.filter((c) => c.tool === tool) : chats),
-    [chats, tool],
+    () => chats.filter((chat) => {
+      if (tool && chat.tool !== tool) return false;
+      if (userType === 'registered' && !chat.user_id) return false;
+      if (userType === 'anonymous' && chat.user_id) return false;
+      return true;
+    }),
+    [chats, tool, userType],
   );
 
   const reportedCount = useMemo(
@@ -250,6 +256,18 @@ export default function Chats() {
       </div>
 
       <div className="flex items-center gap-2 mb-4">
+        <select
+          value={userType}
+          onChange={(e) => setUserType(e.target.value)}
+          aria-label="Filter by user type"
+          className="px-3 py-1.5 text-[13px] rounded-md border bg-background text-foreground
+            cursor-pointer focus:outline-none focus:ring-2"
+          style={{ borderColor: 'var(--input)' }}
+        >
+          <option value="">All users</option>
+          <option value="registered">Registered users</option>
+          <option value="anonymous">Anonymous users</option>
+        </select>
         <select
           value={tool}
           onChange={(e) => setTool(e.target.value)}
@@ -306,7 +324,7 @@ export default function Chats() {
               ) : visible.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-12 text-center text-muted-foreground">
-                    No registered or anonymous runs have been recorded yet.
+                    No runs match the selected filters.
                   </td>
                 </tr>
               ) : (
