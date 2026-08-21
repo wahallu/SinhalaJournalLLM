@@ -25,6 +25,11 @@ class CompareRequestSchema(BaseModel):
     task: str = "grammar"
     style: Optional[str] = None
     reference_text: Optional[str] = None
+    # Only consumed by the summarizer task, and only honored by adapters
+    # actually trained with length conditioning (summarization_sinllama_v06+)
+    # — the inference server ignores it for every other adapter. See
+    # SinAI-Training/work/serve_sinai.py's run_generation().
+    length: Optional[str] = None
 
 
 @router.get("/adapters")
@@ -50,6 +55,7 @@ async def run_model_comparison(
             "task": payload.task,
             "style": payload.style,
             "reference_text": payload.reference_text,
+            "length": payload.length,
         }
         return await sinllama_run_comparison(data)
     except SinLlamaUnavailable as exc:
