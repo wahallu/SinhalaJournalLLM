@@ -138,7 +138,7 @@ export default function DocsAddonPrivacyPage() {
                   </code>
                 </div>
                 <p className="text-xs text-[#615e58]">
-                  <strong>Purpose:</strong> Transmits the selected text securely via HTTPS to our dedicated NLP inference server (<code>https://sinhalajournalllm.onrender.com/</code>) to compute linguistic corrections and stream results back in real time.
+                  <strong>Purpose:</strong> Transmits the selected text securely via HTTPS to our dedicated NLP inference server (<code>https://backend.sin-ai.app/</code>) to compute linguistic corrections and stream results back in real time.
                 </p>
               </div>
             </div>

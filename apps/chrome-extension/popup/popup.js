@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const apiHost = extensionSettings.apiHost || "https://sinhalajournalllm.onrender.com/api/v1";
+    const apiHost = extensionSettings.apiHost || "https://backend.sin-ai.app/api/v1";
 
     if (message.action === "getSession") {
       const token = localStorage.getItem("sinai_preview_access_token");
@@ -235,12 +235,12 @@ document.addEventListener("DOMContentLoaded", () => {
         close: () => {
           try {
             port.disconnect();
-          } catch {}
+          } catch { }
         }
       };
     }
 
-    const apiHost = extensionSettings.apiHost || "https://sinhalajournalllm.onrender.com/api/v1";
+    const apiHost = extensionSettings.apiHost || "https://backend.sin-ai.app/api/v1";
     const controller = new AbortController();
 
     fetch(`${apiHost}/optimize`, {
@@ -265,7 +265,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (trimmed) onEvent(JSON.parse(trimmed));
           }
         };
-        for (;;) {
+        for (; ;) {
           const { done, value } = await reader.read();
           if (done) break;
           buffer += decoder.decode(value, { stream: true });
@@ -321,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── State Variables ──
   let extensionSettings = {
-    apiHost: "https://sinhalajournalllm.onrender.com/api/v1",
+    apiHost: "https://backend.sin-ai.app/api/v1",
     inlineEnabled: true,
     defaultTone: "formal",
     defaultLength: "medium",
@@ -621,7 +621,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── API Health Check ──
   function checkApiHealth(callback) {
-    const apiHost = extensionSettings.apiHost || "https://sinhalajournalllm.onrender.com/api/v1";
+    const apiHost = extensionSettings.apiHost || "https://backend.sin-ai.app/api/v1";
     const healthUrl = apiHost.replace(/\/api\/v1\/?$/, "") + "/health";
 
     apiStatusDot.className = "status-dot warning";
@@ -784,7 +784,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // below) is what actually renders the result, whether the popup
       // stayed open or was closed and reopened mid-run.
       if (isExtensionContext && chrome.runtime && chrome.runtime.sendMessage) {
-        chrome.runtime.sendMessage({ action: "runTool", tool: activeToolState.tool, endpoint, body }, () => {});
+        chrome.runtime.sendMessage({ action: "runTool", tool: activeToolState.tool, endpoint, body }, () => { });
         return;
       }
 
@@ -875,15 +875,12 @@ document.addEventListener("DOMContentLoaded", () => {
           const suggNotice = document.createElement("div");
           suggNotice.className = "suggestion-warning-banner";
           if (corrections.length === 0) {
-            suggNotice.innerHTML = `Nothing changed, but <strong>${suggestions.length}</strong> word${
-              suggestions.length !== 1 ? "s" : ""
-            } may be misspelled.`;
+            suggNotice.innerHTML = `Nothing changed, but <strong>${suggestions.length}</strong> word${suggestions.length !== 1 ? "s" : ""
+              } may be misspelled.`;
           } else {
-            suggNotice.innerHTML = `<strong>${corrections.length}</strong> correction${
-              corrections.length !== 1 ? "s" : ""
-            } applied, and <strong>${suggestions.length}</strong> word${
-              suggestions.length !== 1 ? "s" : ""
-            } worth checking.`;
+            suggNotice.innerHTML = `<strong>${corrections.length}</strong> correction${corrections.length !== 1 ? "s" : ""
+              } applied, and <strong>${suggestions.length}</strong> word${suggestions.length !== 1 ? "s" : ""
+              } worth checking.`;
           }
           grammarCorrectionsList.appendChild(suggNotice);
         }
@@ -901,10 +898,10 @@ document.addEventListener("DOMContentLoaded", () => {
               <span class="corr-new">${escapeHtml(c.corrected)}</span>
             </div>
             <div class="correction-rule">${escapeHtml(
-              c.suspicious
-                ? c.suspicious_reason || "Possible word replacement — verify against your source."
-                : c.rule || "Grammar correction"
-            )}</div>
+            c.suspicious
+              ? c.suspicious_reason || "Possible word replacement — verify against your source."
+              : c.rule || "Grammar correction"
+          )}</div>
           `;
           grammarCorrectionsList.appendChild(detailItem);
         });
@@ -999,9 +996,9 @@ document.addEventListener("DOMContentLoaded", () => {
     statusEl.className = `optimize-stage-card-status ${status}`;
     statusEl.textContent =
       status === "running" ? "Running" :
-      status === "done" ? "Done" :
-      status === "failed" ? "Failed" :
-      status === "skipped" ? "Skipped" : "Queued";
+        status === "done" ? "Done" :
+          status === "failed" ? "Failed" :
+            status === "skipped" ? "Skipped" : "Queued";
     const bodyEl = optimizeResultsContainer.querySelector(`.optimize-stage-card[data-stage="${id}"] [data-role="body"]`);
     if (status === "running" && bodyEl) {
       bodyEl.innerHTML = `<div class="optimize-shimmer-line" style="width:88%"></div><div class="optimize-shimmer-line" style="width:65%"></div>`;
@@ -1047,7 +1044,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // comment on setupPersistedRunSync below for why (a popup is destroyed
     // on every blur, unlike content.js's inline card).
     if (isExtensionContext && chrome.runtime && chrome.runtime.sendMessage) {
-      chrome.runtime.sendMessage({ action: "runOptimizeTracked", body }, () => {});
+      chrome.runtime.sendMessage({ action: "runOptimizeTracked", body }, () => { });
       return;
     }
 

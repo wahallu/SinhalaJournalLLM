@@ -7,7 +7,7 @@
  */
 
 const DEFAULT_SETTINGS = {
-  apiHost: "https://sinhalajournalllm.onrender.com/api/v1",
+  apiHost: "https://backend.sin-ai.app/api/v1",
   inlineEnabled: true,
   defaultTone: "formal",
   defaultLength: "medium",
@@ -314,7 +314,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.storage.local.get(["apiHost"], (settings) => {
       let apiHost = settings.apiHost || DEFAULT_SETTINGS.apiHost;
       const healthUrl = apiHost.replace(/\/api\/v1\/?$/, "") + "/health";
-      fetch(healthUrl, { method: "GET" }).catch(() => {});
+      fetch(healthUrl, { method: "GET" }).catch(() => { });
     });
     return false; // Sync message channel close
   }
@@ -546,7 +546,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         };
 
         try {
-          for (;;) {
+          for (; ;) {
             const { done, value } = await reader.read();
             if (done) break;
             buffer += decoder.decode(value, { stream: true });
@@ -611,7 +611,7 @@ chrome.runtime.onConnect.addListener((port) => {
         ended = true;
         try {
           port.disconnect();
-        } catch {}
+        } catch { }
       }
     });
   });
@@ -669,7 +669,7 @@ async function runOptimizeStream(body, post, signal) {
     };
 
     try {
-      for (;;) {
+      for (; ;) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });

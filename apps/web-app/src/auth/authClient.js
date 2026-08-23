@@ -14,7 +14,7 @@
 const ACCESS_KEY = 'sinai_access_token';
 const REFRESH_KEY = 'sinai_refresh_token';
 
-export const DEFAULT_API_BASE = 'https://sinhalajournalllm.onrender.com/api/v1';
+export const DEFAULT_API_BASE = 'https://backend.sin-ai.app/api/v1';
 
 /** A custom base URL can still be set in localStorage for local development. */
 export function getApiBase() {

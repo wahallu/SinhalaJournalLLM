@@ -172,7 +172,7 @@ export default function DocsAddonPage() {
             <div className="lg:col-span-5 bg-gradient-to-br from-[#1E1E1E] to-[#121212] rounded-3xl p-6 sm:p-8 text-white shadow-2xl border border-white/10 relative overflow-hidden">
               {/* Decorative background glow */}
               <div className="absolute -right-16 -top-16 w-48 h-48 bg-[#cd191a]/20 rounded-full blur-3xl pointer-events-none" />
-              
+
               <div className="flex items-center justify-between pb-5 border-b border-white/10 mb-6">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#cd191a] to-[#dc4341] flex items-center justify-center text-white shadow-md">
@@ -246,11 +246,10 @@ export default function DocsAddonPage() {
             <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-8">
               <button
                 onClick={() => setActiveTab("grammar")}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-                  activeTab === "grammar"
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "grammar"
                     ? "bg-[#181818] text-white shadow-md scale-105"
                     : "bg-white text-[#615e58] border border-[#D9D7D0] hover:bg-[#FAF9F5]"
-                }`}
+                  }`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5 text-[#cd191a]" />
                 <span>1. Grammar Checker</span>
@@ -258,11 +257,10 @@ export default function DocsAddonPage() {
 
               <button
                 onClick={() => setActiveTab("headlines")}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-                  activeTab === "headlines"
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "headlines"
                     ? "bg-[#181818] text-white shadow-md scale-105"
                     : "bg-white text-[#615e58] border border-[#D9D7D0] hover:bg-[#FAF9F5]"
-                }`}
+                  }`}
               >
                 <Heading className="w-3.5 h-3.5 text-[#cd191a]" />
                 <span>2. Headline Generator</span>
@@ -270,11 +268,10 @@ export default function DocsAddonPage() {
 
               <button
                 onClick={() => setActiveTab("rewriter")}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-                  activeTab === "rewriter"
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "rewriter"
                     ? "bg-[#181818] text-white shadow-md scale-105"
                     : "bg-white text-[#615e58] border border-[#D9D7D0] hover:bg-[#FAF9F5]"
-                }`}
+                  }`}
               >
                 <Wand2 className="w-3.5 h-3.5 text-[#cd191a]" />
                 <span>3. 5-Tone Style Rewriter</span>
@@ -282,11 +279,10 @@ export default function DocsAddonPage() {
 
               <button
                 onClick={() => setActiveTab("summarizer")}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-                  activeTab === "summarizer"
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "summarizer"
                     ? "bg-[#181818] text-white shadow-md scale-105"
                     : "bg-white text-[#615e58] border border-[#D9D7D0] hover:bg-[#FAF9F5]"
-                }`}
+                  }`}
               >
                 <FileText className="w-3.5 h-3.5 text-[#cd191a]" />
                 <span>4. News Summarizer</span>
@@ -294,11 +290,10 @@ export default function DocsAddonPage() {
 
               <button
                 onClick={() => setActiveTab("optimizer")}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
-                  activeTab === "optimizer"
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${activeTab === "optimizer"
                     ? "bg-[#cd191a] text-white shadow-md scale-105"
                     : "bg-white text-[#cd191a] border border-[#cd191a]/30 hover:bg-[#FAF9F5]"
-                }`}
+                  }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Full Article Optimizer</span>
@@ -375,11 +370,10 @@ export default function DocsAddonPage() {
                           ඊයේ පස්වරුවේ කොළඹ බණ්ඩාරනායක ජාත්‍යන්තර සම්මන්ත්‍රණ ශාලාවේදී විශේෂ හමුවක් පැවැත්විණි.
                         </p>
                         {/* Highlighted Selection area */}
-                        <div className={`p-3 rounded-lg border transition-all ${
-                          replacedInDoc
+                        <div className={`p-3 rounded-lg border transition-all ${replacedInDoc
                             ? "bg-emerald-50 border-emerald-300 text-emerald-950 font-medium"
                             : "bg-[#fef2f2] border-[#fca5a5] text-[#181818]"
-                        }`}>
+                          }`}>
                           <div className="text-[10px] uppercase font-bold tracking-wider mb-1 flex items-center justify-between">
                             <span className={replacedInDoc ? "text-emerald-700" : "text-[#cd191a]"}>
                               {replacedInDoc ? "✓ Replaced in Document" : "Highlighted Active Selection"}
@@ -594,11 +588,10 @@ export default function DocsAddonPage() {
                             <button
                               key={tone}
                               onClick={() => setSelectedTone(tone)}
-                              className={`py-1.5 px-2 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${
-                                selectedTone === tone
+                              className={`py-1.5 px-2 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${selectedTone === tone
                                   ? "bg-[#cd191a] text-white shadow-sm"
                                   : "bg-white/10 text-white/70 hover:bg-white/15"
-                              }`}
+                                }`}
                             >
                               {tone}
                             </button>
@@ -635,9 +628,8 @@ export default function DocsAddonPage() {
                               <button
                                 key={len}
                                 onClick={() => setSummaryLength(len)}
-                                className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                                  summaryLength === len ? "bg-[#cd191a] text-white" : "bg-white/10 text-white/60"
-                                }`}
+                                className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${summaryLength === len ? "bg-[#cd191a] text-white" : "bg-white/10 text-white/60"
+                                  }`}
                               >
                                 {len}
                               </button>
@@ -907,7 +899,7 @@ export default function DocsAddonPage() {
                   Connect to an external service
                 </h4>
                 <p className="text-xs text-[#615e58] leading-relaxed">
-                  <strong>Why it&apos;s needed:</strong> Allows the sidebar to transmit the highlighted Sinhala text payload over encrypted HTTPS (TLS 1.3) to our dedicated inference server (<code className="bg-white px-1.5 py-0.5 rounded border text-[11px]">https://sinhalajournalllm.onrender.com/</code>) to compute linguistic corrections and stream results back in real time.
+                  <strong>Why it&apos;s needed:</strong> Allows the sidebar to transmit the highlighted Sinhala text payload over encrypted HTTPS (TLS 1.3) to our dedicated inference server (<code className="bg-white px-1.5 py-0.5 rounded border text-[11px]">https://backend.sin-ai.app/</code>) to compute linguistic corrections and stream results back in real time.
                 </p>
               </div>
             </div>
