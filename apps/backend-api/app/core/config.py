@@ -113,7 +113,10 @@ class Settings(BaseSettings):
 
     # Groq — used for visual prompt generation.
     GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    # llama-3.3-70b-versatile was decommissioned from Groq's catalog (a live
+    # call now 404s with model_not_found). gpt-oss-120b is a reasoning model
+    # — see the reasoning_effort note in groq_client.py for why that matters.
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
 
     # Groq — used for style rewriting.
     GROQ_STYLE_API_KEY: str = ""

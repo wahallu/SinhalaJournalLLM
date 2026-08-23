@@ -52,6 +52,12 @@ async def groq_chat(
         "messages": messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
+        # The current GROQ_MODEL default (openai/gpt-oss-120b) is a
+        # chain-of-thought model: without this, it burns the token budget on
+        # an internal <think> trace and "content" comes back empty. "low"
+        # keeps the visible reasoning short so the actual answer lands in
+        # content within a normal max_tokens budget.
+        "reasoning_effort": "low",
     }
 
     last_error: Exception | None = None
