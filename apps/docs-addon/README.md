@@ -71,4 +71,4 @@ npm run watch
 
 ## 5. Backend Configuration
 
-The Google Docs Add-on connects directly to the production SinAI backend service (`https://sinhalajournalllm.onrender.com/api/v1`) by default. The connection status indicator in the sidebar header automatically reflects the live status.
+The Google Docs Add-on connects directly to the production SinAI backend service (`https://sinhalajournalllm-ijw6.onrender.com/api/v1`) by default. The connection status indicator in the sidebar header automatically reflects the live status.

@@ -3,7 +3,7 @@
  * Handles Google Document DOM operations and proxies external API calls.
  */
 
-var API_BASE_URL = "https://sinhalajournalllm.onrender.com/api/v1";
+var API_BASE_URL = "https://sinhalajournalllm-ijw6.onrender.com/api/v1";
 
 // ── Lifecycle Hook: Document Opened ──
 function onOpen(e) {
@@ -62,11 +62,11 @@ function getSelectedText() {
     while (blockElem) {
       var elemType = blockElem.getType ? blockElem.getType() : null;
       if (elemType === DocumentApp.ElementType.PARAGRAPH ||
-          elemType === DocumentApp.ElementType.LIST_ITEM ||
-          elemType === DocumentApp.ElementType.TABLE_ROW ||
-          elemType === DocumentApp.ElementType.HEADER_SECTION ||
-          elemType === DocumentApp.ElementType.FOOTER_SECTION ||
-          elemType === DocumentApp.ElementType.BODY_SECTION) {
+        elemType === DocumentApp.ElementType.LIST_ITEM ||
+        elemType === DocumentApp.ElementType.TABLE_ROW ||
+        elemType === DocumentApp.ElementType.HEADER_SECTION ||
+        elemType === DocumentApp.ElementType.FOOTER_SECTION ||
+        elemType === DocumentApp.ElementType.BODY_SECTION) {
         break;
       }
       if (!blockElem.getParent) break;
@@ -259,7 +259,7 @@ function _rawAuthPost(path, body) {
       return { success: true, data: JSON.parse(text) };
     }
     var errObj = {};
-    try { errObj = JSON.parse(text); } catch (e) {}
+    try { errObj = JSON.parse(text); } catch (e) { }
     return { success: false, error: errObj.detail || errObj.message || ("HTTP " + code) };
   } catch (e) {
     return { success: false, error: e.toString() };
@@ -391,7 +391,7 @@ function callApiProxy(endpoint, body, method) {
     return { success: true, data: JSON.parse(attempt.responseText) };
   }
   var errObj = {};
-  try { errObj = JSON.parse(attempt.responseText); } catch (e) {}
+  try { errObj = JSON.parse(attempt.responseText); } catch (e) { }
   var errorMsg = errObj.detail || errObj.message || ("HTTP " + attempt.responseCode);
   return { success: false, error: errorMsg + " (URL: " + attempt.url + ")" };
 }
@@ -424,7 +424,7 @@ function runOptimize(body) {
   }
   if (attempt.responseCode < 200 || attempt.responseCode >= 300) {
     var errObj = {};
-    try { errObj = JSON.parse(attempt.responseText); } catch (e) {}
+    try { errObj = JSON.parse(attempt.responseText); } catch (e) { }
     var errorMsg = errObj.detail || errObj.message || ("HTTP " + attempt.responseCode);
     return { success: false, error: errorMsg + " (URL: " + attempt.url + ")" };
   }

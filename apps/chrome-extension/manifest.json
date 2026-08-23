@@ -13,7 +13,7 @@
   "host_permissions": [
     "http://localhost/*",
     "http://127.0.0.1/*",
-    "https://sinhalajournalllm.onrender.com/*"
+    "https://sinhalajournalllm-ijw6.onrender.com/*"
   ],
   "action": {
     "default_icon": {
@@ -35,8 +35,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content/content.js"],
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/content.js"
+      ],
       "run_at": "document_end"
     }
   ],
@@ -51,7 +55,9 @@
         "fonts/Gwen-Trial-Regular.woff2",
         "fonts/Gwen-Trial-Bold.woff2"
       ],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }

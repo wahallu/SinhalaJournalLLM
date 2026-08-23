@@ -19,6 +19,19 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import ActionButton from '../../components/ui/ActionButton';
 import CopyButton from '../../components/ui/CopyButton';
 import { Card } from '../../components/ui/Card';
+import { LENGTHS } from '../../lib/toolOptions';
+
+// Multi-length summarization was only ever trained into v06+ of the
+// summarizer adapter (see SinAI-Training's
+// summarizer/abstractive/6_train_summarizer.py onward, and
+// SUMMARIZER_LENGTH_CONDITIONED_FROM_VERSION in serve_sinai.py). v02-v05,
+// "base", mT5, and the extractive methods all ignore the length control
+// server-side and always return their one trained-length summary.
+const SUMMARIZER_LENGTH_CONDITIONED_FROM_VERSION = 6;
+const isLengthConditionedAdapter = (name) => {
+  const match = /_v(\d+)/i.exec(name || '');
+  return !!match && parseInt(match[1], 10) >= SUMMARIZER_LENGTH_CONDITIONED_FROM_VERSION;
+};
 
 const PRESET_CASES = {
   grammar: [
@@ -83,6 +96,7 @@ export default function ModelComparison() {
 
   const [task, setTask] = useState('grammar');
   const [styleMode, setStyleMode] = useState('formal');
+  const [length, setLength] = useState('medium');
   const [inputText, setInputText] = useState('');
   const [referenceText, setReferenceText] = useState('');
   const [selectedAdapters, setSelectedAdapters] = useState([]);
@@ -271,7 +285,8 @@ export default function ModelComparison() {
         adapters: selectedAdapters,
         task: task,
         style: task === 'style' ? styleMode : null,
-        reference_text: referenceText || null
+        reference_text: referenceText || null,
+        length: task === 'summarizer' ? length : null
       };
 
       const data = await runComparison(payload);
@@ -337,6 +352,14 @@ export default function ModelComparison() {
           {isLoaded && (
             <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded" title="Loaded in GPU cache">
               GPU
+            </span>
+          )}
+          {category === 'summarizer' && isLengthConditionedAdapter(name) && (
+            <span
+              className="text-[9px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded"
+              title="Trained on short/medium/long targets — honors the summary length control"
+            >
+              3-LEN
             </span>
           )}
           {category && (
@@ -408,6 +431,39 @@ export default function ModelComparison() {
                 <option value="editorial">Analytical Editorial (සංස්කාරකීය)</option>
                 <option value="feature">Feature Story (විශේෂාංග ලිපි)</option>
               </select>
+            </div>
+          )}
+
+          {task === 'summarizer' && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.12em]">Summary length</label>
+                <div className="group relative">
+                  <HelpCircle size={13} className="text-ink-400 cursor-help" />
+                  <span className="pointer-events-none absolute right-0 bottom-full mb-2 w-72 bg-ink-900 text-white text-[11px] p-2.5 rounded-lg
+                    opacity-0 group-hover:opacity-100 transition-opacity leading-relaxed z-30 shadow-pop">
+                    Only summarization_sinllama_v06 and v07 were trained on short/medium/long targets and actually honor this. Every
+                    other summarizer adapter, mT5, and the extractive methods ignore it and always produce their single trained-length summary.
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {LENGTHS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setLength(opt.id)}
+                    aria-pressed={length === opt.id}
+                    title={opt.desc}
+                    className={`py-2 px-3 text-[13px] font-semibold rounded-lg border transition-all duration-150 cursor-pointer text-center
+                      ${length === opt.id
+                        ? 'bg-brand-600 text-white border-brand-600 shadow-sm shadow-brand-600/20'
+                        : 'bg-white text-ink-600 border-ink-200 hover:border-ink-300 hover:bg-ink-50'}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

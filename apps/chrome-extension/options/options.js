@@ -4,7 +4,7 @@
  */
 
 const DEFAULT_SETTINGS = {
-  apiHost: "https://sinhalajournalllm.onrender.com/api/v1",
+  apiHost: "https://sinhalajournalllm-ijw6.onrender.com/api/v1",
   inlineEnabled: true,
   defaultTone: "formal",
   defaultLength: "medium",
@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const selectDefaultTone = document.getElementById("options-default-tone");
   const selectDefaultLength = document.getElementById("options-default-length");
   const inputDefaultHeadlines = document.getElementById("options-default-headlines");
-  
+
   const btnSave = document.getElementById("options-btn-save");
   const btnReset = document.getElementById("options-btn-reset");
   const resetBtnDefaultLabel = btnReset.textContent;
@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Load Settings
   loadSettings();
-  
+
   // Event listeners
   btnSave.addEventListener("click", saveSettings);
   btnReset.addEventListener("click", resetToDefaults);
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const originalText = btnSave.textContent;
         btnSave.textContent = "සැකසුම් සුරැකිණි! (Settings Saved)";
         btnSave.style.background = "#10B981";
-        
+
         setTimeout(() => {
           btnSave.textContent = originalText;
           btnSave.style.background = "";
