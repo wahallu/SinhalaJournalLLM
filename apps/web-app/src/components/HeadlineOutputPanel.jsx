@@ -15,12 +15,17 @@ import {
 import { useAuth } from '../auth/useAuth';
 
 /* ── Single candidate card ──────────────────────────────────────
-   Word count and band fit are the only per-candidate facts available:
-   both are derived from the returned text. The quality metrics, entity
-   coverage and validation badges that used to sit here were synthesized
-   client-side in services/api.js and never came from the model. */
+   Word count/band fit and the fact-check line are the only per-candidate
+   facts available. Both are derived from real signals: word count/band from
+   the returned text, numbers_verified/unverified_words from the backend's
+   literal comparison against the source article (app/core/fact_guard.py) —
+   passed through unchanged in services/api.js. Everything else that used to
+   sit here (quality scores, entity coverage badges) was synthesized
+   client-side and never came from the model or the article, so it's gone. */
 function CandidateCard({ candidate }) {
   const isBest = candidate.rank === 1;
+  const numbersUnverified = candidate.numbers_verified === false;
+  const wordsFlagged = (candidate.unverified_words || []).length > 0;
 
   return (
     <Card className={`transition-all duration-200 ${isBest ? 'border-emerald-200/80' : 'hover:border-ink-300'}`}>
@@ -38,6 +43,23 @@ function CandidateCard({ candidate }) {
             {candidate.word_count} word{candidate.word_count !== 1 ? 's' : ''}
             {candidate.length_ok ? '' : ' · outside requested band'}
           </p>
+
+          {numbersUnverified && (
+            <p className="text-[11px] text-amber-700 font-medium mt-1 flex items-start gap-1">
+              <AlertTriangle size={11} className="shrink-0 mt-0.5" />
+              <span>
+                Number{candidate.unverified_numbers.length !== 1 ? 's' : ''} not found in article:{' '}
+                {candidate.unverified_numbers.join(', ')} — verify before publishing
+              </span>
+            </p>
+          )}
+
+          {wordsFlagged && (
+            <p className="text-[10.5px] text-ink-400 mt-1 flex items-start gap-1">
+              <AlertTriangle size={10} className="shrink-0 mt-0.5 text-ink-300" />
+              <span>Possible name/place drift (heuristic): {candidate.unverified_words.join(', ')}</span>
+            </p>
+          )}
         </div>
 
         <CopyButton text={candidate.headline} label="" className="!px-1.5 shrink-0 mt-0.5" />
@@ -487,6 +509,10 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
   }
 
   const candidates = output.candidates || [];
+  // The service already reranks candidates to put a number-verified one
+  // first when one exists, so this only fires when every candidate had an
+  // issue and the top pick is the least-bad option available.
+  const bestNumbersUnverified = candidates[0]?.numbers_verified === false;
 
   return (
     <div id="headline-output" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -509,6 +535,15 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
             <p className="text-[18px] font-semibold text-white leading-relaxed text-balance">
               {output.best_headline}
             </p>
+            {bestNumbersUnverified && (
+              <p className="mt-2.5 flex items-start gap-1.5 text-[11px] font-medium text-amber-300">
+                <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                <span>
+                  Number{candidates[0].unverified_numbers.length !== 1 ? 's' : ''} not found in the source article:{' '}
+                  {candidates[0].unverified_numbers.join(', ')} — double-check against the article before publishing.
+                </span>
+              </p>
+            )}
           </div>
         </div>
       )}

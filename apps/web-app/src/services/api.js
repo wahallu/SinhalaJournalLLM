@@ -201,19 +201,27 @@ export function hydrateHeadlineOutput(raw, fallbackLength = 'medium') {
     ? raw.length
     : (HEADLINE_LENGTH_BANDS[lengthId] || HEADLINE_LENGTH_BANDS.medium);
 
-  // Only two derived values, both computed from text the backend actually
-  // returned: the word count and whether it landed in the requested band.
-  // Everything else this function used to synthesize — validation flags,
-  // ROUGE/BLEU/semantic scores, entities, themes, a pipeline log — was
-  // invented client-side and rendered as if the model had produced it.
+  // word_count/length_ok are derived client-side from text the backend
+  // returned. numbers_verified/unverified_numbers/unverified_words are NOT
+  // derived here — they're passed through as-is from raw.fact_checks, which
+  // the backend computes by literally comparing the headline against the
+  // source article (see app/core/fact_guard.py). Everything else this
+  // function used to synthesize — ROUGE/BLEU/semantic scores, themes, a
+  // pipeline log — was invented client-side and rendered as if the model
+  // had produced it; fact_checks is real, so it's kept, not reinvented.
   const headlines = raw.headlines || [];
+  const factChecks = raw.fact_checks || [];
   const candidates = headlines.map((headline, i) => {
     const words = headline.trim().split(/\s+/).length;
+    const factCheck = factChecks[i];
     return {
       headline,
       rank: i + 1,
       word_count: words,
       length_ok: words >= band.min_words && words <= band.max_words,
+      numbers_verified: factCheck ? factCheck.numbers_verified : null,
+      unverified_numbers: factCheck?.unverified_numbers || [],
+      unverified_words: factCheck?.unverified_words || [],
     };
   });
 
