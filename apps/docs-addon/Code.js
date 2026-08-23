@@ -3,7 +3,7 @@
  * Handles Google Document DOM operations and proxies external API calls.
  */
 
-var API_BASE_URL = "https://backend.sin-ai.app/api/v1";
+var API_BASE_URL = "https://sinhalajournalllm-ijw6.onrender.com/api/v1";
 
 // ── Lifecycle Hook: Document Opened ──
 function onOpen(e) {
