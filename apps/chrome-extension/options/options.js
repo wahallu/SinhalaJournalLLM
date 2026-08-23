@@ -4,7 +4,7 @@
  */
 
 const DEFAULT_SETTINGS = {
-  apiHost: "https://backend.sin-ai.app/api/v1",
+  apiHost: "https://sinhalajournalllm-ijw6.onrender.com/api/v1",
   inlineEnabled: true,
   defaultTone: "formal",
   defaultLength: "medium",

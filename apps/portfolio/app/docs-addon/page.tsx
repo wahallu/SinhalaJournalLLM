@@ -899,7 +899,7 @@ export default function DocsAddonPage() {
                   Connect to an external service
                 </h4>
                 <p className="text-xs text-[#615e58] leading-relaxed">
-                  <strong>Why it&apos;s needed:</strong> Allows the sidebar to transmit the highlighted Sinhala text payload over encrypted HTTPS (TLS 1.3) to our dedicated inference server (<code className="bg-white px-1.5 py-0.5 rounded border text-[11px]">https://backend.sin-ai.app/</code>) to compute linguistic corrections and stream results back in real time.
+                  <strong>Why it&apos;s needed:</strong> Allows the sidebar to transmit the highlighted Sinhala text payload over encrypted HTTPS (TLS 1.3) to our dedicated inference server (<code className="bg-white px-1.5 py-0.5 rounded border text-[11px]">https://sinhalajournalllm-ijw6.onrender.com/</code>) to compute linguistic corrections and stream results back in real time.
                 </p>
               </div>
             </div>

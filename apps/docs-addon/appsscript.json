@@ -11,7 +11,7 @@
     "https://www.googleapis.com/auth/script.external_request"
   ],
   "urlFetchWhitelist": [
-    "https://backend.sin-ai.app/"
+    "https://sinhalajournalllm-ijw6.onrender.com/"
   ],
   "addOns": {
     "common": {
