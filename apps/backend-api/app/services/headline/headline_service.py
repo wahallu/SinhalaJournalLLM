@@ -22,12 +22,26 @@ occasionally even from the cleaned adapter and even with the article-side
 cleanup in prompts.py's prompt_headline() — training-data cleanliness and
 input cleanliness both reduce the rate, neither is a hard guarantee, so this
 is the actual guarantee: no tag reaches a caller, full stop.
+
+Fact-checking is the same shape of problem as length: no headline adapter is
+trained to be factually constrained, so the prompt's "capture the key ...
+number" line is a nudge, not a contract (the v19-vs-Claude comparison in
+SinAI-Training found 0/42 reference numbers preserved exactly, with several
+outright invented -- see fact_guard.py's docstring for the detection logic).
+This module closes that gap the same way it closes the length gap: one
+corrective retry round for a candidate whose numbers don't check out against
+the source article, then a final rerank that puts number-verified candidates
+first among whatever's left. Word-level (name/place) drift is surfaced in the
+response for the frontend to show, but never drives a retry or a rerank --
+see fact_guard.unverified_words()'s docstring for why that signal is too
+heuristic to act on automatically.
 """
 
 import asyncio
 import logging
 from typing import TYPE_CHECKING
 
+from app.core import fact_guard
 from app.core.model_gateway import add_tokens, model_generate
 from app.core.prompts import (
     HEADLINE_LENGTHS,
@@ -37,7 +51,7 @@ from app.core.prompts import (
 from app.core.text_cleaning import strip_headline_artifacts
 from app.repositories.base import persist_if_owned
 from app.repositories.headline_repository import save_generation
-from app.schemas.headline import HeadlineLengthInfo, HeadlineResponse
+from app.schemas.headline import HeadlineFactCheck, HeadlineLengthInfo, HeadlineResponse
 
 if TYPE_CHECKING:
     from app.core.research import Actor
@@ -49,6 +63,18 @@ logger = logging.getLogger(__name__)
 # serializes generations, so this trades latency for in-band rate — the reason
 # it's a small number and not a loop-until-perfect.
 MAX_LENGTH_RETRY_ROUNDS = 2
+
+# Same trade-off as MAX_LENGTH_RETRY_ROUNDS, kept to a single round: a
+# generic "don't invent numbers" hint either gets the model to drop/correct
+# the bad number on the first retry or it doesn't, and there's no
+# candidate-specific correction to escalate to on a second attempt (the
+# service doesn't know which article number the model *meant*, only that the
+# one it produced doesn't match).
+MAX_FACT_RETRY_ROUNDS = 1
+
+_FACT_CORRECTIVE_HINT = (
+    "ලිපියේ නොමැති සංඛ්‍යා නිර්මාණය නොකරන්න; ලිපියේ ඇති සංඛ්‍යා පමණක් නිවැරදිව භාවිතා කරන්න."
+)
 
 
 def _word_count(headline: str) -> int:
@@ -203,11 +229,55 @@ async def generate_headlines(
             ):
                 candidates[slot] = retried_text
 
+    for _ in range(MAX_FACT_RETRY_ROUNDS):
+        retry_slots = [
+            i
+            for i, candidate in enumerate(candidates)
+            if candidate and fact_guard.unverified_numbers(text, candidate)
+        ]
+        if not retry_slots:
+            break
+
+        retries = await asyncio.gather(
+            *[
+                generate_one(_merge_hints(hints[i] or None, _FACT_CORRECTIVE_HINT))
+                for i in retry_slots
+            ],
+            return_exceptions=True,
+        )
+
+        for slot, outcome in zip(retry_slots, retries):
+            if isinstance(outcome, BaseException):
+                # Keep the candidate we already have; a failed retry isn't a
+                # reason to lose it.
+                logger.warning("Headline fact-check retry failed: %s", outcome)
+                continue
+            total_latency += outcome.latency_ms
+            input_tokens = add_tokens(input_tokens, outcome.meta.get("input_tokens"))
+            output_tokens = add_tokens(output_tokens, outcome.meta.get("output_tokens"))
+            retried_text = strip_headline_artifacts(outcome.text)
+            # Only replace when the retry is strictly better — fewer
+            # unverified numbers than what it's replacing — so sampling
+            # handing back something worse never discards a candidate that
+            # was already at least as good.
+            if len(fact_guard.unverified_numbers(text, retried_text)) < len(
+                fact_guard.unverified_numbers(text, candidates[slot])
+            ):
+                candidates[slot] = retried_text
+
     headlines = _dedupe([_trim_to_band(c, band) for c in candidates if c])[:count]
     if not headlines:
         # Every candidate failed — surface the first error.
         first_error = next((r for r in results if isinstance(r, BaseException)), None)
         raise first_error or RuntimeError("Headline generation produced no output")
+
+    fact_checks = [fact_guard.check_headline(text, headline) for headline in headlines]
+    # Prefer number-verified candidates for the top spot. A stable sort keeps
+    # everything else about the fan-out's ordering untouched among ties, so
+    # this only reshuffles when there's an actual fact issue to route around.
+    order = sorted(range(len(headlines)), key=lambda i: not fact_checks[i].numbers_verified)
+    headlines = [headlines[i] for i in order]
+    fact_checks = [fact_checks[i] for i in order]
 
     record = {
         "article_text": text,
@@ -227,6 +297,14 @@ async def generate_headlines(
     return HeadlineResponse(
         id=str(saved["id"]),
         headlines=headlines,
+        fact_checks=[
+            HeadlineFactCheck(
+                numbers_verified=fc.numbers_verified,
+                unverified_numbers=fc.unverified_numbers,
+                unverified_words=fc.unverified_words,
+            )
+            for fc in fact_checks
+        ],
         length=HeadlineLengthInfo(
             id=resolved_length,
             min_words=band["min_words"],

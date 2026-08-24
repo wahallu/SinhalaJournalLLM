@@ -28,7 +28,7 @@ from app.schemas.headline import (
 )
 from app.services.headline.headline_service import generate_headlines
 from app.services.headline.visual_prompt_service import generate_visual_prompt
-from app.core.openrouter_client import OpenRouterUnavailable
+from app.core.groq_client import GroqUnavailable
 
 router = APIRouter(prefix="/headlines", tags=["Headline"])
 
@@ -81,7 +81,7 @@ async def visual_prompt_endpoint(
 ):
     """
     Generate a detailed English image-generation prompt from a Sinhala article.
-    Uses OpenRouter to understand the article and craft a photorealistic prompt.
+    Uses Groq to understand the article and craft a photorealistic prompt.
 
     Rate-limited for anonymous callers like the four tools: this bills a
     hosted provider per call, so leaving it ungated made the cap on the other
@@ -91,7 +91,7 @@ async def visual_prompt_endpoint(
 
     try:
         prompt = await generate_visual_prompt(payload.article_text, payload.headline)
-    except OpenRouterUnavailable as exc:
+    except GroqUnavailable as exc:
         raise HTTPException(
             status_code=503,
             detail=f"Visual prompt generation unavailable: {exc}",

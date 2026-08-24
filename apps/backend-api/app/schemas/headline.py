@@ -53,11 +53,37 @@ class HeadlineLengthInfo(BaseModel):
     max_words: int
 
 
+class HeadlineFactCheck(BaseModel):
+    """Rule-based comparison of one headline against its source article --
+    literal text/number matching computed server-side in app/core/fact_guard.py,
+    not a model judgment. Aligned by index with HeadlineResponse.headlines."""
+    numbers_verified: bool = Field(
+        description="False if the headline contains a number whose value "
+                    "(after unit conversion, e.g. '110 million' vs '11 crore') "
+                    "doesn't match any number found in the source article",
+    )
+    unverified_numbers: list[str] = Field(
+        default_factory=list,
+        description="Headline numbers, as written, that failed verification",
+    )
+    unverified_words: list[str] = Field(
+        default_factory=list,
+        description="Headline words not found verbatim in the article -- a "
+                    "heuristic signal for possible name/place/entity drift, "
+                    "not a hard verdict (Sinhala inflection produces false "
+                    "positives; see fact_guard.py docstring)",
+    )
+
+
 class HeadlineResponse(BaseModel):
     """Output payload after headline generation."""
     headlines: list[str] = Field(
         ...,
         description="Generated headlines in Sinhala, best candidate first",
+    )
+    fact_checks: list[HeadlineFactCheck] = Field(
+        default_factory=list,
+        description="Per-headline fact-check results, aligned by index with `headlines`",
     )
     id: str | None = Field(default=None, description="Generation record ID")
     length: HeadlineLengthInfo | None = Field(
