@@ -83,6 +83,23 @@ class HeadlineQualityExhausted(RuntimeError):
     app/api/v1/headline.py's handler."""
 
 
+# Since a flagged candidate is now held back unconditionally (never shown,
+# not even as a last resort), a request that only generates exactly `count`
+# candidates has exactly `count` independent chances to avoid
+# HeadlineQualityExhausted. A dense, numbers-heavy article can fail every one
+# of those chances at once -- reported case: a "long" (8-10 word) request on
+# an article with 4 numbers and several foreign names, 5 requested, all 5
+# still flagged after their retry. Generating a few more candidates than
+# requested (capped at the hints available) gives more independent attempts
+# to draw a clean one from before the final [:count] trim, which also
+# incidentally makes hitting the full requested count more likely whenever
+# a few candidates fail. This is a probability lever, not a guarantee -- a
+# systematic model behavior (same wrong rounding every time) can still fail
+# every candidate in a large batch, which is what HeadlineQualityExhausted
+# is for.
+_FACT_CHECK_HEADROOM = 3
+
+
 # Extra regeneration rounds for candidates that miss the band. Each round is
 # one model call per still-failing candidate, and the inference server
 # serializes generations, so this trades latency for in-band rate — the reason
@@ -195,7 +212,8 @@ async def generate_headlines(
     """
     resolved_length = resolve_headline_length(length)
     band = HEADLINE_LENGTHS[resolved_length]
-    hints = HEADLINE_VARIATION_HINTS[:count]
+    fanout = min(count + _FACT_CHECK_HEADROOM, len(HEADLINE_VARIATION_HINTS))
+    hints = HEADLINE_VARIATION_HINTS[:fanout]
 
     async def generate_one(hint: str | None):
         return await model_generate(
