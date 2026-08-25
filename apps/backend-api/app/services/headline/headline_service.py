@@ -29,11 +29,17 @@ number" line is a nudge, not a contract (the v19-vs-Claude comparison in
 SinAI-Training found 0/42 reference numbers preserved exactly, with several
 outright invented -- see fact_guard.py's docstring for the detection logic).
 This module closes that gap the same way it closes the length gap: one
-corrective retry round for a candidate whose numbers don't check out against
-the source article, then a final rerank that puts number-verified candidates
-first among whatever's left. Word-level (name/place) drift is surfaced in the
-response for the frontend to show, but never drives a retry or a rerank --
-see fact_guard.unverified_words()'s docstring for why that signal is too
+corrective retry round -- naming the specific invented number, not just a
+generic "don't invent numbers" nudge, since the model needs to know what was
+wrong to fix it -- for a candidate whose numbers don't check out against the
+source article. Unlike length, a still-wrong number after that retry doesn't
+just get reranked to the bottom: it's held back from the response entirely,
+the same guarantee strip_headline_artifacts() gives scraper tags ("no tag
+reaches a caller, full stop") extended to invented numbers, as long as at
+least one verified candidate survives in the batch to replace it with. Word-
+level (name/place) drift is surfaced in the response for the frontend to
+show, but never drives a retry or a hold-back -- see
+fact_guard.unverified_words()'s docstring for why that signal is too
 heuristic to act on automatically.
 """
 
@@ -72,9 +78,15 @@ MAX_LENGTH_RETRY_ROUNDS = 2
 # one it produced doesn't match).
 MAX_FACT_RETRY_ROUNDS = 1
 
-_FACT_CORRECTIVE_HINT = (
-    "ලිපියේ නොමැති සංඛ්‍යා නිර්මාණය නොකරන්න; ලිපියේ ඇති සංඛ්‍යා පමණක් නිවැරදිව භාවිතා කරන්න."
-)
+def _fact_corrective_hint(bad_numbers: list[str]) -> str:
+    """Names the exact invented number(s) so the retry has something concrete
+    to correct, instead of a generic 'don't invent numbers' nudge that gives
+    the model no signal about what specifically was wrong."""
+    numbers = ", ".join(bad_numbers)
+    return (
+        f"'{numbers}' යන සංඛ්‍යාව ලිපියේ නොමැත, එය වැරදිය. "
+        "ලිපියේ ඇති නිවැරදි සංඛ්‍යාව පමණක් භාවිතා කරන්න."
+    )
 
 
 def _word_count(headline: str) -> int:
@@ -240,7 +252,14 @@ async def generate_headlines(
 
         retries = await asyncio.gather(
             *[
-                generate_one(_merge_hints(hints[i] or None, _FACT_CORRECTIVE_HINT))
+                generate_one(
+                    _merge_hints(
+                        hints[i] or None,
+                        _fact_corrective_hint(
+                            fact_guard.unverified_numbers(text, candidates[i])
+                        ),
+                    )
+                )
                 for i in retry_slots
             ],
             return_exceptions=True,
@@ -264,6 +283,19 @@ async def generate_headlines(
                 fact_guard.unverified_numbers(text, candidates[slot])
             ):
                 candidates[slot] = retried_text
+
+    # A candidate whose numbers still don't check out after the retry doesn't
+    # reach the caller at all — the same "full stop" guarantee
+    # strip_headline_artifacts() gives scraper tags. Only holds a candidate
+    # back when a verified one survives elsewhere in the batch to take its
+    # place; if every candidate still has a bad number, showing the
+    # least-bad option (still flagged in fact_checks below) beats returning
+    # nothing.
+    if any(c and not fact_guard.unverified_numbers(text, c) for c in candidates):
+        candidates = [
+            c if not (c and fact_guard.unverified_numbers(text, c)) else None
+            for c in candidates
+        ]
 
     headlines = _dedupe([_trim_to_band(c, band) for c in candidates if c])[:count]
     if not headlines:
