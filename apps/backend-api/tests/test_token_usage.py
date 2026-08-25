@@ -129,8 +129,12 @@ async def test_headlines_sum_tokens_across_every_candidate_call(monkeypatch, fak
 
     async def _fake(task, text, **_kwargs):
         calls["n"] += 1
+        # A real, lexicon-known word with no digit suffix -- fact_guard now
+        # holds back an invented number that doesn't appear in the "ලිපිය"
+        # fixture article below, and this test only cares about token
+        # totals, not distinct headline text.
         return GatewayResult(
-            text=f"මාතෘකාව {calls['n']}",
+            text="මාතෘකාව",
             provider="sinllama",
             latency_ms=10,
             meta={"input_tokens": 100, "output_tokens": 7},

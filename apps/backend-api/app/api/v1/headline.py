@@ -26,7 +26,7 @@ from app.schemas.headline import (
     VisualPromptRequest,
     VisualPromptResponse,
 )
-from app.services.headline.headline_service import generate_headlines
+from app.services.headline.headline_service import HeadlineQualityExhausted, generate_headlines
 from app.services.headline.visual_prompt_service import generate_visual_prompt
 from app.core.groq_client import GroqUnavailable
 
@@ -47,12 +47,24 @@ async def generate_headlines_endpoint(
     actor = actor_from(request, user)
 
     started = time.perf_counter()
-    result = await generate_headlines(
-        payload.text, payload.count, category=payload.category,
-        length=payload.length, user_id=user.id if user else None,
-        adapter=payload.adapter,
-        actor=actor,
-    )
+    try:
+        result = await generate_headlines(
+            payload.text, payload.count, category=payload.category,
+            length=payload.length, user_id=user.id if user else None,
+            adapter=payload.adapter,
+            actor=actor,
+        )
+    except HeadlineQualityExhausted as exc:
+        # Every candidate still had an invented number or a nonsense word
+        # after its corrective retry -- a flagged headline is never shown, so
+        # this is the case where that leaves nothing left to return.
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Couldn't produce a headline that passed fact-checking for "
+                "this article. Try again, or a different length."
+            ),
+        ) from exc
     latency_ms = int((time.perf_counter() - started) * 1000)
 
     await record_request(

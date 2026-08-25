@@ -91,7 +91,13 @@ async def test_generate_headlines_defaults_and_trims(monkeypatch):
     from app.core.model_gateway import GatewayResult
     from app.services.headline import headline_service
 
-    overlong = " ".join(f"වචන{i}" for i in range(15))
+    # Real words repeated from the article, not synthetic "වචන0"/"වචන1"
+    # placeholders -- those aren't real Sinhala words, so fact_guard's
+    # nonsense-word check (neither grounded in the article nor in the
+    # lexicon) now holds every candidate back, which isn't what this test is
+    # about; it's testing trim-to-band, so the overlong text needs to pass
+    # fact-checking cleanly.
+    overlong = " ".join((_LONG_ARTICLE.split() * 3)[:15])
 
     async def _always_overlong(*_args, **_kwargs):
         return GatewayResult(text=overlong, provider="mock", latency_ms=1)

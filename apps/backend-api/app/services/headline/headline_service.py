@@ -28,19 +28,29 @@ trained to be factually constrained, so the prompt's "capture the key ...
 number" line is a nudge, not a contract (the v19-vs-Claude comparison in
 SinAI-Training found 0/42 reference numbers preserved exactly, with several
 outright invented -- see fact_guard.py's docstring for the detection logic).
-This module closes that gap the same way it closes the length gap: one
-corrective retry round -- naming the specific invented number, not just a
-generic "don't invent numbers" nudge, since the model needs to know what was
-wrong to fix it -- for a candidate whose numbers don't check out against the
-source article. Unlike length, a still-wrong number after that retry doesn't
+This module closes that gap the same way it closes the length gap, for two
+separate signals: an invented number (fact_guard.unverified_numbers()) and a
+content word that's neither grounded in the article nor a real published
+word (fact_guard.nonsense_words() -- catches generation noise like a garbled
+verb ending without false-flagging genuine rare entity names, which stay
+grounded in the article even when the shared lexicon has never seen them).
+Each gets one corrective retry round naming the specific problem, not a
+generic nudge, since the model needs to know what was wrong to fix it. Unlike
+length, a candidate that still fails either check after its retry doesn't
 just get reranked to the bottom: it's held back from the response entirely,
-the same guarantee strip_headline_artifacts() gives scraper tags ("no tag
-reaches a caller, full stop") extended to invented numbers, as long as at
-least one verified candidate survives in the batch to replace it with. Word-
-level (name/place) drift is surfaced in the response for the frontend to
-show, but never drives a retry or a hold-back -- see
-fact_guard.unverified_words()'s docstring for why that signal is too
-heuristic to act on automatically.
+unconditionally -- the same guarantee strip_headline_artifacts() gives
+scraper tags ("no tag reaches a caller, full stop") extended to invented
+numbers and nonsense words, and, deliberately, extended further than the
+scraper-tag case: a flagged headline is never an acceptable substitute, so
+if every candidate in a batch still fails, the batch legitimately comes back
+empty and generate_headlines() raises HeadlineQualityExhausted rather than
+falling back to showing the least-bad option (see
+app/api/v1/headline.py's handler for how the API surfaces that). Word-level
+(name/place) drift -- fact_guard.unverified_words(), a strictly looser check
+than nonsense_words() -- is surfaced in the response for the frontend to
+show, but never drives a retry or a hold-back on its own; see that
+function's docstring for why that signal is too heuristic to act on
+automatically.
 """
 
 import asyncio
@@ -64,6 +74,15 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+
+class HeadlineQualityExhausted(RuntimeError):
+    """Every candidate this request generated still failed fact-checking
+    (invented number or nonsense word) even after its corrective retry.
+    Distinct from a plain generation failure so the API layer can return a
+    specific, clean error instead of an unhandled 500 -- see
+    app/api/v1/headline.py's handler."""
+
+
 # Extra regeneration rounds for candidates that miss the band. Each round is
 # one model call per still-failing candidate, and the inference server
 # serializes generations, so this trades latency for in-band rate — the reason
@@ -86,6 +105,17 @@ def _fact_corrective_hint(bad_numbers: list[str]) -> str:
     return (
         f"'{numbers}' යන සංඛ්‍යාව ලිපියේ නොමැත, එය වැරදිය. "
         "ලිපියේ ඇති නිවැරදි සංඛ්‍යාව පමණක් භාවිතා කරන්න."
+    )
+
+
+def _nonsense_corrective_hint(bad_words: list[str]) -> str:
+    """Same approach as _fact_corrective_hint, for a headline word that's
+    neither a real published word nor something the article said (see
+    fact_guard.nonsense_words())."""
+    words = ", ".join(bad_words)
+    return (
+        f"'{words}' යන වචනය වැරදි හෝ අර්ථවත් නොවේ. "
+        "ලිපියේ අර්ථය නිවැරදිව විස්තර කරන සාමාන්‍ය සිංහල වචන පමණක් භාවිතා කරන්න."
     )
 
 
@@ -284,24 +314,72 @@ async def generate_headlines(
             ):
                 candidates[slot] = retried_text
 
-    # A candidate whose numbers still don't check out after the retry doesn't
-    # reach the caller at all — the same "full stop" guarantee
-    # strip_headline_artifacts() gives scraper tags. Only holds a candidate
-    # back when a verified one survives elsewhere in the batch to take its
-    # place; if every candidate still has a bad number, showing the
-    # least-bad option (still flagged in fact_checks below) beats returning
-    # nothing.
-    if any(c and not fact_guard.unverified_numbers(text, c) for c in candidates):
-        candidates = [
-            c if not (c and fact_guard.unverified_numbers(text, c)) else None
-            for c in candidates
+    for _ in range(MAX_FACT_RETRY_ROUNDS):
+        retry_slots = [
+            i
+            for i, candidate in enumerate(candidates)
+            if candidate and fact_guard.nonsense_words(text, candidate)
         ]
+        if not retry_slots:
+            break
+
+        retries = await asyncio.gather(
+            *[
+                generate_one(
+                    _merge_hints(
+                        hints[i] or None,
+                        _nonsense_corrective_hint(
+                            fact_guard.nonsense_words(text, candidates[i])
+                        ),
+                    )
+                )
+                for i in retry_slots
+            ],
+            return_exceptions=True,
+        )
+
+        for slot, outcome in zip(retry_slots, retries):
+            if isinstance(outcome, BaseException):
+                logger.warning("Headline nonsense-word retry failed: %s", outcome)
+                continue
+            total_latency += outcome.latency_ms
+            input_tokens = add_tokens(input_tokens, outcome.meta.get("input_tokens"))
+            output_tokens = add_tokens(output_tokens, outcome.meta.get("output_tokens"))
+            retried_text = strip_headline_artifacts(outcome.text)
+            if len(fact_guard.nonsense_words(text, retried_text)) < len(
+                fact_guard.nonsense_words(text, candidates[slot])
+            ):
+                candidates[slot] = retried_text
+
+    # A candidate whose numbers or content words still don't check out after
+    # the retries never reaches the caller — the same "full stop" guarantee
+    # strip_headline_artifacts() gives scraper tags, extended to invented
+    # numbers and nonsense words. Unconditional: a flagged headline is never
+    # an acceptable substitute, even when it's the only candidate left, so
+    # this can legitimately empty the batch — see the check below.
+    def _is_clean(candidate: str) -> bool:
+        return not fact_guard.unverified_numbers(
+            text, candidate
+        ) and not fact_guard.nonsense_words(text, candidate)
+
+    generated_any_candidate = any(candidates)
+    candidates = [c if c and _is_clean(c) else None for c in candidates]
 
     headlines = _dedupe([_trim_to_band(c, band) for c in candidates if c])[:count]
     if not headlines:
-        # Every candidate failed — surface the first error.
-        first_error = next((r for r in results if isinstance(r, BaseException)), None)
-        raise first_error or RuntimeError("Headline generation produced no output")
+        if not generated_any_candidate:
+            # Every model call itself failed — surface the first error.
+            first_error = next((r for r in results if isinstance(r, BaseException)), None)
+            raise first_error or RuntimeError("Headline generation produced no output")
+        # Generation succeeded, but every candidate still had an invented
+        # number or a nonsense word even after its retry — distinct from the
+        # case above, and worth a distinct, catchable exception so the API
+        # layer can give the caller a clean, specific error instead of an
+        # unhandled 500.
+        raise HeadlineQualityExhausted(
+            "Every generated candidate failed fact-checking (invented number "
+            "or nonsense word) even after a corrective retry."
+        )
 
     fact_checks = [fact_guard.check_headline(text, headline) for headline in headlines]
     # Prefer number-verified candidates for the top spot. A stable sort keeps

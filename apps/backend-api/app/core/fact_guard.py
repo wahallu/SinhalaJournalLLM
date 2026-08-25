@@ -3,7 +3,7 @@ article and a generated headline -- the gap the v19-vs-Claude comparison
 flagged as the model's biggest weakness (invented casualty counts, swapped
 money amounts, changed entities), addressed here without touching the model.
 
-Two checks, deliberately different in how much they're trusted:
+Three checks, deliberately different in how much they're trusted:
 
 1. Numbers. Exact and cheap: every number in the headline is resolved to a
    base numeric value (unit words like "මිලියන"/"කෝටි" are folded in, so
@@ -19,10 +19,22 @@ Two checks, deliberately different in how much they're trusted:
    model changed its grammatical form, so this is a prompt for human review,
    not a verdict, and callers should present it as such (see
    HeadlineFactCheck's docstring in app/schemas/headline.py).
+
+3. Nonsense words. Stricter than (2), and trusted enough to drive a retry:
+   a content word that's neither grounded in the article *nor* attested by
+   the shared Sinhala news lexicon (app/services/grammar/lexicon.py, built
+   from 215k published articles) isn't a real published word and isn't
+   something the article said either -- almost always generation noise (a
+   garbled or invented word form), not a legitimate rare entity. This is why
+   it needs both conditions: a genuine rare place/person name the model
+   copied correctly still passes because it's grounded in the article, even
+   when the lexicon has never seen it.
 """
 
 import re
 from dataclasses import dataclass, field
+
+from app.services.grammar import lexicon
 
 _NUMBER = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
 
@@ -92,20 +104,40 @@ _STOPWORDS = {
 _MIN_WORD_LEN = 3
 
 
-def unverified_words(article: str, headline: str) -> list[str]:
-    """Headline words (content words only, de-duplicated, in order) that
-    don't appear verbatim anywhere in `article`. See module docstring --
-    heuristic, not NER."""
+def _headline_content_words(article: str, headline: str) -> tuple[set[str], list[str]]:
+    """Article content words (as a set, for membership checks) and headline
+    content words (de-duplicated, in order) -- the shared extraction both
+    unverified_words() and nonsense_words() filter differently."""
     article_words = set(_WORD.findall(article or ""))
     seen: set[str] = set()
-    flagged: list[str] = []
+    headline_words: list[str] = []
     for word in _WORD.findall(headline or ""):
         if len(word) < _MIN_WORD_LEN or word in _STOPWORDS or word in seen:
             continue
         seen.add(word)
-        if word not in article_words:
-            flagged.append(word)
-    return flagged
+        headline_words.append(word)
+    return article_words, headline_words
+
+
+def unverified_words(article: str, headline: str) -> list[str]:
+    """Headline words (content words only, de-duplicated, in order) that
+    don't appear verbatim anywhere in `article`. See module docstring --
+    heuristic, not NER."""
+    article_words, headline_words = _headline_content_words(article, headline)
+    return [word for word in headline_words if word not in article_words]
+
+
+def nonsense_words(article: str, headline: str) -> list[str]:
+    """Headline content words that are neither grounded in the article nor
+    attested by the shared Sinhala news lexicon -- see module docstring
+    point 3. Unlike unverified_words(), this is trusted enough to drive a
+    regeneration retry."""
+    article_words, headline_words = _headline_content_words(article, headline)
+    return [
+        word
+        for word in headline_words
+        if word not in article_words and not lexicon.contains(word)
+    ]
 
 
 @dataclass
