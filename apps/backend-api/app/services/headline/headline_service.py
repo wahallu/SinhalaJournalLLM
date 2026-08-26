@@ -400,10 +400,24 @@ async def generate_headlines(
         )
 
     fact_checks = [fact_guard.check_headline(text, headline) for headline in headlines]
-    # Prefer number-verified candidates for the top spot. A stable sort keeps
-    # everything else about the fan-out's ordering untouched among ties, so
-    # this only reshuffles when there's an actual fact issue to route around.
-    order = sorted(range(len(headlines)), key=lambda i: not fact_checks[i].numbers_verified)
+    # Prefer number-verified candidates for the top spot, then among those
+    # tied (typically: neither has a number to get wrong at all) prefer
+    # fewer ungrounded content words. unverified_words() is too heuristic to
+    # block on -- Sinhala inflection produces false positives, see its
+    # docstring -- but it's a real signal for *ordering*: a candidate using
+    # a word nowhere in the article (e.g. reporting a "train" collision for
+    # an article that's entirely about a bus) is a topic/entity drift the
+    # number check can't see at all, since it never touches a number. A
+    # stable sort keeps everything else about the fan-out's ordering
+    # untouched among full ties, so this only reshuffles when there's an
+    # actual fact or grounding issue to route around.
+    order = sorted(
+        range(len(headlines)),
+        key=lambda i: (
+            not fact_checks[i].numbers_verified,
+            len(fact_checks[i].unverified_words),
+        ),
+    )
     headlines = [headlines[i] for i in order]
     fact_checks = [fact_checks[i] for i in order]
 

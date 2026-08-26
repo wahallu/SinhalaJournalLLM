@@ -127,6 +127,17 @@ HEADLINE_LENGTHS: dict[str, dict] = {
 
 DEFAULT_HEADLINE_LENGTH = "medium"
 
+# v19 was trained (train_headline_v19.py MAX_ARTICLE_CHARS/MAX_SEQ_LENGTH) and
+# evaluated (test_headline_v19.py, same constant) on articles capped at 2000
+# characters / 768 tokens. This endpoint accepts up to 10000 (see
+# HeadlineRequest.text in app/schemas/headline.py) with no truncation at all,
+# so a real long article silently runs 3-5x past the training distribution's
+# length envelope -- out-of-distribution input the eval harness can
+# structurally never exercise, since it always truncates to the same cap.
+# Matches training's truncation point exactly so a real request sees what the
+# adapter was actually trained and measured on.
+MAX_ARTICLE_CHARS = 2000
+
 
 def resolve_headline_length(length: str | None) -> str:
     """Map a client-supplied headline length onto a known band, defaulting to
@@ -163,9 +174,15 @@ def prompt_headline(
     one into the generated headline if it's sitting in context — no amount of
     training-label cleanliness fixes that, since the tag is in the *input*,
     not the label. See app/core/text_cleaning.py.
+
+    Truncated to MAX_ARTICLE_CHARS after that: matches what the adapter was
+    actually trained and evaluated on, rather than letting a real long
+    article run past the length the model has ever seen a coherent
+    continuation for.
     """
     band = HEADLINE_LENGTHS[resolve_headline_length(length)]
     hint = f"\n- {variation_hint}" if variation_hint else ""
+    article = strip_article_media_tags(text)[:MAX_ARTICLE_CHARS]
     return (
         "### Instruction:\n"
         "Generate a concise Sinhala news headline for the article below.\n\n"
@@ -177,7 +194,7 @@ def prompt_headline(
         f"- Output ONLY the headline, nothing else{hint}\n\n"
         "### Input:\n"
         f"Category: {category}\n"
-        f"Article: {strip_article_media_tags(text)}\n\n"
+        f"Article: {article}\n\n"
         "### Response:\n"
     )
 
