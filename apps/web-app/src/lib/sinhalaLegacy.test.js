@@ -59,3 +59,26 @@ test('round-trips legacy-safe western punctuation and kunddaliya', () => {
   const input = ',.()%/?!+=:÷;–“”෴';
   assert.equal(legacyToUnicode(unicodeToLegacy(input)), input);
 });
+
+test('uses fitted glyph slots instead of overlapping generic vowel marks', () => {
+  const fittedPairs = [
+    ['රැ', '/'], ['රෑ', '?'], ['රු', 're'], ['රූ', 'rE'],
+    ['ඳි', '¢'], ['ඳී', '£'], ['දූ', '¥'], ['දී', '§'],
+    ['ලූ', '¨'], ['ඳූ', 'ª'], ['ඨි', 'À'], ['ඨී', 'Á'],
+    ['ඡී', 'Â'], ['ඛි', 'Å'], ['ලු', 'Æ'], ['ඛී', 'Ç'],
+    ['දි', 'È'], ['රී', 'Í'], ['ඪී', 'Î'], ['චි', 'Ñ'],
+    ['ථී', 'Ò'], ['ජී', 'Ô'], ['චී', 'Ö'], ['ඵී', 'Ú'],
+    ['ඵි', 'Ý'], ['රි', 'ß'], ['ටී', 'à'], ['ටි', 'á'],
+    ['ඩී', 'ã'], ['ඩි', 'ä'], ['ඬි', 'ç'], ['ඬී', 'é'],
+    ['ධි', 'ê'], ['ධී', 'ë'], ['බි', 'ì'], ['බී', 'î'],
+    ['ජි', 'ð'], ['මි', 'ñ'], ['මී', 'ó'], ['ඹි', 'ô'],
+    ['ඹී', 'ö'], ['ඳු', '÷'], ['වී', 'ù'], ['වි', 'ú'],
+    ['ඞී', 'ü'], ['ඡි', 'ý'], ['දු', 'ÿ'], ['ඤු', '™'],
+    ['ළු', '¿'],
+  ];
+
+  for (const [unicode, legacy] of fittedPairs) {
+    assert.equal(unicodeToLegacy(unicode), legacy, `encode ${unicode}`);
+    assert.equal(legacyToUnicode(legacy), unicode, `decode ${unicode}`);
+  }
+});

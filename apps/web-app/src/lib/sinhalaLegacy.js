@@ -89,7 +89,38 @@ const LEGACY_PUNCTUATION = new Map(
   Array.from(UNICODE_PUNCTUATION, ([unicode, legacy]) => [legacy, unicode]),
 );
 
+/*
+ * Su_Nirmala includes precomposed slots for base/sign combinations whose
+ * generic zero-advance marks would sit too far left on a narrow consonant.
+ * Emitting (for example) `rs` for රි makes the `s` ink extend beyond the
+ * left edge of `r` and collide with the previous glyph. The dedicated `ß`
+ * slot has the same meaning with self-contained bearings and advance width.
+ *
+ * These values follow the verified DL-Manel/Su-Nirmala extended-slot table.
+ * Keep this map bidirectional: it defines canonical output and lets text
+ * produced by this app round-trip without relying on the fallback converter.
+ */
+const PRECOMPOSED_CLUSTER_TO_LEGACY = new Map([
+  ['රැ', '/'], ['රෑ', '?'], ['රු', 're'], ['රූ', 'rE'],
+  ['ඳි', '¢'], ['ඳී', '£'], ['දූ', '¥'], ['දී', '§'],
+  ['ලූ', '¨'], ['ඳූ', 'ª'], ['ඨි', 'À'], ['ඨී', 'Á'],
+  ['ඡී', 'Â'], ['ඛි', 'Å'], ['ලු', 'Æ'], ['ඛී', 'Ç'],
+  ['දි', 'È'], ['රී', 'Í'], ['ඪී', 'Î'], ['චි', 'Ñ'],
+  ['ථී', 'Ò'], ['ජී', 'Ô'], ['චී', 'Ö'], ['ඵී', 'Ú'],
+  ['ඵි', 'Ý'], ['රි', 'ß'], ['ටී', 'à'], ['ටි', 'á'],
+  ['ඩී', 'ã'], ['ඩි', 'ä'], ['ඬි', 'ç'], ['ඬී', 'é'],
+  ['ධි', 'ê'], ['ධී', 'ë'], ['බි', 'ì'], ['බී', 'î'],
+  ['ජි', 'ð'], ['මි', 'ñ'], ['මී', 'ó'], ['ඹි', 'ô'],
+  ['ඹී', 'ö'], ['ඳු', '÷'], ['වී', 'ù'], ['වි', 'ú'],
+  ['ඞී', 'ü'], ['ඡි', 'ý'], ['දු', 'ÿ'], ['ඤු', '™'],
+  ['ළු', '¿'],
+]);
+
 const SPECIAL_LEGACY_SEQUENCES = new Map([
+  ...Array.from(
+    PRECOMPOSED_CLUSTER_TO_LEGACY,
+    ([unicode, legacy]) => [legacy, unicode],
+  ),
   ['KUN', '෴'],
   ['›', 'ශ්‍රී'],
   ['ø', 'ද්‍ර'],
@@ -309,6 +340,15 @@ export function unicodeToLegacy(input) {
 
   for (let index = 0; index < characters.length;) {
     const char = characters[index];
+
+    const precomposed = PRECOMPOSED_CLUSTER_TO_LEGACY.get(
+      `${char}${characters[index + 1] ?? ''}`,
+    );
+    if (precomposed) {
+      output += precomposed;
+      index += 2;
+      continue;
+    }
 
     if (VOWEL_TO_LEGACY.has(char)) {
       output += VOWEL_TO_LEGACY.get(char);

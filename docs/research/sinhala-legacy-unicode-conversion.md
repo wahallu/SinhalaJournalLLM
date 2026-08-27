@@ -73,8 +73,10 @@ ZWJ before the al-lakuna.
    vowel sign as one cluster.
 3. Emit the verified Su-Nirmala/FM-compatible base slot.
 4. Move kombuva-family signs to their legacy visual position.
-5. Use the traditional alternate `=` / `+` slots for short/long `u` on bases
-   whose legacy glyph shape requires them.
+5. Use fitted precomposed slots for narrow-base combinations such as `රි`,
+   `දී`, `මි`, and `වී`; generic zero-advance `ි` / `ී` glyphs extend past
+   those bases and visibly collide with the preceding character. Use the
+   traditional alternate `=` / `+` slots for short/long `u` where required.
 6. Preserve an unsupported Unicode conjunct verbatim instead of silently
    replacing it with different letters.
 
@@ -116,8 +118,9 @@ model as if they were normal text.
 ## Verification
 
 - Unit fixtures cover the app's existing legacy placeholder, visual/logical
-  vowel reordering, yansaya/rakaaraansaya code-point order, punctuation,
-  line breaks, digits, and newsroom phrases.
+  vowel reordering, fitted non-overlapping compound slots,
+  yansaya/rakaaraansaya code-point order, punctuation, line breaks, digits,
+  and newsroom phrases.
 - All 286 Stage 6 grammar inputs round-trip after canonicalizing four inputs
   that already contained the historical non-standard ZWJ-before-al-lakuna
   sequence. No letters change under the canonical comparison.
