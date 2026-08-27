@@ -1,11 +1,13 @@
 import Dropdown from '../ui/Dropdown';
+import LegacyEncodingToggle from '../ui/LegacyEncodingToggle';
 import ModeToggle from '../ui/ModeToggle';
 import { TOOLBAR_CONTROLS } from '../../lib/toolOptions';
 import { useSuggestionMode } from '../../lib/suggestionMode';
 
 export default function EditorToolbar({
   tool, title, icon: Icon, charCount, maxChars, isOverLimit, isNearLimit,
-  settings, onSettingsChange, hasResult = false,
+  settings, onSettingsChange, hasResult = false, encoding = 'unknown',
+  onEncodingConvert, conversionDisabled = false,
 }) {
   const controls = TOOLBAR_CONTROLS[tool] ?? [];
   const [mode, setMode] = useSuggestionMode();
@@ -34,7 +36,13 @@ export default function EditorToolbar({
         ))}
       </div>
 
-      <span className="ml-auto flex items-center gap-2 pr-1">
+      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2 pr-1">
+        <LegacyEncodingToggle
+          encoding={encoding}
+          onConvert={onEncodingConvert}
+          disabled={conversionDisabled}
+        />
+
         {/* Grammar only: the other three tools rewrite wholesale and have no
             suggestion layer for a mode to govern, so a toggle there would be a
             control that does nothing. */}
@@ -60,7 +68,7 @@ export default function EditorToolbar({
         >
           {charCount.toLocaleString()} / {maxChars.toLocaleString()}
         </span>
-      </span>
+      </div>
     </div>
   );
 }
