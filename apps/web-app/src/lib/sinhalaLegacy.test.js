@@ -74,11 +74,28 @@ test('uses fitted glyph slots instead of overlapping generic vowel marks', () =>
     ['ජි', 'ð'], ['මි', 'ñ'], ['මී', 'ó'], ['ඹි', 'ô'],
     ['ඹී', 'ö'], ['ඳු', '÷'], ['වී', 'ù'], ['වි', 'ú'],
     ['ඞී', 'ü'], ['ඡි', 'ý'], ['දු', 'ÿ'], ['ඤු', '™'],
-    ['ළු', '¿'],
+    ['ළු', '¿'], ['ණී', '”'],
+    ['දා', 'Þ'], ['දැ', '±'],
+    ['ඛ්', 'Ä'], ['ඞ්', 'Ù'], ['ච්', 'É'], ['ඡ්', 'þ'],
+    ['ජ්', 'Ê'], ['ට්', 'Ü'], ['ඩ්', 'â'], ['ඬ්', 'å'],
+    ['ධ්', 'è'], ['බ්', 'í'], ['ම්', 'ï'], ['ඹ්', 'ò'],
+    ['ර්', '¾'], ['ව්', 'õ'],
+    ['ඛේ', 'fÄ'], ['ඞේ', 'fÙ'], ['චේ', 'fÉ'], ['ඡේ', 'fþ'],
+    ['ජේ', 'fÊ'], ['ටේ', 'fÜ'], ['ඩේ', 'fâ'], ['ඬේ', 'få'],
+    ['ධේ', 'fè'], ['බේ', 'fí'], ['මේ', 'fï'], ['ඹේ', 'fò'],
+    ['රේ', 'f¾'], ['වේ', 'fõ'],
   ];
 
   for (const [unicode, legacy] of fittedPairs) {
     assert.equal(unicodeToLegacy(unicode), legacy, `encode ${unicode}`);
     assert.equal(legacyToUnicode(legacy), unicode, `decode ${unicode}`);
   }
+});
+
+test('uses fitted virama forms in the reported newsroom combinations', () => {
+  const unicode = 'මර්දන විමර්ශන ග්‍රෑම් මේ බේ';
+  const legacy = 'u¾ok úu¾Yk .%Eï fï fí';
+
+  assert.equal(unicodeToLegacy(unicode), legacy);
+  assert.equal(legacyToUnicode(legacy), unicode);
 });

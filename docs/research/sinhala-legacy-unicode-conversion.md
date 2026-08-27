@@ -74,9 +74,11 @@ ZWJ before the al-lakuna.
 3. Emit the verified Su-Nirmala/FM-compatible base slot.
 4. Move kombuva-family signs to their legacy visual position.
 5. Use fitted precomposed slots for narrow-base combinations such as `රි`,
-   `දී`, `මි`, and `වී`; generic zero-advance `ි` / `ී` glyphs extend past
-   those bases and visibly collide with the preceding character. Use the
-   traditional alternate `=` / `+` slots for short/long `u` where required.
+   `දී`, `මි`, and `වී`, plus fitted al-lakuna forms such as `ම්`, `ර්`, and
+   `ව්`. Generic zero-advance mark glyphs can extend past those bases and
+   visibly collide with adjacent characters. Long-e forms reuse the fitted
+   al-lakuna slot after kombuva, and the traditional alternate `=` / `+`
+   slots are used for short/long `u` where required.
 6. Preserve an unsupported Unicode conjunct verbatim instead of silently
    replacing it with different letters.
 
@@ -91,6 +93,11 @@ Article. It contains only **Unicode** and **Legacy**. The selected item shows th
 editor's current encoding; choosing the other item converts the value in place.
 Legacy output is rendered with the bundled font so it is readable before
 copying.
+
+Native browser spellcheck, autocorrect, and third-party grammar overlays are
+disabled while the editor is in Legacy mode. Those tools inspect the stored
+Latin/Windows-1252 slots rather than the Sinhala glyphs and otherwise draw
+misleading red underlines across correctly converted words.
 
 When pasted text has no Sinhala Unicode characters and has not yet been
 classified, choosing **Unicode** treats it as legacy input and decodes it;

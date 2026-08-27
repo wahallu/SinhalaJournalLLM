@@ -102,6 +102,7 @@ const LEGACY_PUNCTUATION = new Map(
  */
 const PRECOMPOSED_CLUSTER_TO_LEGACY = new Map([
   ['රැ', '/'], ['රෑ', '?'], ['රු', 're'], ['රූ', 'rE'],
+  ['දා', 'Þ'], ['දැ', '±'],
   ['ඳි', '¢'], ['ඳී', '£'], ['දූ', '¥'], ['දී', '§'],
   ['ලූ', '¨'], ['ඳූ', 'ª'], ['ඨි', 'À'], ['ඨී', 'Á'],
   ['ඡී', 'Â'], ['ඛි', 'Å'], ['ලු', 'Æ'], ['ඛී', 'Ç'],
@@ -113,7 +114,21 @@ const PRECOMPOSED_CLUSTER_TO_LEGACY = new Map([
   ['ජි', 'ð'], ['මි', 'ñ'], ['මී', 'ó'], ['ඹි', 'ô'],
   ['ඹී', 'ö'], ['ඳු', '÷'], ['වී', 'ù'], ['වි', 'ú'],
   ['ඞී', 'ü'], ['ඡි', 'ý'], ['දු', 'ÿ'], ['ඤු', '™'],
-  ['ළු', '¿'],
+  ['ළු', '¿'], ['ණී', '”'],
+
+  // Fitted al-lakuna forms. These prevent the generic zero-advance `a`
+  // mark from crowding the preceding or following glyph on narrow bases.
+  ['ඛ්', 'Ä'], ['ඞ්', 'Ù'], ['ච්', 'É'], ['ඡ්', 'þ'],
+  ['ජ්', 'Ê'], ['ට්', 'Ü'], ['ඩ්', 'â'], ['ඬ්', 'å'],
+  ['ධ්', 'è'], ['බ්', 'í'], ['ම්', 'ï'], ['ඹ්', 'ò'],
+  ['ර්', '¾'], ['ව්', 'õ'],
+
+  // Long-e is kombuva plus the fitted al-lakuna form in this font. Keeping
+  // the pair as one token also makes reverse conversion unambiguous.
+  ['ඛේ', 'fÄ'], ['ඞේ', 'fÙ'], ['චේ', 'fÉ'], ['ඡේ', 'fþ'],
+  ['ජේ', 'fÊ'], ['ටේ', 'fÜ'], ['ඩේ', 'fâ'], ['ඬේ', 'få'],
+  ['ධේ', 'fè'], ['බේ', 'fí'], ['මේ', 'fï'], ['ඹේ', 'fò'],
+  ['රේ', 'f¾'], ['වේ', 'fõ'],
 ]);
 
 const SPECIAL_LEGACY_SEQUENCES = new Map([

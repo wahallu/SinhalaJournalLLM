@@ -100,6 +100,12 @@ export default function Editor({
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         disabled={loading}
+        spellCheck={!isLegacy}
+        autoCorrect={isLegacy ? 'off' : undefined}
+        autoCapitalize={isLegacy ? 'off' : undefined}
+        data-gramm={isLegacy ? 'false' : undefined}
+        data-gramm_editor={isLegacy ? 'false' : undefined}
+        data-enable-grammarly={isLegacy ? 'false' : undefined}
         maxLength={MAX_CHARS + 50}
         aria-label={`${title} input${isLegacy ? ', legacy FM-compatible encoding' : ''}`}
         className="placeholder-legacy-sinhala flex-1 min-h-[18rem] xl:min-h-[20rem] w-full
