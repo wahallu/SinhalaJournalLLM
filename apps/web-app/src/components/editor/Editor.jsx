@@ -45,6 +45,20 @@ export default function Editor({
     );
   };
 
+  const handleEncodingChange = (target) => {
+    if (target === encoding) return;
+
+    if (encoding === 'unknown' && target === 'legacy') {
+      setEncodingOverride('legacy');
+      setConversionStatus('Text marked as legacy FM-compatible encoding.');
+      return;
+    }
+
+    handleEncodingConvert(
+      target === 'unicode' ? 'legacy-to-unicode' : 'unicode-to-legacy',
+    );
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -73,7 +87,7 @@ export default function Editor({
         settings={settings}
         onSettingsChange={onSettingsChange}
         encoding={encoding}
-        onEncodingConvert={handleEncodingConvert}
+        onEncodingChange={handleEncodingChange}
         conversionDisabled={loading || !value}
       />
 

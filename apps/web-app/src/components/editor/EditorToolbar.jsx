@@ -1,13 +1,17 @@
 import Dropdown from '../ui/Dropdown';
-import LegacyEncodingToggle from '../ui/LegacyEncodingToggle';
 import ModeToggle from '../ui/ModeToggle';
 import { TOOLBAR_CONTROLS } from '../../lib/toolOptions';
 import { useSuggestionMode } from '../../lib/suggestionMode';
 
+const ENCODING_OPTIONS = [
+  { id: 'unicode', label: 'Unicode' },
+  { id: 'legacy', label: 'Legacy' },
+];
+
 export default function EditorToolbar({
   tool, title, icon: Icon, charCount, maxChars, isOverLimit, isNearLimit,
   settings, onSettingsChange, hasResult = false, encoding = 'unknown',
-  onEncodingConvert, conversionDisabled = false,
+  onEncodingChange, conversionDisabled = false,
 }) {
   const controls = TOOLBAR_CONTROLS[tool] ?? [];
   const [mode, setMode] = useSuggestionMode();
@@ -37,10 +41,15 @@ export default function EditorToolbar({
       </div>
 
       <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2 pr-1">
-        <LegacyEncodingToggle
-          encoding={encoding}
-          onConvert={onEncodingConvert}
+        <Dropdown
+          id="toolbar-encoding"
+          label="Encoding"
+          options={ENCODING_OPTIONS}
+          value={conversionDisabled ? 'unicode' : (encoding === 'unknown' ? undefined : encoding)}
+          onChange={onEncodingChange}
           disabled={conversionDisabled}
+          placeholder="Select"
+          className="min-w-[8.5rem] justify-between"
         />
 
         {/* Grammar only: the other three tools rewrite wholesale and have no

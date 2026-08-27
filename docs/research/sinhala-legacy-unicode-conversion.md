@@ -83,12 +83,16 @@ converted text is sent to the backend.
 
 ## Product behavior
 
-The shared `EditorToolbar` renders two actions on Grammar Checker, Headline
-Generator, Style Rewriter, News Summarizer, and Optimize Article:
+The shared `EditorToolbar` renders one compact **Encoding** dropdown on Grammar
+Checker, Headline Generator, Style Rewriter, News Summarizer, and Optimize
+Article. It contains only **Unicode** and **Legacy**. The selected item shows the
+editor's current encoding; choosing the other item converts the value in place.
+Legacy output is rendered with the bundled font so it is readable before
+copying.
 
-- **Legacy → Unicode** converts the current editor value in place.
-- **Unicode → Legacy** converts in place and renders the value with the bundled
-  legacy font so the result is readable before copying.
+When pasted text has no Sinhala Unicode characters and has not yet been
+classified, choosing **Unicode** treats it as legacy input and decodes it;
+choosing **Legacy** marks it for legacy-font preview without changing its bytes.
 
 AI endpoints continue to accept Unicode only. When an editor contains legacy
 output, its Run button and Ctrl/Cmd+Enter shortcut are disabled; Copy and Clear
