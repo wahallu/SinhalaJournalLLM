@@ -99,3 +99,12 @@ test('uses fitted virama forms in the reported newsroom combinations', () => {
   assert.equal(unicodeToLegacy(unicode), legacy);
   assert.equal(legacyToUnicode(legacy), unicode);
 });
+
+test('keeps joined conjuncts intact before applying fitted virama forms', () => {
+  const unicode = 'මත්ද්‍රව්‍ය අධ්‍යක්ෂක ප්‍රශ්න';
+  const legacy = 'u;aøjH wOHlaIl m%Yak';
+
+  assert.equal(unicodeToLegacy(unicode), legacy);
+  assert.equal(legacy.includes('\u200D'), false);
+  assert.equal(legacyToUnicode(legacy), unicode);
+});

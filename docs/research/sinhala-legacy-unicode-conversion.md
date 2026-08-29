@@ -79,7 +79,11 @@ ZWJ before the al-lakuna.
    visibly collide with adjacent characters. Long-e forms reuse the fitted
    al-lakuna slot after kombuva, and the traditional alternate `=` / `+`
    slots are used for short/long `u` where required.
-6. Preserve an unsupported Unicode conjunct verbatim instead of silently
+6. Resolve virama + ZWJ conjuncts before fitted two-character forms. Dedicated
+   `ද්‍ර` / `ද්‍ය` slots are used where available; otherwise yansaya and
+   rakaaraansaya remain a single legacy cluster. This prevents a fitted
+   al-lakuna from consuming the start of `ව්‍ය`, `ධ්‍ය`, or similar forms.
+7. Preserve an unsupported Unicode conjunct verbatim instead of silently
    replacing it with different letters.
 
 The transformation runs entirely in the browser. No conversion request or

@@ -138,8 +138,8 @@ const SPECIAL_LEGACY_SEQUENCES = new Map([
   ),
   ['KUN', '෴'],
   ['›', 'ශ්‍රී'],
-  ['ø', 'ද්‍ර'],
-  ['µ', 'ද්‍ය'],
+  ['ø', `ද${RAKAARAANSAYA}`],
+  ['µ', `ද${YANSAYA}`],
   ['…', 'ත්‍ව'],
   ['‡', 'න්‍ද'],
   ['†', 'ත්‍ථ'],
@@ -323,10 +323,18 @@ function readUnicodeCore(characters, index) {
       return { text: 'CI', next: index + 4, base };
     }
     if (joined === 'ය') {
-      return { text: `${legacyBase}H`, next: index + 4, base };
+      return {
+        text: base === 'ද' ? 'µ' : `${legacyBase}H`,
+        next: index + 4,
+        base,
+      };
     }
     if (joined === 'ර') {
-      return { text: `${legacyBase}%`, next: index + 4, base };
+      return {
+        text: base === 'ද' ? 'ø' : `${legacyBase}%`,
+        next: index + 4,
+        base,
+      };
     }
     const prefix = { 'ක': 'C', 'ත': 'F', 'න': 'J' }[base];
     const joinedLegacy = BASE_TO_LEGACY.get(joined);
@@ -356,9 +364,19 @@ export function unicodeToLegacy(input) {
   for (let index = 0; index < characters.length;) {
     const char = characters[index];
 
-    const precomposed = PRECOMPOSED_CLUSTER_TO_LEGACY.get(
-      `${char}${characters[index + 1] ?? ''}`,
+    // A fitted base+virama slot must not consume the start of a longer
+    // virama+ZWJ+ra/ya cluster. Doing so leaves the ZWJ in the legacy stream
+    // and renders a full-size ra/ya beside the base instead of the intended
+    // rakaaraansaya/yansaya.
+    const startsJoinedCluster = (
+      characters[index + 1] === VIRAMA
+      && characters[index + 2] === ZWJ
     );
+    const precomposed = startsJoinedCluster
+      ? null
+      : PRECOMPOSED_CLUSTER_TO_LEGACY.get(
+        `${char}${characters[index + 1] ?? ''}`,
+      );
     if (precomposed) {
       output += precomposed;
       index += 2;
