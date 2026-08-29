@@ -16,6 +16,19 @@ export default function EditorToolbar({
   const controls = TOOLBAR_CONTROLS[tool] ?? [];
   const [mode, setMode] = useSuggestionMode();
 
+  const encodingDropdown = (
+    <Dropdown
+      id="toolbar-encoding"
+      label="Encoding"
+      options={ENCODING_OPTIONS}
+      value={conversionDisabled ? 'unicode' : (encoding === 'unknown' ? undefined : encoding)}
+      onChange={onEncodingChange}
+      disabled={conversionDisabled}
+      placeholder="Select"
+      className="min-w-[8.5rem] justify-between"
+    />
+  );
+
   return (
     <div className="flex items-center gap-2 px-3 py-2 border-b border-ink-100 flex-wrap shrink-0">
       <span className="flex items-center gap-2 pl-1 pr-1 shrink-0">
@@ -38,19 +51,11 @@ export default function EditorToolbar({
             onChange={(v) => onSettingsChange({ ...settings, [key]: v })}
           />
         ))}
+        {tool === 'headlines' && encodingDropdown}
       </div>
 
       <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2 pr-1">
-        <Dropdown
-          id="toolbar-encoding"
-          label="Encoding"
-          options={ENCODING_OPTIONS}
-          value={conversionDisabled ? 'unicode' : (encoding === 'unknown' ? undefined : encoding)}
-          onChange={onEncodingChange}
-          disabled={conversionDisabled}
-          placeholder="Select"
-          className="min-w-[8.5rem] justify-between"
-        />
+        {tool !== 'headlines' && encodingDropdown}
 
         {/* Grammar only: the other three tools rewrite wholesale and have no
             suggestion layer for a mode to govern, so a toggle there would be a
