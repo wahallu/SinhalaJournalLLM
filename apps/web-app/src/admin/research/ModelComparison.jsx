@@ -106,59 +106,78 @@ const TEXTAREA_CLASS = `w-full border border-ink-200 rounded-xl px-3.5 py-2.5 te
   focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]`;
 
 /**
- * Classifies model type into one of 4 archetypes for non-technical users
+ * Classifies model type into archetypes tailored to task
  */
-function getModelArchetype(name) {
+function getModelArchetype(name, task = 'summarizer') {
   const lower = (name || '').toLowerCase();
   if (lower === 'base') {
     return {
       id: 'base',
       label: 'Base LLM (Unfine-tuned)',
-      shortType: 'Base Model',
+      shortType: 'Base Foundation Model',
       icon: '⚠️',
       color: 'bg-amber-50 text-amber-800 border-amber-200',
       badgeClass: 'bg-amber-100 text-amber-900 border-amber-300',
-      description: 'Raw foundation model without instruction tuning. Does not know how to condense; tends to continue typing or hallucinate.',
+      description: 'Raw foundation model without task fine-tuning. Tends to continue typing or hallucinate.',
       fluencyRating: '⭐⭐ (Raw)',
-      humanVerdict: 'Lacks task instructions — continues writing instead of summarizing'
+      humanVerdict: task === 'summarizer'
+        ? 'Lacks task instructions — continues writing instead of summarizing'
+        : 'Unfine-tuned base model — lacks task instructions'
     };
   }
-  if (['tfidf', 'textrank', 'rake', 'yake', 'keybert'].includes(lower) || lower.startsWith('extractive_')) {
+
+  if (task === 'summarizer') {
+    if (['tfidf', 'textrank', 'rake', 'yake', 'keybert'].includes(lower) || lower.startsWith('extractive_')) {
+      return {
+        id: 'extractive',
+        label: 'Extractive Algorithm',
+        shortType: 'Extractive (Copy-Paste)',
+        icon: '✂️',
+        color: 'bg-slate-50 text-slate-800 border-slate-200',
+        badgeClass: 'bg-slate-100 text-slate-900 border-slate-300',
+        description: 'Statistical algorithm that extracts exact sentences/words from the source article. Cannot rephrase or create new sentences.',
+        fluencyRating: '⭐⭐ (Rigid)',
+        humanVerdict: 'Verbatim extraction — cuts and pastes sentences without human-like rewrite'
+      };
+    }
+    if (lower.includes('mt5')) {
+      return {
+        id: 'teacher',
+        label: 'mT5 Teacher Model',
+        shortType: 'Encoder-Decoder Baseline',
+        icon: '📘',
+        color: 'bg-blue-50 text-blue-800 border-blue-200',
+        badgeClass: 'bg-blue-100 text-blue-900 border-blue-300',
+        description: 'Traditional multilingual Seq2Seq model used as training baseline. Generates working summaries but struggles with idiomatic Sinhala nuances.',
+        fluencyRating: '⭐⭐⭐ (Decent)',
+        humanVerdict: 'Standard baseline — acceptable compression but can produce generic or clipped phrasing'
+      };
+    }
     return {
-      id: 'extractive',
-      label: 'Extractive Algorithm',
-      shortType: 'Extractive (Copy-Paste)',
-      icon: '✂️',
-      color: 'bg-slate-50 text-slate-800 border-slate-200',
-      badgeClass: 'bg-slate-100 text-slate-900 border-slate-300',
-      description: 'Statistical algorithm that extracts exact sentences/words from the source article. Cannot rephrase or create new sentences.',
-      fluencyRating: '⭐⭐ (Rigid)',
-      humanVerdict: 'Verbatim extraction — cuts and pastes sentences without human-like rewrite'
+      id: 'sinllama',
+      label: 'SinLLaMA LoRA (Our Model)',
+      shortType: 'Fine-tuned Abstractive LLM',
+      icon: '🧠',
+      color: 'bg-emerald-50 text-emerald-900 border-emerald-200',
+      badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold',
+      description: 'Fine-tuned Sinhala generative decoder LLM. Understands complete context and writes fresh, fluent journalistic Sinhala summaries.',
+      fluencyRating: '⭐⭐⭐⭐⭐ (Human-grade)',
+      humanVerdict: 'Natural journalistic rewrite — synthesizes key facts into fluent, coherent Sinhala prose'
     };
   }
-  if (lower.includes('mt5')) {
-    return {
-      id: 'teacher',
-      label: 'mT5 Teacher Model',
-      shortType: 'Encoder-Decoder Baseline',
-      icon: '📘',
-      color: 'bg-blue-50 text-blue-800 border-blue-200',
-      badgeClass: 'bg-blue-100 text-blue-900 border-blue-300',
-      description: 'Traditional multilingual Seq2Seq model used as training baseline. Generates working summaries but struggles with idiomatic Sinhala nuances.',
-      fluencyRating: '⭐⭐⭐ (Decent)',
-      humanVerdict: 'Standard baseline — acceptable compression but can produce generic or clipped phrasing'
-    };
-  }
+
+  // Non-summarizer task archetypes
+  const taskLabel = task.charAt(0).toUpperCase() + task.slice(1);
   return {
     id: 'sinllama',
-    label: 'SinLLaMA LoRA (Our Model)',
-    shortType: 'Fine-tuned Abstractive LLM',
+    label: `SinLLaMA LoRA (${taskLabel})`,
+    shortType: `Fine-tuned ${taskLabel} Adapter`,
     icon: '🧠',
     color: 'bg-emerald-50 text-emerald-900 border-emerald-200',
     badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold',
-    description: 'Fine-tuned Sinhala generative decoder LLM. Understands complete context and writes fresh, fluent journalistic Sinhala summaries.',
-    fluencyRating: '⭐⭐⭐⭐⭐ (Human-grade)',
-    humanVerdict: 'Natural journalistic rewrite — synthesizes key facts into fluent, coherent Sinhala prose'
+    description: `Fine-tuned Sinhala LoRA adapter optimized specifically for ${task} tasks.`,
+    fluencyRating: '⭐⭐⭐⭐⭐',
+    humanVerdict: `Specialized ${task} model — applies trained journalistic rules accurately`
   };
 }
 
@@ -230,7 +249,7 @@ export default function ModelComparison() {
   const renderHighlightedOutput = (outputText, input, shouldHighlight = true) => {
     const cleanedOutput = healSinhalaText(outputText);
     if (!cleanedOutput) return <span className="text-ink-400 italic">No output generated</span>;
-    if (!shouldHighlight || !input) {
+    if (!shouldHighlight || !input || task !== 'summarizer') {
       return (
         <pre className="text-[14px] text-ink-800 font-sans font-normal leading-[1.85] whitespace-pre-wrap bg-ink-50/60 px-3.5 py-3 rounded-xl border border-ink-100 select-all min-h-[75px] m-0">
           {cleanedOutput}
@@ -329,6 +348,17 @@ export default function ModelComparison() {
     setSelectedAdapters(extList);
   };
 
+  const selectCurrentTask = () => {
+    const list = adaptersGroup[task] || [];
+    setSelectedAdapters([...list, 'base']);
+  };
+
+  const selectAllExceptCurrent = () => {
+    const otherTasks = Object.keys(adaptersGroup).filter(t => t !== task);
+    const list = otherTasks.map(t => adaptersGroup[t]).flat();
+    setSelectedAdapters([...list, 'base']);
+  };
+
   const selectAll = () => {
     const all = Object.values(adaptersGroup).flat();
     setSelectedAdapters(Array.from(new Set([...all, 'base'])));
@@ -360,8 +390,8 @@ export default function ModelComparison() {
     setLoadingProgress('Initializing model gateway...');
     const progressSteps = [
       'Loading neural weights & LoRA adapters...',
-      'Running Sinhala BPE tokenizers...',
-      'Generating abstractive summaries...',
+      'Running Sinhala tokenizers...',
+      'Generating evaluated outputs...',
       'Computing linguistic metrics...'
     ];
 
@@ -423,37 +453,26 @@ export default function ModelComparison() {
   const evaluationInsights = useMemo(() => {
     if (!results || results.length === 0) return null;
 
-    // Find best SinLLaMA model (v07 or highest version with good metrics)
-    const sinllamaModels = results.filter(r => r.category === 'summarizer' || r.adapter_name.includes('sinllama'));
-    const bestSinllama = sinllamaModels.find(r => r.adapter_name.includes('v07')) ||
-                         sinllamaModels.find(r => r.adapter_name.includes('v06')) ||
-                         sinllamaModels[0];
+    const taskSpecificModels = results.filter(r => r.category === task || r.adapter_name.includes(task) || r.adapter_name.includes('sinllama'));
+    const bestTaskModel = taskSpecificModels.find(r => r.adapter_name.includes('v07')) ||
+                          taskSpecificModels.find(r => r.adapter_name.includes('v19')) ||
+                          taskSpecificModels.find(r => r.adapter_name.includes('v27')) ||
+                          taskSpecificModels[0];
 
     const fastest = [...results].sort((a, b) => (a.latency_ms || 999999) - (b.latency_ms || 999999))[0];
-    
-    // Most abstractive (lowest verbatim copying that is still valid)
-    const withStats = results.map(r => ({
-      ...r,
-      vStats: getVerbatimStats(r.output_text, inputText)
-    }));
-    const abstractiveWinner = [...withStats]
-      .filter(r => r.adapter_name !== 'base' && r.output_text && r.output_text.length > 10)
-      .sort((a, b) => b.vStats.abstractivePct - a.vStats.abstractivePct)[0];
-
-    const topModel = bestSinllama || results[0];
+    const topModel = bestTaskModel || results[0];
 
     return {
       topModel,
       fastest,
-      abstractiveWinner,
       inputWordCount: getInputWordCount(inputText)
     };
-  }, [results, inputText]);
+  }, [results, inputText, task]);
 
   const AdapterRow = ({ name, category, displayName }) => {
     const isSelected = selectedAdapters.includes(name);
     const isLoaded = loadedInGpu.includes(name);
-    const archetype = getModelArchetype(name);
+    const archetype = getModelArchetype(name, task);
 
     return (
       <button
@@ -536,7 +555,11 @@ export default function ModelComparison() {
           <div className="flex items-start justify-between gap-4 mb-3">
             <div className="flex items-center gap-2">
               <Award className="text-amber-600 shrink-0" size={20} />
-              <h3 className="text-[15px] font-bold text-ink-900">How to Explain These Models to Non-Technical Audiences</h3>
+              <h3 className="text-[15px] font-bold text-ink-900">
+                {task === 'summarizer'
+                  ? 'How to Explain Summarizer Models to Non-Technical Audiences'
+                  : `How to Explain ${task.charAt(0).toUpperCase() + task.slice(1)} Models to Non-Technical Audiences`}
+              </h3>
             </div>
             <button
               onClick={() => setShowPresentationGuide(false)}
@@ -546,34 +569,117 @@ export default function ModelComparison() {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[12.5px] leading-relaxed text-ink-700">
-            <div className="p-3.5 bg-white rounded-xl border border-amber-100 flex flex-col gap-1.5">
-              <span className="font-bold text-amber-950 flex items-center gap-1.5">
-                ✂️ Extractive (Copy-Paste)
-              </span>
-              <p>
-                Like taking a yellow highlighter to a newspaper. It cuts out 1 or 2 existing sentences. It <b>never writes new words</b> and cannot link facts from different paragraphs together.
-              </p>
-            </div>
+          {task === 'summarizer' ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[12.5px] leading-relaxed text-ink-700">
+              <div className="p-3.5 bg-white rounded-xl border border-amber-100 flex flex-col gap-1.5">
+                <span className="font-bold text-amber-950 flex items-center gap-1.5">
+                  ✂️ Extractive (Copy-Paste)
+                </span>
+                <p>
+                  Like taking a yellow highlighter to a newspaper. It cuts out 1 or 2 existing sentences. It <b>never writes new words</b> and cannot link facts from different paragraphs together.
+                </p>
+              </div>
 
-            <div className="p-3.5 bg-white rounded-xl border border-amber-100 flex flex-col gap-1.5">
-              <span className="font-bold text-blue-950 flex items-center gap-1.5">
-                📘 mT5 Teacher Baseline
-              </span>
-              <p>
-                An older general translation/summary model. It does write new sentences, but frequently produces repetitive phrases or misses subtle Sinhala grammatical agreements.
-              </p>
-            </div>
+              <div className="p-3.5 bg-white rounded-xl border border-amber-100 flex flex-col gap-1.5">
+                <span className="font-bold text-blue-950 flex items-center gap-1.5">
+                  📘 mT5 Teacher Baseline
+                </span>
+                <p>
+                  An older general translation/summary model. It does write new sentences, but frequently produces repetitive phrases or misses subtle Sinhala grammatical agreements.
+                </p>
+              </div>
 
-            <div className="p-3.5 bg-white rounded-xl border border-emerald-200 bg-emerald-50/40 flex flex-col gap-1.5">
-              <span className="font-bold text-emerald-950 flex items-center gap-1.5">
-                🧠 SinLLaMA (Our Breakthrough)
-              </span>
-              <p>
-                Reads like a human journalist. It synthesizes the core message from the entire article and rewrites it in <b>fresh, natural, grammatically correct Sinhala prose</b>.
-              </p>
+              <div className="p-3.5 bg-white rounded-xl border border-emerald-200 bg-emerald-50/40 flex flex-col gap-1.5">
+                <span className="font-bold text-emerald-950 flex items-center gap-1.5">
+                  🧠 SinLLaMA (Our Breakthrough)
+                </span>
+                <p>
+                  Reads like a human journalist. It synthesizes the core message from the entire article and rewrites it in <b>fresh, natural, grammatically correct Sinhala prose</b>.
+                </p>
+              </div>
             </div>
-          </div>
+          ) : task === 'grammar' ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[12.5px] leading-relaxed text-ink-700">
+              <div className="p-3.5 bg-white rounded-xl border border-amber-100 flex flex-col gap-1.5">
+                <span className="font-bold text-amber-950 flex items-center gap-1.5">
+                  🔍 Spelling & Diacritics
+                </span>
+                <p>
+                  Corrects character spelling mistakes, misplaced pillam (combining marks), and Unicode NFC sequence normalization without corrupting nearby words.
+                </p>
+              </div>
+              <div className="p-3.5 bg-white rounded-xl border border-amber-100 flex flex-col gap-1.5">
+                <span className="font-bold text-blue-950 flex items-center gap-1.5">
+                  ✍️ Subject-Verb Agreement
+                </span>
+                <p>
+                  Ensures correct grammatical concordance (singular/plural and gender rules in formal Sinhala) between the sentence subject and terminal verbs.
+                </p>
+              </div>
+              <div className="p-3.5 bg-white rounded-xl border border-emerald-200 bg-emerald-50/40 flex flex-col gap-1.5">
+                <span className="font-bold text-emerald-950 flex items-center gap-1.5">
+                  🛡️ Over-Correction Guard
+                </span>
+                <p>
+                  Evaluates whether the model respects already-correct Sinhala text rather than making unnecessary or harmful edits.
+                </p>
+              </div>
+            </div>
+          ) : task === 'headline' ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[12.5px] leading-relaxed text-ink-700">
+              <div className="p-3.5 bg-white rounded-xl border border-amber-100 flex flex-col gap-1.5">
+                <span className="font-bold text-amber-950 flex items-center gap-1.5">
+                  📏 Strict Word Count Control
+                </span>
+                <p>
+                  Ensures generated headlines stay strictly within news desk targets (Short: 3–5 words, Medium: 6–7 words, Long: 8–10 words).
+                </p>
+              </div>
+              <div className="p-3.5 bg-white rounded-xl border border-amber-100 flex flex-col gap-1.5">
+                <span className="font-bold text-blue-950 flex items-center gap-1.5">
+                  🎯 Fact & Entity Preservation
+                </span>
+                <p>
+                  Accurately carries over key names, dates, quantities, and locations from the article without hallucinations.
+                </p>
+              </div>
+              <div className="p-3.5 bg-white rounded-xl border border-emerald-200 bg-emerald-50/40 flex flex-col gap-1.5">
+                <span className="font-bold text-emerald-950 flex items-center gap-1.5">
+                  📰 Broadsheet Impact
+                </span>
+                <p>
+                  Generates punchy, professional newspaper headlines following Sri Lankan editorial conventions.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[12.5px] leading-relaxed text-ink-700">
+              <div className="p-3.5 bg-white rounded-xl border border-amber-100 flex flex-col gap-1.5">
+                <span className="font-bold text-amber-950 flex items-center gap-1.5">
+                  🗞️ Tone Adaptation
+                </span>
+                <p>
+                  Transforms text between formal broadsheet, lively sports desk, youth-oriented social media, and analytical editorial tones.
+                </p>
+              </div>
+              <div className="p-3.5 bg-white rounded-xl border border-amber-100 flex flex-col gap-1.5">
+                <span className="font-bold text-blue-950 flex items-center gap-1.5">
+                  📚 Vocabulary Shift
+                </span>
+                <p>
+                  Swaps informal colloquial terms with appropriate journalistic or literary Sinhala vocabulary.
+                </p>
+              </div>
+              <div className="p-3.5 bg-white rounded-xl border border-emerald-200 bg-emerald-50/40 flex flex-col gap-1.5">
+                <span className="font-bold text-emerald-950 flex items-center gap-1.5">
+                  🎯 Core Meaning Retention
+                </span>
+                <p>
+                  Alters the style and voice while completely preserving the underlying news facts and message.
+                </p>
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
@@ -659,7 +765,7 @@ export default function ModelComparison() {
           {/* Quick preset articles */}
           {PRESET_CASES[task] && PRESET_CASES[task].length > 0 && (
             <div>
-              <label className={FIELD_LABEL}>Sample News Scenarios</label>
+              <label className={FIELD_LABEL}>Sample Scenarios</label>
               <div className="flex flex-wrap gap-1.5">
                 {PRESET_CASES[task].map((preset, i) => (
                   <button
@@ -680,7 +786,7 @@ export default function ModelComparison() {
           {/* Source Input */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label htmlFor="comparison-input" className={FIELD_LABEL}>Source Article / Text</label>
+              <label htmlFor="comparison-input" className={FIELD_LABEL}>Source Text / Input</label>
               <span className="text-[11px] text-ink-400 font-medium tabular-nums">
                 {getInputWordCount(inputText)} words ({inputText.length} chars)
               </span>
@@ -690,7 +796,7 @@ export default function ModelComparison() {
               rows={4}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Paste Sinhala news article here…"
+              placeholder="Paste Sinhala text here…"
               className={TEXTAREA_CLASS}
             />
           </div>
@@ -699,7 +805,7 @@ export default function ModelComparison() {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label htmlFor="comparison-reference" className="text-[10.5px] font-bold text-ink-500 uppercase tracking-[0.12em] flex items-center gap-1.5">
-                Human Reference Summary (Ground Truth)
+                Expected / Reference Output (Ground Truth)
                 <span className="text-[9.5px] bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full border border-blue-200/70 normal-case tracking-normal">
                   Optional
                 </span>
@@ -710,7 +816,7 @@ export default function ModelComparison() {
               rows={2}
               value={referenceText}
               onChange={(e) => setReferenceText(e.target.value)}
-              placeholder="Human editor's ideal summary for automated scoring…"
+              placeholder="Expected reference for automated metric scoring…"
               className={TEXTAREA_CLASS}
             />
           </div>
@@ -725,49 +831,75 @@ export default function ModelComparison() {
             </span>
           </div>
 
-          {/* 1-Click Comparison Suites */}
+          {/* Quick Comparison Suites (Summarizer only) vs General Selection */}
           <div className="flex flex-col gap-1.5 pb-2 border-b border-ink-100">
             <span className="text-[9.5px] font-bold text-ink-400 uppercase tracking-wider">
-              Quick Comparison Suites
+              {task === 'summarizer' ? 'Quick Comparison Suites' : 'Quick Selection'}
             </span>
-            <div className="grid grid-cols-2 gap-1.5">
-              {task === 'summarizer' && (
-                <>
-                  <button
-                    onClick={selectShowcaseSuite}
-                    className="text-[11px] font-bold px-2 py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200/60 cursor-pointer text-left flex items-center gap-1"
-                    title="SinLLaMA v07 vs mT5 vs TextRank vs Base (Ideal for presentations)"
-                  >
-                    <Trophy size={12} className="text-brand-600" />
-                    Showcase Suite (4)
-                  </button>
-                  <button
-                    onClick={selectAbstractiveOnly}
-                    className="text-[11px] font-medium px-2 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/60 cursor-pointer text-left"
-                  >
-                    🧠 Abstractive Only
-                  </button>
-                  <button
-                    onClick={selectExtractiveOnly}
-                    className="text-[11px] font-medium px-2 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer text-left"
-                  >
-                    ✂️ Extractive (5)
-                  </button>
-                </>
-              )}
-              <button
-                onClick={selectAll}
-                className="text-[11px] font-medium px-2 py-1.5 rounded-lg bg-ink-100 text-ink-700 hover:bg-ink-200 cursor-pointer text-left"
-              >
-                Select All
-              </button>
-              <button
-                onClick={clearSelection}
-                className="text-[11px] font-medium px-2 py-1.5 rounded-lg bg-ink-50 text-ink-500 hover:bg-ink-100 cursor-pointer text-left"
-              >
-                Clear
-              </button>
-            </div>
+
+            {task === 'summarizer' ? (
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  onClick={selectShowcaseSuite}
+                  className="text-[11px] font-bold px-2 py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200/60 cursor-pointer text-left flex items-center gap-1"
+                  title="SinLLaMA v07 vs mT5 vs TextRank vs Base (Ideal for presentations)"
+                >
+                  <Trophy size={12} className="text-brand-600 shrink-0" />
+                  Showcase Suite (4)
+                </button>
+                <button
+                  onClick={selectAbstractiveOnly}
+                  className="text-[11px] font-medium px-2 py-1.5 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/60 cursor-pointer text-left"
+                >
+                  🧠 Abstractive Only
+                </button>
+                <button
+                  onClick={selectExtractiveOnly}
+                  className="text-[11px] font-medium px-2 py-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 cursor-pointer text-left"
+                >
+                  ✂️ Extractive (5)
+                </button>
+                <button
+                  onClick={selectAll}
+                  className="text-[11px] font-medium px-2 py-1.5 rounded-lg bg-ink-100 text-ink-700 hover:bg-ink-200 cursor-pointer text-left"
+                >
+                  Select All
+                </button>
+                <button
+                  onClick={clearSelection}
+                  className="col-span-2 text-[11px] font-medium px-2 py-1 rounded-lg bg-ink-50 text-ink-500 hover:bg-ink-100 cursor-pointer text-center"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={selectCurrentTask}
+                  className="text-[10.5px] font-bold px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 cursor-pointer"
+                >
+                  Current task
+                </button>
+                <button
+                  onClick={selectAllExceptCurrent}
+                  className="text-[10.5px] font-medium px-2.5 py-1 rounded-lg bg-ink-100 text-ink-600 hover:bg-ink-200 cursor-pointer"
+                >
+                  All except current
+                </button>
+                <button
+                  onClick={selectAll}
+                  className="text-[10.5px] font-medium px-2.5 py-1 rounded-lg bg-ink-100 text-ink-600 hover:bg-ink-200 cursor-pointer"
+                >
+                  Select all
+                </button>
+                <button
+                  onClick={clearSelection}
+                  className="text-[10.5px] font-medium px-2.5 py-1 rounded-lg bg-ink-50 text-ink-500 hover:bg-ink-100 cursor-pointer"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Model selection list */}
@@ -777,6 +909,9 @@ export default function ModelComparison() {
             {Object.keys(adaptersGroup).map((category) => {
               const list = adaptersGroup[category] || [];
               if (list.length === 0) return null;
+              // Don't show extractive methods or mt5 in the selector list if task is grammar/headline/style
+              if (task !== 'summarizer' && ['extractive', 'mt5'].includes(category)) return null;
+
               return (
                 <div key={category} className="mt-2 flex flex-col gap-1.5">
                   <span className="text-[9.5px] font-bold text-ink-400 uppercase pl-1 tracking-[0.14em]">
@@ -825,20 +960,22 @@ export default function ModelComparison() {
               </span>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setHighlightMatches(prev => !prev)}
-                className={`inline-flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-1.5 rounded-full border transition-all duration-150 cursor-pointer
-                  ${highlightMatches
-                    ? 'bg-yellow-100/90 text-yellow-900 border-yellow-300 shadow-sm'
-                    : 'bg-white text-ink-600 border-ink-200 hover:bg-ink-50'}`}
-                title="Toggle highlighting of words directly extracted from source text"
-              >
-                <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 border border-yellow-500 shrink-0" />
-                Highlight Verbatim Matches
-              </button>
-            </div>
+            {task === 'summarizer' && (
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setHighlightMatches(prev => !prev)}
+                  className={`inline-flex items-center gap-1.5 text-[12px] font-semibold px-3.5 py-1.5 rounded-full border transition-all duration-150 cursor-pointer
+                    ${highlightMatches
+                      ? 'bg-yellow-100/90 text-yellow-900 border-yellow-300 shadow-sm'
+                      : 'bg-white text-ink-600 border-ink-200 hover:bg-ink-50'}`}
+                  title="Toggle highlighting of words directly extracted from source text"
+                >
+                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 border border-yellow-500 shrink-0" />
+                  Highlight Verbatim Matches
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── Executive Non-Technical Verdict Panel ── */}
@@ -865,53 +1002,61 @@ export default function ModelComparison() {
               </div>
 
               {/* Explanatory breakdown */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-                <div className="lg:col-span-7 flex flex-col gap-2">
-                  <p className="text-[13.5px] text-ink-800 leading-relaxed font-medium">
-                    <span className="text-emerald-700 font-bold">Why is {evaluationInsights.topModel?.adapter_name} the best output?</span>
-                  </p>
-                  <ul className="text-[12.5px] text-ink-700 space-y-1.5 list-disc pl-4 leading-relaxed">
-                    <li>
-                      <b>Natural Journalistic Synthesis:</b> Unlike extractive methods that simply slice and paste raw sentences, our model synthesizes information from across the entire article into fresh Sinhala prose.
-                    </li>
-                    <li>
-                      <b>Linguistic Coherence:</b> Adheres to standard Sinhala grammatical agreements (Subject-Object-Verb concordance) and proper punctuation.
-                    </li>
-                    <li>
-                      <b>Target Compression:</b> Accurately condensed {evaluationInsights.inputWordCount} original words into a concise news briefing.
-                    </li>
-                  </ul>
-                </div>
+              {task === 'summarizer' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+                  <div className="lg:col-span-7 flex flex-col gap-2">
+                    <p className="text-[13.5px] text-ink-800 leading-relaxed font-medium">
+                      <span className="text-emerald-700 font-bold">Why is {evaluationInsights.topModel?.adapter_name} the best output?</span>
+                    </p>
+                    <ul className="text-[12.5px] text-ink-700 space-y-1.5 list-disc pl-4 leading-relaxed">
+                      <li>
+                        <b>Natural Journalistic Synthesis:</b> Unlike extractive methods that simply slice and paste raw sentences, our model synthesizes information from across the entire article into fresh Sinhala prose.
+                      </li>
+                      <li>
+                        <b>Linguistic Coherence:</b> Adheres to standard Sinhala grammatical agreements (Subject-Object-Verb concordance) and proper punctuation.
+                      </li>
+                      <li>
+                        <b>Target Compression:</b> Accurately condensed {evaluationInsights.inputWordCount} original words into a concise news briefing.
+                      </li>
+                    </ul>
+                  </div>
 
-                <div className="lg:col-span-5 bg-white p-3.5 rounded-xl border border-ink-200/80 flex flex-col gap-2.5">
-                  <span className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">
-                    Model Approaches at a Glance
-                  </span>
-                  <div className="space-y-1.5 text-[11.5px]">
-                    <div className="flex items-center justify-between p-1.5 rounded-lg bg-emerald-50/70 border border-emerald-100">
-                      <span className="font-bold text-emerald-900">🧠 SinLLaMA LoRA</span>
-                      <span className="text-emerald-800 font-medium">Human-like abstractive rewrite</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 rounded-lg bg-blue-50/70 border border-blue-100">
-                      <span className="font-bold text-blue-900">📘 mT5 Teacher</span>
-                      <span className="text-blue-800 font-medium">Baseline neural translation</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-200">
-                      <span className="font-bold text-slate-800">✂️ TextRank / TF-IDF</span>
-                      <span className="text-slate-700 font-medium">Verbatim copy-paste</span>
-                    </div>
-                    <div className="flex items-center justify-between p-1.5 rounded-lg bg-amber-50/70 border border-amber-100">
-                      <span className="font-bold text-amber-900">⚠️ SinLLaMA Base</span>
-                      <span className="text-amber-800 font-medium">Raw LLM (unfine-tuned)</span>
+                  <div className="lg:col-span-5 bg-white p-3.5 rounded-xl border border-ink-200/80 flex flex-col gap-2.5">
+                    <span className="text-[11px] font-bold text-ink-500 uppercase tracking-wider">
+                      Model Approaches at a Glance
+                    </span>
+                    <div className="space-y-1.5 text-[11.5px]">
+                      <div className="flex items-center justify-between p-1.5 rounded-lg bg-emerald-50/70 border border-emerald-100">
+                        <span className="font-bold text-emerald-900">🧠 SinLLaMA LoRA</span>
+                        <span className="text-emerald-800 font-medium">Human-like abstractive rewrite</span>
+                      </div>
+                      <div className="flex items-center justify-between p-1.5 rounded-lg bg-blue-50/70 border border-blue-100">
+                        <span className="font-bold text-blue-900">📘 mT5 Teacher</span>
+                        <span className="text-blue-800 font-medium">Baseline neural translation</span>
+                      </div>
+                      <div className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50 border border-slate-200">
+                        <span className="font-bold text-slate-800">✂️ TextRank / TF-IDF</span>
+                        <span className="text-slate-700 font-medium">Verbatim copy-paste</span>
+                      </div>
+                      <div className="flex items-center justify-between p-1.5 rounded-lg bg-amber-50/70 border border-amber-100">
+                        <span className="font-bold text-amber-900">⚠️ SinLLaMA Base</span>
+                        <span className="text-amber-800 font-medium">Raw LLM (unfine-tuned)</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex flex-col gap-2 text-[12.5px] text-ink-700">
+                  <p className="text-[13.5px] text-ink-800 font-medium">
+                    <span className="text-emerald-700 font-bold">{evaluationInsights.topModel?.adapter_name}</span> scored highest on {task} accuracy and linguistic evaluation metrics.
+                  </p>
+                </div>
+              )}
             </Card>
           )}
 
-          {/* Highlight legend banner */}
-          {highlightMatches && (
+          {/* Highlight legend banner (Summarizer only) */}
+          {task === 'summarizer' && highlightMatches && (
             <div className="bg-yellow-50/80 border border-yellow-200/90 rounded-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-[12px] text-yellow-950">
               <span className="flex items-center gap-2">
                 <span className="bg-yellow-200 text-yellow-950 font-bold px-1.5 py-0.5 rounded border border-yellow-300 text-[11px]">
@@ -928,7 +1073,7 @@ export default function ModelComparison() {
           {/* ── Side-by-Side Model Output Cards ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {results.map((res) => {
-              const archetype = getModelArchetype(res.adapter_name);
+              const archetype = getModelArchetype(res.adapter_name, task);
               const hasMetrics = res.metrics && Object.keys(res.metrics).length > 0;
               const vStats = getVerbatimStats(res.output_text, inputText);
               const isTop = evaluationInsights?.topModel?.adapter_name === res.adapter_name;
@@ -995,19 +1140,21 @@ export default function ModelComparison() {
                   {/* Body Content */}
                   <div className="p-4 flex-1 flex flex-col justify-between gap-4">
                     <div>
-                      {/* Sub-header with verbatim gauge */}
+                      {/* Sub-header with verbatim gauge (Summarizer only) */}
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <span className="text-[9.5px] font-bold text-ink-400 uppercase tracking-wider">Output</span>
-                          <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border tabular-nums ${
-                              vStats.matchPct >= 80
-                                ? 'bg-yellow-100 text-yellow-900 border-yellow-300'
-                                : 'bg-emerald-50 text-emerald-900 border-emerald-200'
-                            }`}
-                          >
-                            {vStats.abstractivePct}% Abstractive ({vStats.matchPct}% Verbatim)
-                          </span>
+                          {task === 'summarizer' && (
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border tabular-nums ${
+                                vStats.matchPct >= 80
+                                  ? 'bg-yellow-100 text-yellow-900 border-yellow-300'
+                                  : 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                              }`}
+                            >
+                              {vStats.abstractivePct}% Abstractive ({vStats.matchPct}% Verbatim)
+                            </span>
+                          )}
                         </div>
                         <CopyButton text={res.output_text} label="" className="!px-1.5" />
                       </div>
@@ -1016,27 +1163,29 @@ export default function ModelComparison() {
                       {renderHighlightedOutput(res.output_text, inputText, highlightMatches)}
                     </div>
 
-                    {/* Compression & Synthesis Bar */}
-                    <div className="space-y-2 border-t border-ink-100 pt-3 text-[11px] text-ink-600">
-                      <div className="flex items-center justify-between">
-                        <span>Compression</span>
-                        <span className="font-bold text-ink-900 tabular-nums">
-                          {originalWordCount} → {summaryWordCount} words ({compressionPct}% condensed)
-                        </span>
+                    {/* Compression & Synthesis Bar (Summarizer only) */}
+                    {task === 'summarizer' && (
+                      <div className="space-y-2 border-t border-ink-100 pt-3 text-[11px] text-ink-600">
+                        <div className="flex items-center justify-between">
+                          <span>Compression</span>
+                          <span className="font-bold text-ink-900 tabular-nums">
+                            {originalWordCount} → {summaryWordCount} words ({compressionPct}% condensed)
+                          </span>
+                        </div>
+                        <div className="w-full bg-ink-100 h-1.5 rounded-full overflow-hidden flex">
+                          <div
+                            className="bg-emerald-500 h-full"
+                            style={{ width: `${vStats.abstractivePct}%` }}
+                            title={`Abstractive Synthesis: ${vStats.abstractivePct}%`}
+                          />
+                          <div
+                            className="bg-yellow-400 h-full"
+                            style={{ width: `${vStats.matchPct}%` }}
+                            title={`Extracted Overlap: ${vStats.matchPct}%`}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full bg-ink-100 h-1.5 rounded-full overflow-hidden flex">
-                        <div
-                          className="bg-emerald-500 h-full"
-                          style={{ width: `${vStats.abstractivePct}%` }}
-                          title={`Abstractive Synthesis: ${vStats.abstractivePct}%`}
-                        />
-                        <div
-                          className="bg-yellow-400 h-full"
-                          style={{ width: `${vStats.matchPct}%` }}
-                          title={`Extracted Overlap: ${vStats.matchPct}%`}
-                        />
-                      </div>
-                    </div>
+                    )}
 
                     {/* Runtime latency */}
                     <div className="border-t border-ink-100 pt-2.5 flex justify-between items-center text-[11px] text-ink-500 tabular-nums">
@@ -1092,7 +1241,7 @@ export default function ModelComparison() {
                   <tbody>
                     {results.map((res) => {
                       const m = res.metrics || {};
-                      const archetype = getModelArchetype(res.adapter_name);
+                      const archetype = getModelArchetype(res.adapter_name, task);
                       return (
                         <tr key={res.adapter_name} className="border-b border-ink-100 last:border-0 hover:bg-ink-50/50 font-medium tabular-nums">
                           <td className="p-3 font-bold text-ink-800 whitespace-nowrap">
