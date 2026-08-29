@@ -80,25 +80,41 @@ function staticPageMarkup(page) {
 }
 
 function seoPrerenderPlugin() {
+  let resolvedConfig
   return {
     name: 'sinai-seo-prerender',
     apply: 'build',
-    closeBundle() {
-      const outputDir = path.join(__dirname, 'dist')
-      const indexPath = path.join(outputDir, 'index.html')
-      const template = fs.readFileSync(indexPath, 'utf8')
+    configResolved(config) {
+      resolvedConfig = config
+    },
+    writeBundle() {
+      try {
+        const outputDir = resolvedConfig?.build?.outDir
+          ? path.resolve(resolvedConfig.root, resolvedConfig.build.outDir)
+          : path.join(__dirname, 'dist')
+        const indexPath = path.join(outputDir, 'index.html')
 
-      for (const page of Object.values(SEO_PAGES)) {
-        const html = template
-          .replace(/<!-- seo:managed-start -->[\s\S]*?<!-- seo:managed-end -->/, managedHead(page))
-          .replace('<div id="root"></div>', `<div id="root">${staticPageMarkup(page)}</div>`)
+        if (!fs.existsSync(indexPath)) {
+          console.warn(`[sinai-seo-prerender] index.html not found at ${indexPath}, skipping prerender.`)
+          return
+        }
 
-        const destination = page.path === '/'
-          ? indexPath
-          : path.join(outputDir, page.path.slice(1), 'index.html')
+        const template = fs.readFileSync(indexPath, 'utf8')
 
-        fs.mkdirSync(path.dirname(destination), { recursive: true })
-        fs.writeFileSync(destination, html)
+        for (const page of Object.values(SEO_PAGES)) {
+          const html = template
+            .replace(/<!-- seo:managed-start -->[\s\S]*?<!-- seo:managed-end -->/, managedHead(page))
+            .replace('<div id="root"></div>', `<div id="root">${staticPageMarkup(page)}</div>`)
+
+          const destination = page.path === '/'
+            ? indexPath
+            : path.join(outputDir, page.path.slice(1), 'index.html')
+
+          fs.mkdirSync(path.dirname(destination), { recursive: true })
+          fs.writeFileSync(destination, html)
+        }
+      } catch (err) {
+        console.warn(`[sinai-seo-prerender] Warning during SEO prerender: ${err.message}`)
       }
     },
   }

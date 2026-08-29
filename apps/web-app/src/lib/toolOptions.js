@@ -33,6 +33,12 @@ export const HEADLINE_LENGTHS_OPTIONS = [
   { id: 'long', label: 'Long', desc: '8–10 words' },
 ];
 
+export const HEADLINE_COUNTS = [
+  { id: 3, label: '3 headlines' },
+  { id: 5, label: '5 headlines' },
+  { id: 7, label: '7 headlines' },
+];
+
 // `id` is the exact adapter folder name the inference server discovers under
 // models/adapters/ (see SinAI-Training/work/serve_sinai.py's
 // find_latest_adapters()/discover_adapters()) — it goes straight into the
