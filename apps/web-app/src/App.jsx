@@ -41,7 +41,6 @@ import RewriterSettings from './admin/pages/settings/RewriterSettings';
 import SummarizerSettings from './admin/pages/settings/SummarizerSettings';
 import Activity from './admin/pages/Activity';
 import SinLLamaPage from './admin/research/SinLLamaPage';
-import SummarizerPlayground from './admin/research/SummarizerPlayground';
 import ModelComparison from './admin/research/ModelComparison';
 import Onboarding from './components/onboarding/Onboarding';
 import SeoLandingPage from './components/seo/SeoLandingPage';
@@ -484,7 +483,7 @@ function App() {
           <Route path="settings/summarizer" element={<SummarizerSettings />} />
           <Route path="activity" element={<Activity />} />
           <Route path="research/playground" element={<SinLLamaPage />} />
-          <Route path="research/summarizer-lab" element={<SummarizerPlayground />} />
+          <Route path="research/summarizer-lab" element={<Navigate to="/admin/research/comparison" replace />} />
           <Route path="research/comparison" element={<ModelComparison />} />
         </Route>
       </Routes>
