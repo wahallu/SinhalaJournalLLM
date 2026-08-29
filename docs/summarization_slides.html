@@ -8,7 +8,7 @@
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Sinhala:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Sinhala:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <style>
     :root {
@@ -85,7 +85,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 56px 72px 44px 72px;
+      padding: 50px 72px 40px 72px;
     }
 
     /* Slide Header */
@@ -93,11 +93,11 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
 
     .eyebrow {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       letter-spacing: 0.18em;
       text-transform: uppercase;
@@ -105,7 +105,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .eyebrow::before {
@@ -118,7 +118,7 @@
     }
 
     .slide-title {
-      font-size: 40px;
+      font-size: 38px;
       font-weight: 800;
       color: var(--text-main);
       letter-spacing: -0.03em;
@@ -128,9 +128,9 @@
     .slide-badge {
       background: #ffffff;
       border: 1px solid var(--border-card);
-      padding: 10px 18px;
+      padding: 9px 16px;
       border-radius: 12px;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 700;
       color: var(--text-muted);
       display: flex;
@@ -151,7 +151,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
       justify-content: flex-start;
     }
 
@@ -160,7 +160,7 @@
       background: var(--card-bg);
       border-radius: 18px;
       border: 1px solid var(--border-subtle);
-      padding: 24px;
+      padding: 20px 24px;
       box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.04);
     }
 
@@ -168,19 +168,19 @@
     .grid-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      gap: 18px;
     }
 
     .grid-3 {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
-      gap: 20px;
+      gap: 18px;
     }
 
     .grid-4 {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 18px;
+      gap: 16px;
     }
 
     /* Source vs Reference Banner */
@@ -189,9 +189,9 @@
       grid-template-columns: 1.35fr 1fr;
       gap: 20px;
       background: #ffffff;
-      border-radius: 18px;
+      border-radius: 16px;
       border: 1px solid var(--border-subtle);
-      padding: 20px 24px;
+      padding: 16px 22px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
 
@@ -199,11 +199,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .input-box-label {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 800;
       letter-spacing: 0.12em;
       text-transform: uppercase;
@@ -211,17 +211,17 @@
     }
 
     .word-badge {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 700;
-      padding: 3px 10px;
+      padding: 2px 10px;
       border-radius: 20px;
       background: #f1f5f9;
       color: #334155;
     }
 
     .input-box-text {
-      font-size: 15px;
-      line-height: 1.7;
+      font-size: 14.5px;
+      line-height: 1.65;
       color: #1e293b;
     }
 
@@ -242,20 +242,16 @@
       box-shadow: 0 10px 25px -5px rgba(5, 150, 105, 0.15), 0 0 0 1px var(--emerald-main);
     }
 
-    .model-card.baseline {
-      border-color: #93c5fd;
-    }
-
     .model-card.extractive {
       border-color: #cbd5e1;
     }
 
-    .model-card.base {
-      border-color: #fcd34d;
+    .model-card.baseline {
+      border-color: #fca5a5;
     }
 
     .model-card-header {
-      padding: 16px 20px;
+      padding: 14px 18px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -267,38 +263,33 @@
       color: #065f46;
     }
 
-    .baseline .model-card-header {
-      background: var(--blue-bg);
-      color: #1e40af;
-    }
-
     .extractive .model-card-header {
       background: var(--slate-bg);
       color: #334155;
     }
 
-    .base .model-card-header {
-      background: var(--amber-bg);
-      color: #92400e;
+    .baseline .model-card-header {
+      background: #fef2f2;
+      color: #991b1b;
     }
 
     .model-title-group h3 {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 800;
       letter-spacing: -0.01em;
     }
 
     .model-title-group p {
-      font-size: 11.5px;
-      font-weight: 600;
+      font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       opacity: 0.85;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     .status-pill {
-      font-size: 11.5px;
+      font-size: 11px;
       font-weight: 800;
       padding: 4px 12px;
       border-radius: 30px;
@@ -312,39 +303,46 @@
       box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
     }
 
-    .pill-baseline {
+    .pill-fastest {
       background: #3b82f6;
       color: #ffffff;
     }
 
-    .pill-extractive {
-      background: #64748b;
-      color: #ffffff;
-    }
-
-    .pill-warning {
-      background: #f59e0b;
+    .pill-failure {
+      background: #dc2626;
       color: #ffffff;
     }
 
     .model-card-body {
-      padding: 20px;
+      padding: 18px;
       flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 16px;
+      gap: 12px;
     }
 
     .output-speech-bubble {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
-      border-radius: 14px;
-      padding: 16px;
-      font-size: 15.5px;
-      line-height: 1.75;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 14px;
+      line-height: 1.7;
       color: #0f172a;
-      min-height: 105px;
+      min-height: 125px;
+      max-height: 125px;
+      overflow-y: auto;
+    }
+
+    .output-speech-bubble.collapsed {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #991b1b;
+      background: #fff1f2;
+      border-color: #fecdd3;
+      word-break: break-all;
     }
 
     mark.extracted {
@@ -357,12 +355,12 @@
     /* Verdict & Feature List */
     .verdict-box {
       border-radius: 10px;
-      padding: 12px 14px;
-      font-size: 12.5px;
-      line-height: 1.5;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.45;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
     }
 
     .champion .verdict-box {
@@ -371,27 +369,21 @@
       color: #14532d;
     }
 
-    .baseline .verdict-box {
-      background: #eff6ff;
-      border: 1px solid #dbeafe;
-      color: #1e3a8a;
-    }
-
     .extractive .verdict-box {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       color: #334155;
     }
 
-    .base .verdict-box {
-      background: #fffbeb;
-      border: 1px solid #fef3c7;
-      color: #78350f;
+    .baseline .verdict-box {
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      color: #881337;
     }
 
     .verdict-title {
       font-weight: 800;
-      font-size: 12px;
+      font-size: 11.5px;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -402,10 +394,10 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 600;
       color: var(--text-muted);
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     .metric-val {
@@ -415,12 +407,12 @@
 
     .progress-track {
       width: 100%;
-      height: 8px;
+      height: 7px;
       background: #e2e8f0;
       border-radius: 4px;
       overflow: hidden;
       display: flex;
-      margin-top: 6px;
+      margin-top: 4px;
     }
 
     .progress-fill-emerald {
@@ -433,36 +425,41 @@
       background: #eab308;
     }
 
+    .progress-fill-red {
+      height: 100%;
+      background: #ef4444;
+    }
+
     /* Quantitative Score Grid */
     .mini-score-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-top: 8px;
+      gap: 6px;
+      margin-top: 6px;
       border-top: 1px solid #f1f5f9;
-      padding-top: 10px;
+      padding-top: 8px;
     }
 
     .mini-score-item {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      padding: 6px 8px;
+      padding: 5px 6px;
       text-align: center;
     }
 
     .mini-score-label {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
       color: #64748b;
       text-transform: uppercase;
     }
 
     .mini-score-value {
-      font-size: 13.5px;
+      font-size: 13px;
       font-weight: 800;
       color: #0f172a;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     .val-target {
@@ -481,19 +478,19 @@
     .dark-banner {
       background: var(--banner-dark);
       color: #ffffff;
-      border-radius: 18px;
-      padding: 22px 32px;
+      border-radius: 16px;
+      padding: 18px 28px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 30px;
+      gap: 24px;
       box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.3);
     }
 
     .dark-banner-text {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 500;
-      line-height: 1.6;
+      line-height: 1.55;
       color: #cbd5e1;
       flex: 1;
     }
@@ -523,9 +520,9 @@
 
     .banner-stat-box {
       display: flex;
-      gap: 24px;
+      gap: 20px;
       border-left: 1px solid #334155;
-      padding-left: 30px;
+      padding-left: 24px;
     }
 
     .stat-unit {
@@ -535,19 +532,19 @@
     }
 
     .stat-num {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 800;
       color: #ffffff;
       letter-spacing: -0.02em;
     }
 
     .stat-lbl {
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 700;
       color: #94a3b8;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     /* Slide Footer */
@@ -559,7 +556,7 @@
       font-weight: 600;
       color: var(--text-light);
       border-top: 1px solid #e2e8f0;
-      padding-top: 16px;
+      padding-top: 14px;
     }
 
     .footer-brand {
@@ -581,8 +578,8 @@
 
     .matrix-table th {
       background: #f1f5f9;
-      padding: 16px 20px;
-      font-size: 12px;
+      padding: 14px 18px;
+      font-size: 11.5px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.1em;
@@ -596,8 +593,8 @@
     }
 
     .matrix-table td {
-      padding: 16px 20px;
-      font-size: 14.5px;
+      padding: 14px 18px;
+      font-size: 14px;
       color: #1e293b;
       border-bottom: 1px solid #f1f5f9;
       vertical-align: middle;
@@ -619,10 +616,10 @@
 
     .score-badge {
       display: inline-block;
-      padding: 5px 12px;
+      padding: 4px 10px;
       border-radius: 20px;
       font-weight: 800;
-      font-size: 13px;
+      font-size: 12.5px;
     }
 
     .badge-target {
@@ -710,7 +707,7 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- SLIDE 1: QUALITATIVE 4-PARADIGM BENCHMARK PROOF                          -->
+  <!-- SLIDE 1: QUALITATIVE 3-WAY COMPARATIVE BENCHMARK PROOF                    -->
   <!-- ========================================================================= -->
   <div class="slide-wrapper" id="slide-1">
     
@@ -722,7 +719,7 @@
       </div>
       <div class="slide-badge">
         <span class="badge-dot"></span>
-        <span>Controlled Frozen Split (819 Evaluations)</span>
+        <span>Controlled Evaluation Across 3 Paradigms</span>
       </div>
     </div>
 
@@ -759,8 +756,8 @@
         <div class="model-card champion">
           <div class="model-card-header">
             <div class="model-title-group">
-              <h3>SinLLaMA-v07 (Our Model)</h3>
-              <p>Fine-tuned Generative Decoder LLM</p>
+              <h3>summarization_sinllama_v07</h3>
+              <p>Fine-tuned Abstractive LLM</p>
             </div>
             <span class="status-pill pill-champion">🏆 Best Output</span>
           </div>
@@ -771,145 +768,156 @@
                 "මහාමාර්ග අමාත්‍යාංශය බස්නාහිරපළාත් මාර්ග ප්‍රතිසංස්කරණ ව්‍යාපෘතියේ පළමු පියවර ලබන සතියේ අරඹයි; රු.මිලියන 500 වෙන්කර, කාලය මාස 6 කි."
               </div>
 
-              <div class="verdict-box" style="margin-top: 12px;">
+              <div class="verdict-box" style="margin-top: 10px;">
                 <span class="verdict-title">⭐⭐⭐⭐⭐ Human-Grade Synthesis</span>
-                <p>Synthesizes core facts from <b>all 3 source sentences</b> into fluent broadsheet Sinhala with perfect subject-predicate concordance.</p>
+                <p>Natural journalistic rewrite — synthesizes key facts from <b>all 3 source sentences</b> into fluent, coherent Sinhala prose.</p>
               </div>
             </div>
 
             <div>
               <div class="metric-row">
-                <span>Abstractive Synthesis</span>
+                <span>Output Synthesis</span>
                 <span class="metric-val" style="color: #059669;">41% Abstractive (59% Verbatim)</span>
               </div>
               <div class="progress-track">
                 <div class="progress-fill-emerald" style="width: 41%;"></div>
                 <div class="progress-fill-yellow" style="width: 59%;"></div>
               </div>
-              <div class="metric-row" style="margin-top: 8px;">
+              <div class="metric-row" style="margin-top: 6px;">
                 <span>Compression</span>
                 <span class="metric-val">53 → 22 words (58% condensed)</span>
               </div>
+              <div class="metric-row" style="font-size: 10.5px; color: #64748b; margin-top: 2px;">
+                <span>Speed: <b>14.53 s</b> (8.95 tok/s)</span>
+                <span>Output: <b>130 tokens</b></span>
+              </div>
 
               <div class="mini-score-grid">
                 <div class="mini-score-item">
                   <div class="mini-score-label">ROUGE-L</div>
-                  <div class="mini-score-value val-target">48.7%</div>
+                  <div class="mini-score-value val-target">49%</div>
                 </div>
                 <div class="mini-score-item">
                   <div class="mini-score-label">BERTScore</div>
-                  <div class="mini-score-value val-target">90.6%</div>
+                  <div class="mini-score-value val-target">91%</div>
                 </div>
                 <div class="mini-score-item">
                   <div class="mini-score-label">GLEU</div>
-                  <div class="mini-score-value val-target">50.2%</div>
+                  <div class="mini-score-value val-target">50%</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- CARD 2: mT5-Base (Teacher Baseline) -->
-        <div class="model-card baseline">
-          <div class="model-card-header">
-            <div class="model-title-group">
-              <h3>mT5-Base (Teacher)</h3>
-              <p>Multilingual Seq2Seq Baseline</p>
-            </div>
-            <span class="status-pill pill-baseline">📘 Teacher Baseline</span>
-          </div>
-
-          <div class="model-card-body">
-            <div>
-              <div class="output-speech-bubble si" style="color: #1e3a8a;">
-                "බස්නාහිර පළාතේ ප්‍රධාන මාර්ග ප්‍රතිසංස්කරණය කිරීමේ ව්‍යාපෘතියක් ආරම්භ කිරීමට මහාමාර්ග අමාත්‍යාංශය තීරණය කරයි."
-              </div>
-
-              <div class="verdict-box" style="margin-top: 12px;">
-                <span class="verdict-title" style="color: #1e40af;">⭐⭐⭐ Incomplete Factual Coverage</span>
-                <p>Acceptable fluency, but <b>completely dropped critical numerical figures</b> (Rs. 500M budget and 6-month project deadline).</p>
-              </div>
-            </div>
-
-            <div>
-              <div class="metric-row">
-                <span>Abstractive Synthesis</span>
-                <span class="metric-val" style="color: #2563eb;">28% Abstractive (72% Verbatim)</span>
-              </div>
-              <div class="progress-track">
-                <div class="progress-fill-emerald" style="width: 28%; background: #3b82f6;"></div>
-                <div class="progress-fill-yellow" style="width: 72%;"></div>
-              </div>
-              <div class="metric-row" style="margin-top: 8px;">
-                <span>Compression</span>
-                <span class="metric-val">53 → 14 words (73% condensed)</span>
-              </div>
-
-              <div class="mini-score-grid">
-                <div class="mini-score-item">
-                  <div class="mini-score-label">ROUGE-L</div>
-                  <div class="mini-score-value val-good">42.0%</div>
-                </div>
-                <div class="mini-score-item">
-                  <div class="mini-score-label">BERTScore</div>
-                  <div class="mini-score-value val-good">86.8%</div>
-                </div>
-                <div class="mini-score-item">
-                  <div class="mini-score-label">GLEU</div>
-                  <div class="mini-score-value val-good">36.1%</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- CARD 3: TextRank / TF-IDF (Extractive Baseline) -->
+        <!-- CARD 2: TextRank (Extractive Baseline) -->
         <div class="model-card extractive">
           <div class="model-card-header">
             <div class="model-title-group">
-              <h3>TextRank / TF-IDF</h3>
-              <p>Classical Extractive Algorithm</p>
+              <h3>TEXTRANK (Extractive)</h3>
+              <p>Extractive (Copy-Paste Algorithm)</p>
             </div>
-            <span class="status-pill pill-extractive">✂️ Copy-Paste</span>
+            <span class="status-pill pill-fastest">⚡ Fastest</span>
           </div>
 
           <div class="model-card-body">
             <div>
               <div class="output-speech-bubble si" style="color: #334155; background: #fefce8; border-color: #fef08a;">
-                "<mark class="extracted">මේ සඳහා රුපියල් මිලියන 500 ක මුදලක් වෙන්කර ඇති අතර ව්‍යාපෘතිය මාස 6 ක් ඇතුළත අවසන් කිරීමට නියමිතය.</mark>"
+                "<mark class="extracted">බස්නාහිර පළාතේ ප්‍රධාන මාර්ග කිහිපයක් ප්‍රතිසංස්කරණය කිරීමේ විශාල ව්‍යාපෘතියක් ලබන සතියේ සිට ආරම්භ කිරීමට මහාමාර්ග අමාත්‍යාංශය තීරණය කර ඇත. මේ සඳහා රුපියල් මිලියන 500 ක මුදලක් වෙන්කර ඇති අතර ව්‍යාපෘතිය මාස 6 ක් ඇතුළත අවසන් කිරීමට නියමිතය. මෙමගින් නගරබද මාර්ග තදබදය සැලකිය යුතු ලෙස අඩුවනු ඇතැයි අපේක්ෂා කෙරේ.</mark>"
               </div>
 
-              <div class="verdict-box" style="margin-top: 12px;">
-                <span class="verdict-title" style="color: #475569;">⭐⭐ Fragmented Extraction</span>
-                <p>Literally slices Sentence #2. Reader has <b>zero context</b> on what project or which province this budget is allocated for.</p>
+              <div class="verdict-box" style="margin-top: 10px;">
+                <span class="verdict-title" style="color: #475569;">⭐⭐ Rigid Copy-Paste</span>
+                <p>Verbatim extraction — cuts and pastes entire input without synthesis or condensation (0% abstractive compression).</p>
               </div>
             </div>
 
             <div>
               <div class="metric-row">
-                <span>Abstractive Synthesis</span>
+                <span>Output Synthesis</span>
                 <span class="metric-val" style="color: #64748b;">0% Abstractive (100% Verbatim)</span>
               </div>
               <div class="progress-track">
                 <div class="progress-fill-yellow" style="width: 100%;"></div>
               </div>
-              <div class="metric-row" style="margin-top: 8px;">
+              <div class="metric-row" style="margin-top: 6px;">
                 <span>Compression</span>
-                <span class="metric-val">53 → 18 words (66% condensed)</span>
+                <span class="metric-val" style="color: #b91c1c;">53 → 53 words (0% condensed)</span>
+              </div>
+              <div class="metric-row" style="font-size: 10.5px; color: #64748b; margin-top: 2px;">
+                <span>Speed: <b>0.14 ms</b> (1.65M tok/s)</span>
+                <span>Output: <b>240 tokens</b></span>
               </div>
 
               <div class="mini-score-grid">
                 <div class="mini-score-item">
                   <div class="mini-score-label">ROUGE-L</div>
-                  <div class="mini-score-value val-poor">35.2%</div>
+                  <div class="mini-score-value val-good">39%</div>
                 </div>
                 <div class="mini-score-item">
                   <div class="mini-score-label">BERTScore</div>
-                  <div class="mini-score-value val-poor">81.3%</div>
+                  <div class="mini-score-value val-target">91%</div>
                 </div>
                 <div class="mini-score-item">
                   <div class="mini-score-label">GLEU</div>
-                  <div class="mini-score-value val-poor">27.4%</div>
+                  <div class="mini-score-value val-poor">32%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARD 3: summarization_mt5_v01 (Encoder-Decoder Baseline) -->
+        <div class="model-card baseline">
+          <div class="model-card-header">
+            <div class="model-title-group">
+              <h3>summarization_mt5_v01</h3>
+              <p>Encoder-Decoder Baseline</p>
+            </div>
+            <span class="status-pill pill-failure">⚠️ Token Collapse</span>
+          </div>
+
+          <div class="model-card-body">
+            <div>
+              <div class="output-speech-bubble collapsed">
+                (+)35=&35=&35=335&+-+-~-~-psipsiordeac... 変わります変わります変わります... となっていますとなっています... を行いますを行います... ImaktadırImaktadır... දන්නාදැන්කැන්... いですねいいですねよかったです... 気になります気になります... 이었습니다였습니다였습니다...
+              </div>
+
+              <div class="verdict-box" style="margin-top: 10px;">
+                <span class="verdict-title" style="color: #991b1b;">⭐ Catastrophic Hallucination</span>
+                <p>Multilingual Seq2Seq collapse — loops repetitive Japanese, Korean, and Latin token artifacts. Complete failure on low-resource Sinhala.</p>
+              </div>
+            </div>
+
+            <div>
+              <div class="metric-row">
+                <span>Output Synthesis</span>
+                <span class="metric-val" style="color: #b91c1c;">100% Abstractive (0% Verbatim)</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill-red" style="width: 100%;"></div>
+              </div>
+              <div class="metric-row" style="margin-top: 6px;">
+                <span>Compression</span>
+                <span class="metric-val" style="color: #b91c1c;">53 → 53 words (0% condensed)</span>
+              </div>
+              <div class="metric-row" style="font-size: 10.5px; color: #64748b; margin-top: 2px;">
+                <span>Speed: <b>6.69 s</b> (150 tok/s)</span>
+                <span>Output: <b>1006 tokens (runaway loop)</b></span>
+              </div>
+
+              <div class="mini-score-grid">
+                <div class="mini-score-item">
+                  <div class="mini-score-label">ROUGE-L</div>
+                  <div class="mini-score-value val-poor">2.0%</div>
+                </div>
+                <div class="mini-score-item">
+                  <div class="mini-score-label">BERTScore</div>
+                  <div class="mini-score-value val-poor">72.5%</div>
+                </div>
+                <div class="mini-score-item">
+                  <div class="mini-score-label">GLEU</div>
+                  <div class="mini-score-value val-poor">0.5%</div>
                 </div>
               </div>
             </div>
@@ -921,7 +929,7 @@
       <!-- Executive Takeaway Banner -->
       <div class="dark-banner">
         <div class="dark-banner-text">
-          <strong>Key Evaluation Insight:</strong> Extractive algorithms (<span class="highlight-pill">TextRank/TF-IDF</span>) fail by isolating disconnected sentences. General teacher baselines (<span class="highlight-pill">mT5</span>) drop critical numbers. <strong style="color: #34d399;">SinLLaMA-v07 achieves human-grade synthesis</strong>, combining all facts into a 22-word headline summary with <span class="highlight-emerald">90.6% Semantic BERTScore</span>.
+          <strong>Key Architectural Proof:</strong> Extractive algorithms (<span class="highlight-pill">TextRank</span>) fail to condense (<span style="color: #fca5a5;">0% compression</span>). Multilingual baselines (<span class="highlight-pill">mT5-v01</span>) suffer from catastrophic cross-lingual token loops (<span style="color: #fca5a5;">ROUGE-L: 2.0%</span>). <strong style="color: #34d399;">SinLLaMA-v07 delivers human-grade abstractive synthesis</strong> with 58% target compression and <span class="highlight-emerald">90.6% Semantic BERTScore</span>.
         </div>
         <div class="banner-stat-box">
           <div class="stat-unit">
@@ -933,8 +941,8 @@
             <div class="stat-lbl">BERTScore</div>
           </div>
           <div class="stat-unit">
-            <div class="stat-num">94.1%</div>
-            <div class="stat-lbl">Len-Compliance</div>
+            <div class="stat-num">48.7%</div>
+            <div class="stat-lbl">ROUGE-L</div>
           </div>
         </div>
       </div>
@@ -962,7 +970,7 @@
       </div>
       <div class="slide-badge">
         <span class="badge-dot"></span>
-        <span>Evaluated on Frozen Article-Level Test Set</span>
+        <span>Green = Target · Amber = Acceptable · Red = Poor</span>
       </div>
     </div>
 
@@ -973,144 +981,96 @@
       <div class="grid-4">
         <div class="card" style="border-left: 4px solid var(--emerald-main);">
           <div class="stat-lbl" style="color: #64748b;">Semantic Fidelity</div>
-          <div style="font-size: 36px; font-weight: 800; color: #047857; margin-top: 4px;">90.6%</div>
-          <div style="font-size: 12px; color: #64748b; margin-top: 2px;">BERTScore (Sinhala RoBERTa)</div>
+          <div style="font-size: 34px; font-weight: 800; color: #047857; margin-top: 2px;">90.6%</div>
+          <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">BERTScore (Sinhala RoBERTa)</div>
         </div>
 
         <div class="card" style="border-left: 4px solid #0284c7;">
           <div class="stat-lbl" style="color: #64748b;">N-Gram Precision</div>
-          <div style="font-size: 36px; font-weight: 800; color: #0369a1; margin-top: 4px;">78.2%</div>
-          <div style="font-size: 12px; color: #64748b; margin-top: 2px;">ROUGE-1 Unigram Token Match</div>
+          <div style="font-size: 34px; font-weight: 800; color: #0369a1; margin-top: 2px;">78.2%</div>
+          <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">ROUGE-1 Unigram Token Match</div>
         </div>
 
         <div class="card" style="border-left: 4px solid #6366f1;">
           <div class="stat-lbl" style="color: #64748b;">Sequence Overlap</div>
-          <div style="font-size: 36px; font-weight: 800; color: #4338ca; margin-top: 4px;">48.7%</div>
-          <div style="font-size: 12px; color: #64748b; margin-top: 2px;">ROUGE-L (Longest Subsequence)</div>
+          <div style="font-size: 34px; font-weight: 800; color: #4338ca; margin-top: 2px;">48.7%</div>
+          <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">ROUGE-L (Longest Subsequence)</div>
         </div>
 
         <div class="card" style="border-left: 4px solid #d97706;">
-          <div class="stat-lbl" style="color: #64748b;">Length Compliance</div>
-          <div style="font-size: 36px; font-weight: 800; color: #b45309; margin-top: 4px;">94.1%</div>
-          <div style="font-size: 12px; color: #64748b; margin-top: 2px;">3-Band Length Control (Short)</div>
+          <div class="stat-lbl" style="color: #64748b;">N-Gram Agreement</div>
+          <div style="font-size: 34px; font-weight: 800; color: #b45309; margin-top: 2px;">50.2%</div>
+          <div style="font-size: 11.5px; color: #64748b; margin-top: 2px;">GLEU Sequence Score</div>
         </div>
       </div>
 
-      <!-- Main Benchmark Table -->
+      <!-- Main Benchmark Table Matching Test Run -->
       <table class="matrix-table">
         <thead>
           <tr>
-            <th>Model Architecture</th>
+            <th>Model</th>
             <th>Approach</th>
             <th class="center">Exact Match</th>
+            <th class="center">ROUGE-L</th>
             <th class="center">ROUGE-1</th>
             <th class="center">ROUGE-2</th>
-            <th class="center">ROUGE-L</th>
             <th class="center">BERTScore (Semantic)</th>
             <th class="center">GLEU</th>
-            <th class="center">Fluency & Verdict</th>
+            <th class="center">CHAR-F1</th>
           </tr>
         </thead>
         <tbody>
-          <!-- SinLLaMA-v07 (Champion) -->
+          <!-- summarization_sinllama_v07 (Champion) -->
           <tr class="champion-row">
             <td>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 18px;">🏆</span>
                 <div>
                   <span style="font-size: 15px; font-weight: 800;">summarization_sinllama_v07</span>
-                  <div style="font-size: 11px; color: #059669; font-weight: 600;">Current Release Candidate</div>
+                  <div style="font-size: 11px; color: #059669; font-weight: 600;">Our Fine-Tuned Model</div>
                 </div>
               </div>
             </td>
-            <td><span class="score-badge badge-target">Fine-tuned Abstractive</span></td>
+            <td><span class="score-badge badge-target">Fine-tuned Abstractive LLM</span></td>
             <td class="center"><span class="score-badge" style="background: #f1f5f9; color: #475569;">No</span></td>
-            <td class="center"><span class="score-badge badge-target">78.2%</span></td>
-            <td class="center"><span class="score-badge badge-target">52.3%</span></td>
             <td class="center"><span class="score-badge badge-target">48.7%</span></td>
+            <td class="center"><span class="score-badge" style="background: #f1f5f9; color: #334155;">78.2%</span></td>
+            <td class="center"><span class="score-badge" style="background: #f1f5f9; color: #334155;">52.3%</span></td>
             <td class="center"><span class="score-badge badge-target">90.6%</span></td>
             <td class="center"><span class="score-badge badge-target">50.2%</span></td>
-            <td class="center"><span style="color: #047857; font-weight: 700;">⭐⭐⭐⭐⭐ Best Overall</span></td>
+            <td class="center"><span style="color: #94a3b8; font-weight: 600;">—</span></td>
           </tr>
 
-          <!-- SinLLaMA-v06 -->
+          <!-- textrank -->
           <tr>
             <td>
-              <span style="font-weight: 700;">summarization_sinllama_v06</span>
-              <div style="font-size: 11px; color: #64748b;">Previous Checkpoint</div>
+              <span style="font-weight: 700;">textrank</span>
+              <div style="font-size: 11px; color: #64748b;">Classical Graph Extractive</div>
             </td>
-            <td><span class="score-badge badge-target">Fine-tuned Abstractive</span></td>
+            <td><span class="score-badge" style="background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0;">Extractive (Copy-Paste)</span></td>
             <td class="center"><span class="score-badge" style="background: #f1f5f9; color: #475569;">No</span></td>
-            <td class="center"><span class="score-badge badge-target">76.0%</span></td>
-            <td class="center"><span class="score-badge badge-target">48.5%</span></td>
-            <td class="center"><span class="score-badge badge-target">48.1%</span></td>
-            <td class="center"><span class="score-badge badge-target">91.1%</span></td>
-            <td class="center"><span class="score-badge badge-good">45.2%</span></td>
-            <td class="center"><span style="color: #047857; font-weight: 600;">⭐⭐⭐⭐ Excellent</span></td>
+            <td class="center"><span class="score-badge badge-acceptable">38.2%</span></td>
+            <td class="center"><span class="score-badge" style="background: #f1f5f9; color: #334155;">54.8%</span></td>
+            <td class="center"><span class="score-badge" style="background: #f1f5f9; color: #334155;">47.9%</span></td>
+            <td class="center"><span class="score-badge badge-target">91.4%</span></td>
+            <td class="center"><span class="score-badge badge-acceptable">31.6%</span></td>
+            <td class="center"><span style="color: #94a3b8; font-weight: 600;">—</span></td>
           </tr>
 
-          <!-- SinLLaMA-v05 -->
+          <!-- summarization_mt5_v01 -->
           <tr>
             <td>
-              <span style="font-weight: 700;">summarization_sinllama_v05</span>
-              <div style="font-size: 11px; color: #64748b;">Single-Length Baseline</div>
+              <span style="font-weight: 700; color: #b91c1c;">summarization_mt5_v01</span>
+              <div style="font-size: 11px; color: #dc2626;">Teacher Baseline (Unadapted)</div>
             </td>
-            <td><span class="score-badge badge-target">Fine-tuned Abstractive</span></td>
+            <td><span class="score-badge badge-good">Encoder-Decoder Baseline</span></td>
             <td class="center"><span class="score-badge" style="background: #f1f5f9; color: #475569;">No</span></td>
-            <td class="center"><span class="score-badge badge-good">69.1%</span></td>
-            <td class="center"><span class="score-badge badge-target">50.8%</span></td>
-            <td class="center"><span class="score-badge badge-good">46.3%</span></td>
-            <td class="center"><span class="score-badge badge-target">90.4%</span></td>
-            <td class="center"><span class="score-badge badge-acceptable">40.3%</span></td>
-            <td class="center"><span style="color: #0284c7; font-weight: 600;">⭐⭐⭐ Solid</span></td>
-          </tr>
-
-          <!-- mT5-Base -->
-          <tr>
-            <td>
-              <span style="font-weight: 700;">google/mt5-base</span>
-              <div style="font-size: 11px; color: #64748b;">Teacher Baseline Model</div>
-            </td>
-            <td><span class="score-badge badge-good">Seq2Seq Baseline</span></td>
-            <td class="center"><span class="score-badge" style="background: #f1f5f9; color: #475569;">No</span></td>
-            <td class="center"><span class="score-badge badge-good">64.5%</span></td>
-            <td class="center"><span class="score-badge badge-acceptable">41.2%</span></td>
-            <td class="center"><span class="score-badge badge-acceptable">42.0%</span></td>
-            <td class="center"><span class="score-badge badge-good">86.8%</span></td>
-            <td class="center"><span class="score-badge badge-acceptable">36.1%</span></td>
-            <td class="center"><span style="color: #475569; font-weight: 600;">⭐⭐⭐ Decent</span></td>
-          </tr>
-
-          <!-- TextRank -->
-          <tr>
-            <td>
-              <span style="font-weight: 700;">TextRank (Graph Extractive)</span>
-              <div style="font-size: 11px; color: #64748b;">Statistical Copy-Paste</div>
-            </td>
-            <td><span class="score-badge badge-acceptable">Extractive Algorithm</span></td>
-            <td class="center"><span class="score-badge" style="background: #f1f5f9; color: #475569;">No</span></td>
-            <td class="center"><span class="score-badge badge-poor">54.1%</span></td>
-            <td class="center"><span class="score-badge badge-poor">34.8%</span></td>
-            <td class="center"><span class="score-badge badge-poor">35.2%</span></td>
-            <td class="center"><span class="score-badge badge-poor">81.3%</span></td>
-            <td class="center"><span class="score-badge badge-poor">27.4%</span></td>
-            <td class="center"><span style="color: #b91c1c; font-weight: 600;">⭐⭐ Rigid</span></td>
-          </tr>
-
-          <!-- SinLLaMA Base -->
-          <tr>
-            <td>
-              <span style="font-weight: 700;">SinLLaMA-7B Base</span>
-              <div style="font-size: 11px; color: #64748b;">Raw Unfine-tuned Foundation</div>
-            </td>
-            <td><span class="score-badge badge-poor">Raw Decoder</span></td>
-            <td class="center"><span class="score-badge" style="background: #f1f5f9; color: #475569;">No</span></td>
-            <td class="center"><span class="score-badge badge-poor">24.6%</span></td>
-            <td class="center"><span class="score-badge badge-poor">11.2%</span></td>
-            <td class="center"><span class="score-badge badge-poor">18.4%</span></td>
-            <td class="center"><span class="score-badge badge-poor">62.1%</span></td>
-            <td class="center"><span class="score-badge badge-poor">12.0%</span></td>
-            <td class="center"><span style="color: #b91c1c; font-weight: 600;">⭐ Fails Task</span></td>
+            <td class="center"><span class="score-badge badge-poor">2.0%</span></td>
+            <td class="center"><span class="score-badge badge-poor">3.5%</span></td>
+            <td class="center"><span class="score-badge badge-poor">0.0%</span></td>
+            <td class="center"><span class="score-badge badge-poor">72.5%</span></td>
+            <td class="center"><span class="score-badge badge-poor">0.5%</span></td>
+            <td class="center"><span style="color: #94a3b8; font-weight: 600;">—</span></td>
           </tr>
         </tbody>
       </table>
@@ -1118,29 +1078,29 @@
       <!-- Explanatory Legend for Examiners -->
       <div class="grid-3">
         <div class="card" style="padding: 16px;">
-          <h4 style="font-size: 13.5px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">
-            1. Why ROUGE-L is ~49% (Expected)
+          <h4 style="font-size: 13px; font-weight: 800; color: #047857; margin-bottom: 5px;">
+            1. Why SinLLaMA-v07 Won (48.7% ROUGE-L)
           </h4>
-          <p style="font-size: 12.5px; color: #475569; line-height: 1.6;">
-            Abstractive models intentionally synthesize new phrasing rather than matching reference word-for-word. In literature, ROUGE-L &gt; 45% represents state-of-the-art abstractive summarization.
+          <p style="font-size: 12px; color: #475569; line-height: 1.55;">
+            Our LoRA adapter learns Sinhala journalistic compression rules: condensing 53 words down to 22 words while preserving the Ministry, Western Province, Rs. 500M budget, and 6-month deadline with <b>50.2% GLEU</b>.
           </p>
         </div>
 
         <div class="card" style="padding: 16px;">
-          <h4 style="font-size: 13.5px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">
-            2. BERTScore 90.6% (Semantic Accuracy)
+          <h4 style="font-size: 13px; font-weight: 800; color: #475569; margin-bottom: 5px;">
+            2. TextRank Failure Mode (0% Compression)
           </h4>
-          <p style="font-size: 12.5px; color: #475569; line-height: 1.6;">
-            Evaluates contextual embeddings in Sinhala vector space. A score of 90.6% proves that facts, numbers, and entities are completely preserved without hallucination.
+          <p style="font-size: 12px; color: #475569; line-height: 1.55;">
+            Because TextRank lacks generative vocabulary capabilities, it extracts raw sentences without rephrasing (0% abstractive synthesis). High BERTScore (91.4%) occurs solely because it repeated the input verbatim.
           </p>
         </div>
 
         <div class="card" style="padding: 16px;">
-          <h4 style="font-size: 13.5px; font-weight: 800; color: #0f172a; margin-bottom: 6px;">
-            3. Dynamic Length Control (3-Band)
+          <h4 style="font-size: 13px; font-weight: 800; color: #b91c1c; margin-bottom: 5px;">
+            3. mT5-v01 Token Degeneration (2.0% ROUGE-L)
           </h4>
-          <p style="font-size: 12.5px; color: #475569; line-height: 1.6;">
-            SinLLaMA-v07 is the only model that honors short (~10%), medium (~20%), and long (~35%) target constraints with 94.1% compliance on frozen test data.
+          <p style="font-size: 12px; color: #475569; line-height: 1.55;">
+            Without domain-specific LoRA alignment, mT5 falls into runaway autoregressive loops, producing multilingual hallucinations (Japanese/Korean glyphs), collapsing ROUGE-2 to <b>0.0%</b> and GLEU to <b>0.5%</b>.
           </p>
         </div>
       </div>
