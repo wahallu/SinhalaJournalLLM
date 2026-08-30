@@ -385,40 +385,44 @@ export default function ModelComparison() {
 
     setLoading(true);
     setError(null);
-    setResults([]);
-
-    setLoadingProgress('Initializing model gateway...');
-    const progressSteps = [
-      'Loading neural weights & LoRA adapters...',
-      'Running Sinhala tokenizers...',
-      'Generating evaluated outputs...',
-      'Computing linguistic metrics...'
-    ];
-
-    let step = 0;
-    const progressInterval = setInterval(() => {
-      if (step < progressSteps.length) {
-        setLoadingProgress(progressSteps[step]);
-        step++;
-      }
-    }, 1200);
+    setLoadingProgress('Initializing model evaluation...');
 
     try {
-      const payload = {
-        input_text: inputText,
-        adapters: selectedAdapters,
-        task: task,
-        style: task === 'style' ? styleMode : null,
-        reference_text: referenceText || null,
-        length: task === 'summarizer' ? length : null
-      };
+      let accumulated = [];
+      for (let i = 0; i < selectedAdapters.length; i++) {
+        const adapter = selectedAdapters[i];
+        setLoadingProgress(`Evaluating ${adapter} (${i + 1}/${selectedAdapters.length})...`);
+        const payload = {
+          input_text: inputText,
+          adapters: [adapter],
+          task: task,
+          style: task === 'style' ? styleMode : null,
+          reference_text: referenceText || null,
+          length: task === 'summarizer' ? length : null
+        };
 
-      const data = await runComparison(payload);
-      clearInterval(progressInterval);
-      const list = Array.isArray(data) ? data : data.results || [];
-      setResults(list);
+        try {
+          const data = await runComparison(payload);
+          const list = Array.isArray(data) ? data : data.results || [];
+          accumulated = [...accumulated, ...list];
+          setResults([...accumulated]);
+        } catch (singleErr) {
+          accumulated = [
+            ...accumulated,
+            {
+              adapter_name: adapter,
+              output_text: `Inference Error: ${singleErr.message || 'Server timeout or connection failed'}`,
+              latency_ms: 0,
+              input_tokens: 0,
+              output_tokens: 0,
+              throughput_tokens_per_sec: 0,
+              metrics: {}
+            }
+          ];
+          setResults([...accumulated]);
+        }
+      }
     } catch (err) {
-      clearInterval(progressInterval);
       setError(err.message || 'Error occurred during comparison. Ensure the backend server is online.');
     } finally {
       setLoading(false);
