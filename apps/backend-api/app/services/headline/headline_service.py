@@ -73,6 +73,7 @@ response is worse than a headline without a number.
 
 import asyncio
 import logging
+import time
 from typing import TYPE_CHECKING
 
 from app.core import fact_guard
@@ -102,6 +103,15 @@ class HeadlineQualityExhausted(RuntimeError):
     app/api/v1/headline.py's handler."""
 
 
+class HeadlineBudgetExhausted(RuntimeError):
+    """No candidate came back before this request's wall-clock budget ran
+    out. Distinct from a provider error (there was nothing wrong with the
+    inference server, it was just too slow for the router in front of this
+    app) and from HeadlineQualityExhausted (candidates arrived, they just
+    didn't pass), so the API layer can tell the caller the one thing that is
+    actually actionable: try a shorter article or a shorter length."""
+
+
 # Since a flagged candidate is now held back unconditionally (never shown,
 # not even as a last resort), a request that only generates exactly `count`
 # candidates has exactly `count` independent chances to avoid
@@ -119,24 +129,65 @@ class HeadlineQualityExhausted(RuntimeError):
 _FACT_CHECK_HEADROOM = 3
 
 
-# Extra regeneration rounds for candidates that miss the band. Each round is
-# one model call per still-failing candidate, and the inference server
-# serializes generations, so this trades latency for in-band rate — the reason
-# it's a small number and not a loop-until-perfect.
-MAX_LENGTH_RETRY_ROUNDS = 2
+# Regeneration rounds for candidates that still have something wrong with
+# them. Each round is one model call per still-failing candidate and the
+# inference server serialises generations, so this trades latency for
+# quality — the reason it's a small number and not a loop-until-perfect.
+# Every corrective a candidate needs travels in a single merged hint, so
+# two rounds is two attempts at *all* of its problems, not two attempts at
+# one of them.
+MAX_REPAIR_ROUNDS = 2
 
-# Same trade-off as MAX_LENGTH_RETRY_ROUNDS, kept to a single round: a
-# generic "don't invent numbers" hint either gets the model to drop/correct
-# the bad number on the first retry or it doesn't, and there's no
-# candidate-specific correction to escalate to on a second attempt (the
-# service doesn't know which article number the model *meant*, only that the
-# one it produced doesn't match).
-MAX_FACT_RETRY_ROUNDS = 1
+# ── Wall-clock budget ──
+# The deployment sits behind Heroku's router, which cuts off any request that
+# hasn't produced a response byte within 30 seconds (H12) and answers with a
+# 503 of its own. That 503 is generated upstream of this app, so it carries
+# none of the CORS headers main.py installs -- the browser sees an opaque
+# cross-origin failure, the frontend's fetch() rejects, and the UI can only
+# say "Failed to fetch". The user never learns that anything timed out, and
+# no amount of error handling on either side can tell them, because the
+# response was never readable.
+#
+# The 30 seconds is a hard platform limit and not configurable, so the only
+# real defence is not to exceed it. This budget is what the fan-out and the
+# repair rounds run inside: when it's spent, generation stops and returns the
+# best candidates it already has. A headline that missed its band, or a
+# batch smaller than `count`, is worth far more than an H12 the frontend
+# can't even describe.
+#
+# Set below 30s to leave room for the DB write and serialisation that follow.
+HEADLINE_BUDGET_SECONDS = 22.0
 
-# Same single-round reasoning as MAX_FACT_RETRY_ROUNDS. The hint here is
-# already maximally concrete (it names the article's own digits), so a model
-# that ignores it once has nothing more specific to be told on a second try.
-MAX_NUMBER_RETRY_ROUNDS = 1
+
+def _expired(deadline: float) -> bool:
+    return time.monotonic() >= deadline
+
+
+async def _gather_within(coros: list, deadline: float) -> tuple[list, bool]:
+    """Run `coros` concurrently but abandon whatever hasn't finished by
+    `deadline`, cancelling it.
+
+    Returns results positionally aligned with `coros` -- None for anything
+    that didn't finish -- and whether the deadline cut the round short. This
+    is what makes a slow inference server degrade into fewer headlines
+    instead of into an H12: a request always has something to return."""
+    tasks = [asyncio.ensure_future(c) for c in coros]
+    remaining = max(0.0, deadline - time.monotonic())
+    done, pending = await asyncio.wait(tasks, timeout=remaining)
+    for task in pending:
+        task.cancel()
+    if pending:
+        # Let the cancellations actually land before moving on, so no request
+        # is left in flight against a serialised inference server, competing
+        # with the next round for the GPU.
+        await asyncio.gather(*pending, return_exceptions=True)
+    results = []
+    for task in tasks:
+        if task in done:
+            results.append(task.exception() or task.result())
+        else:
+            results.append(None)
+    return results, bool(pending)
 
 
 def _key_number_hint(numbers: list[str]) -> str:
@@ -188,6 +239,62 @@ def _nonsense_corrective_hint(bad_words: list[str]) -> str:
         f"'{words}' යන වචනය වැරදි හෝ අර්ථවත් නොවේ. "
         "ලිපියේ අර්ථය නිවැරදිව විස්තර කරන සාමාන්‍ය සිංහල වචන පමණක් භාවිතා කරන්න."
     )
+
+
+def _quality_score(
+    text: str, candidate: str, band: dict, key_numbers: list[str]
+) -> tuple[int, int, int, int]:
+    """How bad this candidate is, lowest is best, compared lexicographically.
+
+    Ordered by consequence, not by severity of the writing problem. The first
+    two empty the response if they survive (the hold-back below drops those
+    candidates outright), the third gets silently clipped by _trim_to_band(),
+    and the fourth only costs the candidate rank -- so a retry is an
+    improvement exactly when it trades a later problem for an earlier one,
+    never the reverse."""
+    return (
+        len(fact_guard.unverified_numbers(text, candidate)),
+        len(fact_guard.nonsense_words(text, candidate)),
+        _band_distance(candidate, band),
+        0
+        if not key_numbers or fact_guard.includes_article_number(text, candidate)
+        else 1,
+    )
+
+
+def _correctives(
+    text: str, candidate: str, band: dict, key_numbers: list[str]
+) -> str:
+    """Every correction this candidate needs, merged into one hint, or "" when
+    it needs none.
+
+    One hint rather than one round per problem: the model needs to be told
+    what was specifically wrong to fix it, but it can be told several things
+    at once, and a round costs a serialised generation per candidate."""
+    parts: list[str] = []
+
+    bad_numbers = fact_guard.unverified_numbers(text, candidate)
+    if bad_numbers:
+        parts.append(_fact_corrective_hint(bad_numbers))
+
+    bad_words = fact_guard.nonsense_words(text, candidate)
+    if bad_words:
+        parts.append(_nonsense_corrective_hint(bad_words))
+
+    length_hint = _corrective_hint(candidate, band)
+    if length_hint:
+        parts.append(length_hint)
+
+    # Last, and only when nothing above already applies to a number: a
+    # missing figure is the mildest of the four, and stacking it onto a
+    # candidate that is also inventing numbers gives the model two
+    # contradictory-sounding instructions about digits in one breath.
+    if key_numbers and not bad_numbers and not fact_guard.includes_article_number(
+        text, candidate
+    ):
+        parts.append(_missing_number_hint(key_numbers))
+
+    return " ".join(parts)
 
 
 def _word_count(headline: str) -> int:
@@ -264,6 +371,7 @@ async def generate_headlines(
     any length retries — to one specific headline model version, so a
     candidate never mixes output from two adapters.
     """
+    deadline = time.monotonic() + HEADLINE_BUDGET_SECONDS
     resolved_length = resolve_headline_length(length)
     band = HEADLINE_LENGTHS[resolved_length]
     fanout = min(count + _FACT_CHECK_HEADROOM, len(HEADLINE_VARIATION_HINTS))
@@ -299,9 +407,12 @@ async def generate_headlines(
             adapter=adapter,
         )
 
-    results = await asyncio.gather(
-        *[generate_one(hint) for hint in hints],
-        return_exceptions=True,
+    # Deadline-bounded like the repair rounds below: on a slow inference
+    # server the fan-out alone can outlast the router's patience, and eight
+    # candidates nobody ever receives are worth less than the three that
+    # arrived in time.
+    results, _ = await _gather_within(
+        [generate_one(hint) for hint in hints], deadline
     )
 
     # Slot i stays paired with hints[i] through the retry rounds, so a
@@ -314,6 +425,13 @@ async def generate_headlines(
     # each retry round — the same way latency already is.
     input_tokens, output_tokens = None, None
     for outcome in results:
+        if outcome is None:
+            # Cancelled by the deadline rather than failed. Distinguished from
+            # the exception case only in the log line: both leave an empty
+            # slot the repair loop skips.
+            logger.warning("Headline candidate abandoned at the deadline")
+            candidates.append(None)
+            continue
         if isinstance(outcome, BaseException):
             logger.warning("Headline candidate failed: %s", outcome)
             candidates.append(None)
@@ -325,172 +443,62 @@ async def generate_headlines(
         input_tokens = add_tokens(input_tokens, outcome.meta.get("input_tokens"))
         output_tokens = add_tokens(output_tokens, outcome.meta.get("output_tokens"))
 
-    for _ in range(MAX_LENGTH_RETRY_ROUNDS):
-        retry_slots = [
-            i
+    # ── Repair ──
+    # One deadline-bounded loop, not one sequential round per signal.
+    #
+    # It used to be four: two length rounds, then a missing-number round, an
+    # invented-number round and a nonsense-word round. Because they ran back
+    # to back and the inference server serialises generations, a candidate
+    # that was both out-of-band and figureless -- the normal case for a
+    # "long" request, since the adapter under-shoots the 8-10 band and omits
+    # figures -- cost three sequential calls to fix two problems, and the
+    # worst case reached 8 + 8*5 = 48 calls for a single request. Computing
+    # every applicable corrective per candidate and sending them as one
+    # merged hint fixes both problems in one call and caps the whole repair
+    # phase at MAX_REPAIR_ROUNDS * fanout.
+    for _ in range(MAX_REPAIR_ROUNDS):
+        if _expired(deadline):
+            logger.warning("Headline repair budget spent; returning candidates as-is")
+            break
+
+        repairs = {
+            i: _correctives(text, candidate, band, key_numbers)
             for i, candidate in enumerate(candidates)
-            if candidate and _band_distance(candidate, band) > 0
-        ]
+            if candidate
+        }
+        retry_slots = [i for i, hint in repairs.items() if hint]
         if not retry_slots:
             break
 
-        retries = await asyncio.gather(
-            *[
-                generate_one(
-                    _merge_hints(
-                        hints[i] or None, _corrective_hint(candidates[i], band)
-                    )
-                )
-                for i in retry_slots
-            ],
-            return_exceptions=True,
+        retries, timed_out = await _gather_within(
+            [generate_one(_merge_hints(hints[i] or None, repairs[i])) for i in retry_slots],
+            deadline,
         )
 
         for slot, outcome in zip(retry_slots, retries):
+            if outcome is None:
+                continue  # cancelled by the deadline
             if isinstance(outcome, BaseException):
-                # Keep the out-of-band candidate we already have; a failed
-                # retry is not a reason to lose it.
-                logger.warning("Headline length retry failed: %s", outcome)
+                # Keep the candidate we already have; a failed retry is never
+                # a reason to lose one.
+                logger.warning("Headline repair retry failed: %s", outcome)
                 continue
             total_latency += outcome.latency_ms
             input_tokens = add_tokens(input_tokens, outcome.meta.get("input_tokens"))
             output_tokens = add_tokens(output_tokens, outcome.meta.get("output_tokens"))
             retried_text = strip_headline_artifacts(outcome.text)
-            # Sampling can hand back something worse than what it replaces,
-            # so a retry only wins when it's actually closer to the band.
-            if _band_distance(retried_text, band) < _band_distance(
-                candidates[slot], band
+            # Sampling can hand back something worse than what it replaces, so
+            # a retry only wins on a strict improvement in the combined score
+            # -- which also stops a retry that fixes the length from being
+            # accepted when it invented a number on the way.
+            if _quality_score(text, retried_text, band, key_numbers) < _quality_score(
+                text, candidates[slot], band, key_numbers
             ):
                 candidates[slot] = retried_text
 
-    # Mirror of the invented-number round below: that one repairs a headline
-    # whose figure is wrong, this one repairs a headline that has no figure at
-    # all. Runs first so that anything it adds is still subject to the
-    # invented-number check afterwards -- a retry that hallucinates its way to
-    # a number must not skip verification by arriving late.
-    for _ in range(MAX_NUMBER_RETRY_ROUNDS if key_numbers else 0):
-        retry_slots = [
-            i
-            for i, candidate in enumerate(candidates)
-            if candidate and not fact_guard.includes_article_number(text, candidate)
-        ]
-        if not retry_slots:
+        if timed_out:
+            logger.warning("Headline repair round hit the deadline; stopping repairs")
             break
-
-        retries = await asyncio.gather(
-            *[
-                generate_one(
-                    _merge_hints(
-                        hints[i] or None, _missing_number_hint(key_numbers)
-                    )
-                )
-                for i in retry_slots
-            ],
-            return_exceptions=True,
-        )
-
-        for slot, outcome in zip(retry_slots, retries):
-            if isinstance(outcome, BaseException):
-                # Keep the figureless candidate; a failed retry isn't a reason
-                # to lose a headline that is merely weaker, not wrong.
-                logger.warning("Headline key-number retry failed: %s", outcome)
-                continue
-            total_latency += outcome.latency_ms
-            input_tokens = add_tokens(input_tokens, outcome.meta.get("input_tokens"))
-            output_tokens = add_tokens(output_tokens, outcome.meta.get("output_tokens"))
-            retried_text = strip_headline_artifacts(outcome.text)
-            # Two conditions, both required. The retry has to actually carry
-            # an article number -- otherwise it's not an improvement on the
-            # candidate it would replace -- and it must not have bought that
-            # number by drifting further out of the length band, since
-            # _trim_to_band() clips from the end and would happily cut off
-            # the very figure this round exists to add.
-            if fact_guard.includes_article_number(
-                text, retried_text
-            ) and _band_distance(retried_text, band) <= _band_distance(
-                candidates[slot], band
-            ):
-                candidates[slot] = retried_text
-
-    for _ in range(MAX_FACT_RETRY_ROUNDS):
-        retry_slots = [
-            i
-            for i, candidate in enumerate(candidates)
-            if candidate and fact_guard.unverified_numbers(text, candidate)
-        ]
-        if not retry_slots:
-            break
-
-        retries = await asyncio.gather(
-            *[
-                generate_one(
-                    _merge_hints(
-                        hints[i] or None,
-                        _fact_corrective_hint(
-                            fact_guard.unverified_numbers(text, candidates[i])
-                        ),
-                    )
-                )
-                for i in retry_slots
-            ],
-            return_exceptions=True,
-        )
-
-        for slot, outcome in zip(retry_slots, retries):
-            if isinstance(outcome, BaseException):
-                # Keep the candidate we already have; a failed retry isn't a
-                # reason to lose it.
-                logger.warning("Headline fact-check retry failed: %s", outcome)
-                continue
-            total_latency += outcome.latency_ms
-            input_tokens = add_tokens(input_tokens, outcome.meta.get("input_tokens"))
-            output_tokens = add_tokens(output_tokens, outcome.meta.get("output_tokens"))
-            retried_text = strip_headline_artifacts(outcome.text)
-            # Only replace when the retry is strictly better — fewer
-            # unverified numbers than what it's replacing — so sampling
-            # handing back something worse never discards a candidate that
-            # was already at least as good.
-            if len(fact_guard.unverified_numbers(text, retried_text)) < len(
-                fact_guard.unverified_numbers(text, candidates[slot])
-            ):
-                candidates[slot] = retried_text
-
-    for _ in range(MAX_FACT_RETRY_ROUNDS):
-        retry_slots = [
-            i
-            for i, candidate in enumerate(candidates)
-            if candidate and fact_guard.nonsense_words(text, candidate)
-        ]
-        if not retry_slots:
-            break
-
-        retries = await asyncio.gather(
-            *[
-                generate_one(
-                    _merge_hints(
-                        hints[i] or None,
-                        _nonsense_corrective_hint(
-                            fact_guard.nonsense_words(text, candidates[i])
-                        ),
-                    )
-                )
-                for i in retry_slots
-            ],
-            return_exceptions=True,
-        )
-
-        for slot, outcome in zip(retry_slots, retries):
-            if isinstance(outcome, BaseException):
-                logger.warning("Headline nonsense-word retry failed: %s", outcome)
-                continue
-            total_latency += outcome.latency_ms
-            input_tokens = add_tokens(input_tokens, outcome.meta.get("input_tokens"))
-            output_tokens = add_tokens(output_tokens, outcome.meta.get("output_tokens"))
-            retried_text = strip_headline_artifacts(outcome.text)
-            if len(fact_guard.nonsense_words(text, retried_text)) < len(
-                fact_guard.nonsense_words(text, candidates[slot])
-            ):
-                candidates[slot] = retried_text
 
     # A candidate whose numbers or content words still don't check out after
     # the retries never reaches the caller — the same "full stop" guarantee
@@ -509,9 +517,16 @@ async def generate_headlines(
     headlines = _dedupe([_trim_to_band(c, band) for c in candidates if c])[:count]
     if not headlines:
         if not generated_any_candidate:
-            # Every model call itself failed — surface the first error.
+            # Every model call itself failed, or none of them came back
+            # before the deadline — surface the first real error if there was
+            # one, and say plainly that it was a timeout if there wasn't.
             first_error = next((r for r in results if isinstance(r, BaseException)), None)
-            raise first_error or RuntimeError("Headline generation produced no output")
+            if first_error:
+                raise first_error
+            raise HeadlineBudgetExhausted(
+                "No headline candidate completed within "
+                f"{HEADLINE_BUDGET_SECONDS:.0f}s"
+            )
         # Generation succeeded, but every candidate still had an invented
         # number or a nonsense word even after its retry — distinct from the
         # case above, and worth a distinct, catchable exception so the API
