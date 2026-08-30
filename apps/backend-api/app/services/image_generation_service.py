@@ -21,8 +21,8 @@ from app.schemas.image_generation import DEFAULT_IMAGE_MODEL
 
 OPENAI_IMAGE_ENDPOINT = "https://api.openai.com/v1/images/generations"
 OPENAI_IMAGE_EDIT_ENDPOINT = "https://api.openai.com/v1/images/edits"
-REQUEST_TIMEOUT = 180.0
-MAX_RETRIES = 3
+REQUEST_TIMEOUT = 24.0
+MAX_RETRIES = 2
 IMAGE_SIZE = "1536x1024"
 IMAGE_QUALITY = "high"
 
