@@ -51,6 +51,24 @@ than nonsense_words() -- is surfaced in the response for the frontend to
 show, but never drives a retry or a hold-back on its own; see that
 function's docstring for why that signal is too heuristic to act on
 automatically.
+
+All of the above are one-directional: they detect and repair a headline that
+says something *wrong*. That left the opposite failure with no handling at
+all -- a headline that reports none of the article's numbers. Nothing
+penalised it (fact_guard.unverified_numbers() is empty for a headline with
+no number to get wrong, so numbers_verified is True and the reranker saw a
+figureless candidate as tied with a correctly-numbered one), while every
+mechanism above penalises *attempting* a number, so the selection pressure
+across a fan-out ran the wrong way: play it safe, omit the figure. For a
+casualty or amount story that hollows the headline out -- reported case: an
+article stating 734 dead in Nepal's floods produced a top pick that
+mentioned the floods and the deaths but no count at all. The counterweight
+is fact_guard's key-number check, wired in here in the same three places the
+other signals are: the fan-out hint names the article's own digits, a
+missing-number round retries a figureless candidate once, and the rerank
+prefers a candidate that carries the figure. Deliberately *not* wired into
+the hold-back: a figureless headline is weaker, not wrong, and an empty
+response is worse than a headline without a number.
 """
 
 import asyncio
@@ -62,9 +80,10 @@ from app.core.model_gateway import add_tokens, model_generate
 from app.core.prompts import (
     HEADLINE_LENGTHS,
     HEADLINE_VARIATION_HINTS,
+    MAX_ARTICLE_CHARS,
     resolve_headline_length,
 )
-from app.core.text_cleaning import strip_headline_artifacts
+from app.core.text_cleaning import strip_article_media_tags, strip_headline_artifacts
 from app.repositories.base import persist_if_owned
 from app.repositories.headline_repository import save_generation
 from app.schemas.headline import HeadlineFactCheck, HeadlineLengthInfo, HeadlineResponse
@@ -113,6 +132,41 @@ MAX_LENGTH_RETRY_ROUNDS = 2
 # service doesn't know which article number the model *meant*, only that the
 # one it produced doesn't match).
 MAX_FACT_RETRY_ROUNDS = 1
+
+# Same single-round reasoning as MAX_FACT_RETRY_ROUNDS. The hint here is
+# already maximally concrete (it names the article's own digits), so a model
+# that ignores it once has nothing more specific to be told on a second try.
+MAX_NUMBER_RETRY_ROUNDS = 1
+
+
+def _key_number_hint(numbers: list[str]) -> str:
+    """The fan-out hint that asks for the article's figure by name.
+
+    Naming the actual digits is the point: "include the key number" is a
+    category the model can silently decide doesn't apply, while
+    "include 734" is a copy instruction -- and because the digits come
+    straight from the article, a headline that follows it passes
+    unverified_numbers() by construction."""
+    numbers_text = ", ".join(numbers)
+    return (
+        f"ලිපියේ වාර්තා වන ප්‍රධාන සංඛ්‍යා ({numbers_text}) අතරින් වඩාත් වැදගත් එක "
+        "ලිපියේ ඇති අයුරින්ම ශීර්ෂ පාඨයට ඇතුළත් කරන්න."
+    )
+
+
+def _missing_number_hint(numbers: list[str]) -> str:
+    """Retry wording for a candidate that came back with no figure at all.
+    Distinct from _key_number_hint() on purpose: that one is already merged
+    into this slot's hint, so repeating it verbatim would just restate an
+    instruction this candidate has demonstrably ignored once. This one names
+    the omission itself as the error, the way _fact_corrective_hint() names
+    the bad number."""
+    numbers_text = ", ".join(numbers)
+    return (
+        "ශීර්ෂ පාඨයේ සංඛ්‍යාවක් නොමැති නිසා එය අසම්පූර්ණය. "
+        f"ලිපියේ ඇති සංඛ්‍යාවක් ({numbers_text}) ලිපියේ ඇති අයුරින්ම ඇතුළත් කරන්න."
+    )
+
 
 def _fact_corrective_hint(bad_numbers: list[str]) -> str:
     """Names the exact invented number(s) so the retry has something concrete
@@ -215,6 +269,26 @@ async def generate_headlines(
     fanout = min(count + _FACT_CHECK_HEADROOM, len(HEADLINE_VARIATION_HINTS))
     hints = HEADLINE_VARIATION_HINTS[:fanout]
 
+    # The figure this story is about, read from exactly the view of the
+    # article the model is given -- prompt_headline() strips media tags then
+    # truncates to MAX_ARTICLE_CHARS, so taking the numbers from the raw text
+    # instead could name a figure that never reached the prompt.
+    #
+    # Merged into every slot rather than left to the one number-angle
+    # variation hint: the base prompt's rules line offers a number as one of
+    # four things a headline *may* capture, which the model satisfies with
+    # person + event every time, and the canonical slot 0 -- the one that
+    # usually wins the rerank -- carries no variation hint at all. Empty for
+    # an article whose lead reports no figure, in which case nothing here
+    # changes and no number gets pushed into a story that has none.
+    key_numbers = fact_guard.salient_numbers(
+        strip_article_media_tags(text)[:MAX_ARTICLE_CHARS]
+    )
+    if key_numbers:
+        hints = [
+            _merge_hints(hint or None, _key_number_hint(key_numbers)) for hint in hints
+        ]
+
     async def generate_one(hint: str | None):
         return await model_generate(
             "headline",
@@ -285,6 +359,55 @@ async def generate_headlines(
             # Sampling can hand back something worse than what it replaces,
             # so a retry only wins when it's actually closer to the band.
             if _band_distance(retried_text, band) < _band_distance(
+                candidates[slot], band
+            ):
+                candidates[slot] = retried_text
+
+    # Mirror of the invented-number round below: that one repairs a headline
+    # whose figure is wrong, this one repairs a headline that has no figure at
+    # all. Runs first so that anything it adds is still subject to the
+    # invented-number check afterwards -- a retry that hallucinates its way to
+    # a number must not skip verification by arriving late.
+    for _ in range(MAX_NUMBER_RETRY_ROUNDS if key_numbers else 0):
+        retry_slots = [
+            i
+            for i, candidate in enumerate(candidates)
+            if candidate and not fact_guard.includes_article_number(text, candidate)
+        ]
+        if not retry_slots:
+            break
+
+        retries = await asyncio.gather(
+            *[
+                generate_one(
+                    _merge_hints(
+                        hints[i] or None, _missing_number_hint(key_numbers)
+                    )
+                )
+                for i in retry_slots
+            ],
+            return_exceptions=True,
+        )
+
+        for slot, outcome in zip(retry_slots, retries):
+            if isinstance(outcome, BaseException):
+                # Keep the figureless candidate; a failed retry isn't a reason
+                # to lose a headline that is merely weaker, not wrong.
+                logger.warning("Headline key-number retry failed: %s", outcome)
+                continue
+            total_latency += outcome.latency_ms
+            input_tokens = add_tokens(input_tokens, outcome.meta.get("input_tokens"))
+            output_tokens = add_tokens(output_tokens, outcome.meta.get("output_tokens"))
+            retried_text = strip_headline_artifacts(outcome.text)
+            # Two conditions, both required. The retry has to actually carry
+            # an article number -- otherwise it's not an improvement on the
+            # candidate it would replace -- and it must not have bought that
+            # number by drifting further out of the length band, since
+            # _trim_to_band() clips from the end and would happily cut off
+            # the very figure this round exists to add.
+            if fact_guard.includes_article_number(
+                text, retried_text
+            ) and _band_distance(retried_text, band) <= _band_distance(
                 candidates[slot], band
             ):
                 candidates[slot] = retried_text
@@ -401,8 +524,20 @@ async def generate_headlines(
 
     fact_checks = [fact_guard.check_headline(text, headline) for headline in headlines]
     # Prefer number-verified candidates for the top spot, then among those
-    # tied (typically: neither has a number to get wrong at all) prefer
-    # fewer ungrounded content words. unverified_words() is too heuristic to
+    # tied prefer one that actually reports the article's figure, and only
+    # then fewer ungrounded content words.
+    #
+    # The middle key is what stops the first one from being vacuous. Every
+    # candidate that reaches here is number-verified (the hold-back above
+    # guarantees it), and a headline with no number at all is number-verified
+    # too -- so on the first key alone a headline that correctly reports 734
+    # dead ties with one that reports the deaths and drops the count, and the
+    # stable sort hands the top spot to whichever the fan-out happened to
+    # order first. key_number_included breaks that tie toward the headline
+    # that carries the story. It is True whenever the article had no figure
+    # to report, so this key is inert on non-numeric articles.
+    #
+    # unverified_words() is too heuristic to
     # block on -- Sinhala inflection produces false positives, see its
     # docstring -- but it's a real signal for *ordering*: a candidate using
     # a word nowhere in the article (e.g. reporting a "train" collision for
@@ -415,6 +550,7 @@ async def generate_headlines(
         range(len(headlines)),
         key=lambda i: (
             not fact_checks[i].numbers_verified,
+            not fact_checks[i].key_number_included,
             len(fact_checks[i].unverified_words),
         ),
     )
@@ -444,6 +580,7 @@ async def generate_headlines(
                 numbers_verified=fc.numbers_verified,
                 unverified_numbers=fc.unverified_numbers,
                 unverified_words=fc.unverified_words,
+                key_number_included=fc.key_number_included,
             )
             for fc in fact_checks
         ],

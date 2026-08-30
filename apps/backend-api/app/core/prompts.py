@@ -210,7 +210,15 @@ def prompt_headline(
 HEADLINE_VARIATION_HINTS: list[str] = [
     "",  # canonical prompt — best candidate
     "ශීර්ෂ පාඨයේ ප්‍රධාන පුද්ගලයා හෝ ආයතනය ඉස්මතු කරන්න.",  # highlight the main actor
-    "ශීර්ෂ පාඨයේ සංඛ්‍යා හෝ ප්‍රමාණ ඇතුළත් නම් ඒවා ඉස්මතු කරන්න.",  # emphasise numbers
+    # Was conditional ("*if* the headline contains numbers, emphasise
+    # them"), which is circular -- it can only steer a headline that
+    # already has a number, and never asks for one. Imperative now:
+    # include the article's key figure. The service additionally merges
+    # in a hint naming the article's actual digits when it has any (see
+    # _key_number_hint in services/headline/headline_service.py); this
+    # entry is what keeps one slot of the fan-out asking for a
+    # number-led angle specifically.
+    "ලිපියේ වාර්තා වන ප්‍රධාන සංඛ්‍යාව ශීර්ෂ පාඨයට ඇතුළත් කරන්න.",  # lead with the number
     "ශීර්ෂ පාඨය ක්‍රියාවෙන් (verb) ආරම්භ කරන්න.",  # start with a verb
     "ශීර්ෂ පාඨය ප්‍රශ්නයක් ලෙස නොලියන්න; ප්‍රතිඵලය ඉස්මතු කරන්න.",  # emphasise outcome
     "ශීර්ෂ පාඨය ස්ථානය (location) ඉස්මතු කරමින් ලියන්න.",  # highlight location
