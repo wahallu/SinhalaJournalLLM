@@ -73,6 +73,25 @@ class HeadlineFactCheck(BaseModel):
                     "not a hard verdict (Sinhala inflection produces false "
                     "positives; see fact_guard.py docstring)",
     )
+    drifted_entities: list[str] = Field(
+        default_factory=list,
+        description="Headline words long enough to be a name (country, place, "
+                    "person, organisation) that the article does not contain "
+                    "in any form -- the subset of unverified_words worth "
+                    "acting on. A candidate with any of these is dropped "
+                    "whenever a grounded candidate exists",
+    )
+    key_number_included: bool = Field(
+        default=True,
+        description="False when the article's lead reports a figure (death "
+                    "toll, amount, count) and this headline carries none of "
+                    "them. Distinct from numbers_verified, which is True for "
+                    "a headline with no number at all: this flags the "
+                    "omission rather than an error, and is a quality signal "
+                    "only -- unlike an invented number it never holds a "
+                    "headline back, it only ranks it below one that reports "
+                    "the figure",
+    )
 
 
 class HeadlineResponse(BaseModel):

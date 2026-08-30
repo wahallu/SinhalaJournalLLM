@@ -60,11 +60,14 @@ async def test_uncorrectable_wrong_number_is_dropped_when_a_clean_candidate_exis
     is already correct. The wrong-number candidates must not reach the
     response at all -- not just get reranked below the correct one.
 
-    Keyed strictly off the variation hint text rather than call order, since
-    asyncio.gather doesn't guarantee the fan-out resolves in slot order."""
+    Keyed off the variation hint text rather than call order, since
+    asyncio.gather doesn't guarantee the fan-out resolves in slot order.
+    startswith rather than equality because this article's lead reports
+    figures, so the service merges its key-number hint onto every slot's
+    hint (see _key_number_hint) -- the slot identity is still the prefix."""
 
     async def fake_model_generate(task, text, *, variation_hint=None, **kwargs):
-        if variation_hint == "clean":
+        if (variation_hint or "").startswith("clean"):
             return _stub_result("කොටස් දර්ශකය පහත")  # 3 words, in the "short" band
         # Both the initial "bad1"/"bad2" slots and their retries (which get
         # the specific-number hint appended, still containing "bad1"/"bad2")
@@ -100,7 +103,7 @@ async def test_uncorrectable_nonsense_word_is_dropped_when_a_clean_candidate_exi
     must not reach the response at all."""
 
     async def fake_model_generate(task, text, *, variation_hint=None, **kwargs):
-        if variation_hint == "clean":
+        if (variation_hint or "").startswith("clean"):
             return _stub_result("අබිරහස් ලෙස මියගිය පුද්ගලයෙකුගේ සිරුර හමුවෙයි")  # 6 words, "medium"
         return _stub_result("අබිරහස් ලෙස මියගිය පුද්ගලයෙකුගේ සිරුර හමුවෙයිල")  # 6 words, "medium"
 

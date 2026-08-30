@@ -47,7 +47,7 @@
     }
   );
 
-  // Pre-warm the backend server (wakes up Render free tier if sleeping)
+  // Pre-warm the backend server to reduce cold-start delay.
   chrome.runtime.sendMessage({ action: "preWarm" });
 
   // Listen for storage changes

@@ -8,10 +8,11 @@
   "oauthScopes": [
     "https://www.googleapis.com/auth/documents.currentonly",
     "https://www.googleapis.com/auth/script.container.ui",
+    "https://www.googleapis.com/auth/script.storage",
     "https://www.googleapis.com/auth/script.external_request"
   ],
   "urlFetchWhitelist": [
-    "https://sinhalajournalllm-ijw6.onrender.com/"
+    "https://backend.sin-ai.app/"
   ],
   "addOns": {
     "common": {

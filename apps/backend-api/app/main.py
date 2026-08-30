@@ -5,7 +5,10 @@ FastAPI application entrypoint.
 - Router registration
 - Global health checks (basic + model gateway)
 - ModelGatewayError → 503 handler
+- CORS-safe handling for unhandled errors
 """
+
+import logging
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +18,8 @@ from app.api.v1 import router as v1_router
 from app.core.config import get_settings
 from app.core.model_gateway import ModelGatewayError, gateway_status
 from app.repositories.base import DatabaseUnavailable
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -27,6 +32,27 @@ app = FastAPI(
     ),
     version="2.0.0",
 )
+
+# ── Unhandled errors ──
+# Registered BEFORE the CORS middleware on purpose. Starlette builds its
+# middleware stack outermost-last, so this ends up *inside* CORSMiddleware and
+# its responses pick up the CORS headers on the way out. The built-in 500 does
+# not: it comes from ServerErrorMiddleware, which wraps everything including
+# CORSMiddleware, so an unhandled exception reaches the browser as an opaque
+# cross-origin failure and the frontend can only report "Failed to fetch" --
+# the real error is unreadable to the one person who needs to see it. Catching
+# here turns any unhandled exception into an ordinary, readable 500.
+@app.middleware("http")
+async def cors_safe_errors(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception:
+        logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Something went wrong handling this request."},
+        )
+
 
 # ── CORS ──
 app.add_middleware(

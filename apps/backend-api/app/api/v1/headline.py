@@ -26,7 +26,11 @@ from app.schemas.headline import (
     VisualPromptRequest,
     VisualPromptResponse,
 )
-from app.services.headline.headline_service import HeadlineQualityExhausted, generate_headlines
+from app.services.headline.headline_service import (
+    HeadlineBudgetExhausted,
+    HeadlineQualityExhausted,
+    generate_headlines,
+)
 from app.services.headline.visual_prompt_service import generate_visual_prompt
 from app.core.groq_client import GroqUnavailable
 
@@ -63,6 +67,22 @@ async def generate_headlines_endpoint(
             detail=(
                 "Couldn't produce a headline that passed fact-checking for "
                 "this article. Try again, or a different length."
+            ),
+        ) from exc
+    except HeadlineBudgetExhausted as exc:
+        # The inference server was too slow to return a single candidate
+        # inside the request budget. Answering this ourselves is the whole
+        # point of the budget: left to run, the request would be cut off by
+        # the router in front of this app, whose own 503 carries none of the
+        # CORS headers main.py installs and so reaches the browser as an
+        # unreadable cross-origin failure -- the frontend can only say
+        # "Failed to fetch". This one is a normal response: readable,
+        # CORS-carrying, and specific enough to act on.
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "The model server was too slow to return a headline in time. "
+                "Try again, or use a shorter article."
             ),
         ) from exc
     latency_ms = int((time.perf_counter() - started) * 1000)

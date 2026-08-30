@@ -3,7 +3,10 @@
  * Handles Google Document DOM operations and proxies external API calls.
  */
 
-var API_BASE_URL = "https://sinhalajournalllm-ijw6.onrender.com/api/v1";
+var API_BASE_URL = "https://backend.sin-ai.app/api/v1";
+var API_MAX_ATTEMPTS = 2;
+var API_RETRY_DELAY_MS = 1500;
+var TRANSIENT_API_STATUS_CODES = { 502: true, 503: true, 504: true };
 
 // ── Lifecycle Hook: Document Opened ──
 function onOpen(e) {
@@ -328,12 +331,50 @@ function _fetchWithAuth(url, baseOptions, accessToken) {
   if (accessToken) {
     options.headers = { Authorization: "Bearer " + accessToken };
   }
-  try {
-    var response = UrlFetchApp.fetch(url, options);
-    return { responseCode: response.getResponseCode(), responseText: response.getContentText() };
-  } catch (e) {
-    return { error: e.toString() };
+
+  var lastError = null;
+  for (var attemptNumber = 1; attemptNumber <= API_MAX_ATTEMPTS; attemptNumber++) {
+    try {
+      var response = UrlFetchApp.fetch(url, options);
+      var responseCode = response.getResponseCode();
+      var responseText = response.getContentText();
+
+      if (!TRANSIENT_API_STATUS_CODES[responseCode] || attemptNumber === API_MAX_ATTEMPTS) {
+        return {
+          responseCode: responseCode,
+          responseText: responseText,
+          attempts: attemptNumber
+        };
+      }
+    } catch (e) {
+      lastError = e.toString();
+      if (attemptNumber === API_MAX_ATTEMPTS) {
+        return { error: lastError, attempts: attemptNumber };
+      }
+    }
+
+    Utilities.sleep(API_RETRY_DELAY_MS);
   }
+
+  return { error: lastError || "Request failed", attempts: API_MAX_ATTEMPTS };
+}
+
+function _apiResponseError(attempt) {
+  var errObj = {};
+  try { errObj = JSON.parse(attempt.responseText); } catch (e) { }
+
+  // Preserve specific server explanations, such as an administrator turning
+  // off a tool. Infrastructure-generated 503 pages are often HTML and have
+  // no useful JSON body, so replace the bare status with actionable copy.
+  var errorMsg = errObj.detail || errObj.message;
+  if (!errorMsg && TRANSIENT_API_STATUS_CODES[attempt.responseCode]) {
+    errorMsg = "The AI service is temporarily unavailable after retrying. Please try again shortly.";
+  }
+  if (!errorMsg) {
+    errorMsg = "HTTP " + attempt.responseCode;
+  }
+
+  return errorMsg + " (URL: " + attempt.url + ")";
 }
 
 /**
@@ -390,10 +431,7 @@ function callApiProxy(endpoint, body, method) {
   if (attempt.responseCode >= 200 && attempt.responseCode < 300) {
     return { success: true, data: JSON.parse(attempt.responseText) };
   }
-  var errObj = {};
-  try { errObj = JSON.parse(attempt.responseText); } catch (e) { }
-  var errorMsg = errObj.detail || errObj.message || ("HTTP " + attempt.responseCode);
-  return { success: false, error: errorMsg + " (URL: " + attempt.url + ")" };
+  return { success: false, error: _apiResponseError(attempt) };
 }
 
 // ── Unified history (signed-in only, matching /history's own auth requirement) ──
@@ -423,10 +461,7 @@ function runOptimize(body) {
     return { success: false, error: attempt.error + " (URL: " + attempt.url + ")" };
   }
   if (attempt.responseCode < 200 || attempt.responseCode >= 300) {
-    var errObj = {};
-    try { errObj = JSON.parse(attempt.responseText); } catch (e) { }
-    var errorMsg = errObj.detail || errObj.message || ("HTTP " + attempt.responseCode);
-    return { success: false, error: errorMsg + " (URL: " + attempt.url + ")" };
+    return { success: false, error: _apiResponseError(attempt) };
   }
 
   var events = [];

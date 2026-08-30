@@ -13,7 +13,7 @@
   "host_permissions": [
     "http://localhost/*",
     "http://127.0.0.1/*",
-    "https://sinhalajournalllm-ijw6.onrender.com/*"
+    "https://backend.sin-ai.app/*"
   ],
   "action": {
     "default_icon": {
