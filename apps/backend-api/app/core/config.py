@@ -133,7 +133,7 @@ class Settings(BaseSettings):
     CLOUDINARY_URL: str = ""
 
     # ── CORS ──
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://sinai.onrender.com,https://chat.sin-ai.app,https://chat.sin-ai.app/admin,https://sin-ai.app,https://www.sin-ai.app"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://sinai.onrender.com,https://chat.sin-ai.app,https://chat.sin-ai.app/admin,https://sin-ai.app,https://www.sin-ai.app,https://backend.sin-ai.app/api/v1/image/generate"
 
     @property
     def cors_origin_list(self) -> list[str]:
