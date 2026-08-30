@@ -1,5 +1,33 @@
 {
+  "trailingSlash": false,
+  "headers": [
+    {
+      "source": "/robots.txt",
+      "headers": [
+        { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        { "key": "Content-Type", "value": "application/xml; charset=utf-8" },
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    },
+    {
+      "source": "/:private(admin|history|settings|profile|plans|login|signup|forgot-password|reset-password|verify-email)/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    }
+  ],
   "rewrites": [
+    { "source": "/sinhala-ai", "destination": "/sinhala-ai/index.html" },
+    { "source": "/sinhala-grammar-checker", "destination": "/sinhala-grammar-checker/index.html" },
+    { "source": "/sinhala-headline-generator", "destination": "/sinhala-headline-generator/index.html" },
+    { "source": "/sinhala-news-summarizer", "destination": "/sinhala-news-summarizer/index.html" },
+    { "source": "/sinhala-style-rewriter", "destination": "/sinhala-style-rewriter/index.html" },
     {
       "source": "/(.*)",
       "destination": "/index.html"

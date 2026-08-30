@@ -32,7 +32,6 @@ const TOOL_SETTINGS = [
    user-facing product. */
 const RESEARCH = [
   { to: '/admin/research/playground', label: 'SinLLaMA Playground', icon: Bot },
-  { to: '/admin/research/summarizer-lab', label: 'Summarizer Lab', icon: Layers },
   { to: '/admin/research/comparison', label: 'Model Comparison', icon: Scale },
 ];
 

@@ -7,6 +7,7 @@ import EditorToolbar from './EditorToolbar';
 import ConfirmModal from '../ui/ConfirmModal';
 import HeadlineModelTour from '../HeadlineModelTour';
 import { HEADLINE_MODELS } from '../../lib/toolOptions';
+import { convertSinhalaEncoding, hasSinhalaUnicode } from '../../lib/sinhalaLegacy';
 
 // Matches max_length on every tool request schema in apps/backend-api
 // (grammar.py, style.py, summarizer.py, headline.py). The client used to
@@ -21,15 +22,47 @@ export default function Editor({
 }) {
   const [focused, setFocused] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [encodingOverride, setEncodingOverride] = useState('unknown');
+  const [conversionStatus, setConversionStatus] = useState('');
 
   const charCount = value?.length ?? 0;
   const isNearLimit = charCount > MAX_CHARS * 0.85;
   const isOverLimit = charCount > MAX_CHARS;
+  const encoding = !value
+    ? 'unknown'
+    : (hasSinhalaUnicode(value) ? 'unicode' : encodingOverride);
+  const isLegacy = encoding === 'legacy';
+
+  const handleEncodingConvert = (direction) => {
+    const converted = convertSinhalaEncoding(value, direction);
+    onChange(converted);
+    const target = direction === 'legacy-to-unicode' ? 'unicode' : 'legacy';
+    setEncodingOverride(target);
+    setConversionStatus(
+      target === 'unicode'
+        ? 'Converted legacy Sinhala to Unicode.'
+        : 'Converted Unicode Sinhala to legacy FM-compatible text.',
+    );
+  };
+
+  const handleEncodingChange = (target) => {
+    if (target === encoding) return;
+
+    if (encoding === 'unknown' && target === 'legacy') {
+      setEncodingOverride('legacy');
+      setConversionStatus('Text marked as legacy FM-compatible encoding.');
+      return;
+    }
+
+    handleEncodingConvert(
+      target === 'unicode' ? 'legacy-to-unicode' : 'unicode-to-legacy',
+    );
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
-      onRun?.();
+      if (!loading && value?.trim() && !isOverLimit && !isLegacy) onRun?.();
     }
   };
 
@@ -53,6 +86,9 @@ export default function Editor({
         hasResult={hasResult}
         settings={settings}
         onSettingsChange={onSettingsChange}
+        encoding={encoding}
+        onEncodingChange={handleEncodingChange}
+        conversionDisabled={loading || !value}
       />
 
       <textarea
@@ -64,17 +100,30 @@ export default function Editor({
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         disabled={loading}
+        spellCheck={!isLegacy}
+        autoCorrect={isLegacy ? 'off' : undefined}
+        autoCapitalize={isLegacy ? 'off' : undefined}
+        data-gramm={isLegacy ? 'false' : undefined}
+        data-gramm_editor={isLegacy ? 'false' : undefined}
+        data-enable-grammarly={isLegacy ? 'false' : undefined}
         maxLength={MAX_CHARS + 50}
-        aria-label={`${title} input`}
+        aria-label={`${title} input${isLegacy ? ', legacy FM-compatible encoding' : ''}`}
         className="placeholder-legacy-sinhala flex-1 min-h-[18rem] xl:min-h-[20rem] w-full
           px-4 py-3.5 text-[15px] text-ink-800 placeholder:text-ink-400
           bg-transparent border-none focus:outline-none focus:ring-0 resize-none
           leading-[1.8] font-sinhala disabled:cursor-not-allowed"
+        style={{ fontFamily: isLegacy ? 'UBIN16S, sans-serif' : undefined }}
       />
+
+      <span className="sr-only" role="status" aria-live="polite">
+        {conversionStatus}
+      </span>
 
       <div className="flex items-center gap-2 px-3 py-2.5 border-t border-ink-100 shrink-0">
         {helper && (
-          <span className="hidden md:block text-[11px] text-ink-400 truncate pl-1">{helper}</span>
+          <span className="hidden md:block text-[11px] text-ink-400 truncate pl-1">
+            {isLegacy ? 'Legacy text is ready to copy; convert it to Unicode before running this tool' : helper}
+          </span>
         )}
         <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
           <CopyButton text={value} label="Copy" className={!value ? 'opacity-40 pointer-events-none' : ''} />
@@ -101,8 +150,8 @@ export default function Editor({
             icon={Play}
             onClick={onRun}
             loading={loading}
-            disabled={loading || !value?.trim() || isOverLimit}
-            title="Ctrl+Enter"
+            disabled={loading || !value?.trim() || isOverLimit || isLegacy}
+            title={isLegacy ? 'Convert this text to Unicode before running the AI tool' : 'Ctrl+Enter'}
           >
             {actionLabel}
           </ActionButton>
@@ -118,6 +167,8 @@ export default function Editor({
         destructive
         onConfirm={() => {
           setShowClearConfirm(false);
+          setEncodingOverride('unknown');
+          setConversionStatus('');
           onClear?.();
         }}
       />

@@ -41,9 +41,11 @@ import RewriterSettings from './admin/pages/settings/RewriterSettings';
 import SummarizerSettings from './admin/pages/settings/SummarizerSettings';
 import Activity from './admin/pages/Activity';
 import SinLLamaPage from './admin/research/SinLLamaPage';
-import SummarizerPlayground from './admin/research/SummarizerPlayground';
 import ModelComparison from './admin/research/ModelComparison';
 import Onboarding from './components/onboarding/Onboarding';
+import SeoLandingPage from './components/seo/SeoLandingPage';
+import { SEO_PAGES } from './seo/site';
+import { usePageSeo } from './seo/usePageSeo';
 
 /* Routes that render as a dialog over whatever page is behind them, rather
    than as a page of their own. In-app navigation to one of these carries the
@@ -327,6 +329,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
+  usePageSeo();
   const { user, loading: authLoading, updateAccount } = useAuth();
   const userId = user?.id;
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -337,6 +340,7 @@ function App() {
   const previewTheme = import.meta.env.DEV
     ? new URLSearchParams(window.location.search).get('__previewTheme')
     : null;
+  const seoLandingPage = location.pathname === '/' ? null : SEO_PAGES[location.pathname];
 
   // Theme preferences are intentionally account-scoped. This keeps users on
   // a shared browser from inheriting one another's choice while preserving a
@@ -438,6 +442,10 @@ function App() {
     }));
   }, []);
 
+  if (seoLandingPage) {
+    return <SeoLandingPage page={seoLandingPage} />;
+  }
+
   const isEditor = EDITOR_TOOLS.includes(activeTool);
 
   /* Hiding a disabled tool in the sidebar still leaves its URL reachable, so
@@ -475,7 +483,7 @@ function App() {
           <Route path="settings/summarizer" element={<SummarizerSettings />} />
           <Route path="activity" element={<Activity />} />
           <Route path="research/playground" element={<SinLLamaPage />} />
-          <Route path="research/summarizer-lab" element={<SummarizerPlayground />} />
+          <Route path="research/summarizer-lab" element={<Navigate to="/admin/research/comparison" replace />} />
           <Route path="research/comparison" element={<ModelComparison />} />
         </Route>
       </Routes>
@@ -534,7 +542,7 @@ function App() {
               ${isEditor ? 'xl:flex-1 xl:min-h-0 xl:flex xl:flex-col' : ''}`}
           >
             <Routes location={backgroundLocation}>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={dashboard} />
               <Route path="/dashboard" element={dashboard} />
               <Route path="/optimize" element={<OptimizePage settings={effectiveSettings} setSettings={handleSettingsChange} />} />
               <Route path="/grammar" element={<ToolRunner activeTool="grammar" settings={effectiveSettings} setSettings={handleSettingsChange} />} />

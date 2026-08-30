@@ -21,6 +21,8 @@ export default function Dropdown({
   onChange,
   options,
   variant = 'compact',
+  disabled = false,
+  placeholder = label,
   className = '',
 }) {
   const compact = variant === 'compact';
@@ -32,7 +34,11 @@ export default function Dropdown({
   };
 
   return (
-    <Select.Root value={value == null ? undefined : String(value)} onValueChange={handleChange}>
+    <Select.Root
+      value={value == null ? '' : String(value)}
+      onValueChange={handleChange}
+      disabled={disabled}
+    >
       <Select.Trigger
         id={id}
         aria-label={label}
@@ -41,6 +47,7 @@ export default function Dropdown({
           text-ink-700 font-medium cursor-pointer transition-colors duration-150
           hover:border-ink-300 hover:text-ink-900
           focus:outline-none focus:border-brand-400 focus:shadow-[0_0_0_3px_rgba(205,25,26,0.07)]
+          disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-ink-200 disabled:hover:text-ink-700
           data-[state=open]:border-brand-400
           ${compact ? 'px-2.5 py-1.5 text-[12px]' : 'w-full justify-between px-3.5 py-2.5 text-[14px]'}
           ${className}
@@ -51,7 +58,7 @@ export default function Dropdown({
             {label}
           </span>
         )}
-        <Select.Value className="whitespace-nowrap" placeholder={label}>{selected?.label}</Select.Value>
+        <Select.Value className="whitespace-nowrap" placeholder={placeholder}>{selected?.label}</Select.Value>
         <Select.Icon className="shrink-0 text-ink-400">
           <ChevronDown size={13} />
         </Select.Icon>

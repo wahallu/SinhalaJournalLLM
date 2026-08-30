@@ -3,12 +3,31 @@ import ModeToggle from '../ui/ModeToggle';
 import { TOOLBAR_CONTROLS } from '../../lib/toolOptions';
 import { useSuggestionMode } from '../../lib/suggestionMode';
 
+const ENCODING_OPTIONS = [
+  { id: 'unicode', label: 'Unicode' },
+  { id: 'legacy', label: 'Legacy' },
+];
+
 export default function EditorToolbar({
   tool, title, icon: Icon, charCount, maxChars, isOverLimit, isNearLimit,
-  settings, onSettingsChange, hasResult = false,
+  settings, onSettingsChange, hasResult = false, encoding = 'unknown',
+  onEncodingChange, conversionDisabled = false,
 }) {
   const controls = TOOLBAR_CONTROLS[tool] ?? [];
   const [mode, setMode] = useSuggestionMode();
+
+  const encodingDropdown = (
+    <Dropdown
+      id="toolbar-encoding"
+      label="Encoding"
+      options={ENCODING_OPTIONS}
+      value={conversionDisabled ? 'unicode' : (encoding === 'unknown' ? undefined : encoding)}
+      onChange={onEncodingChange}
+      disabled={conversionDisabled}
+      placeholder="Select"
+      className="min-w-[8.5rem] justify-between"
+    />
+  );
 
   return (
     <div className="flex items-center gap-2 px-3 py-2 border-b border-ink-100 flex-wrap shrink-0">
@@ -32,9 +51,12 @@ export default function EditorToolbar({
             onChange={(v) => onSettingsChange({ ...settings, [key]: v })}
           />
         ))}
+        {tool === 'headlines' && encodingDropdown}
       </div>
 
-      <span className="ml-auto flex items-center gap-2 pr-1">
+      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2 pr-1">
+        {tool !== 'headlines' && encodingDropdown}
+
         {/* Grammar only: the other three tools rewrite wholesale and have no
             suggestion layer for a mode to govern, so a toggle there would be a
             control that does nothing. */}
@@ -60,7 +82,7 @@ export default function EditorToolbar({
         >
           {charCount.toLocaleString()} / {maxChars.toLocaleString()}
         </span>
-      </span>
+      </div>
     </div>
   );
 }

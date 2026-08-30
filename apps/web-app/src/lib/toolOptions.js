@@ -71,7 +71,6 @@ export const TOOLBAR_CONTROLS = {
   optimize: [],
   headlines: [
     { key: 'headlineLength', label: 'Length', options: HEADLINE_LENGTHS_OPTIONS },
-    { key: 'count', label: 'Count', options: HEADLINE_COUNTS },
   ],
   rewriter: [{ key: 'tone', label: 'Tone', options: TONES }],
   summarizer: [{ key: 'length', label: 'Length', options: LENGTHS }],
