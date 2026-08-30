@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const apiHost = extensionSettings.apiHost || "https://sinhalajournalllm-ijw6.onrender.com/api/v1";
+    const apiHost = extensionSettings.apiHost || "https://backend.sin-ai.app/api/v1";
 
     if (message.action === "getSession") {
       const token = localStorage.getItem("sinai_preview_access_token");
@@ -240,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
       };
     }
 
-    const apiHost = extensionSettings.apiHost || "https://sinhalajournalllm-ijw6.onrender.com/api/v1";
+    const apiHost = extensionSettings.apiHost || "https://backend.sin-ai.app/api/v1";
     const controller = new AbortController();
 
     fetch(`${apiHost}/optimize`, {
@@ -321,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── State Variables ──
   let extensionSettings = {
-    apiHost: "https://sinhalajournalllm-ijw6.onrender.com/api/v1",
+    apiHost: "https://backend.sin-ai.app/api/v1",
     inlineEnabled: true,
     defaultTone: "formal",
     defaultLength: "medium",
@@ -621,7 +621,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ── API Health Check ──
   function checkApiHealth(callback) {
-    const apiHost = extensionSettings.apiHost || "https://sinhalajournalllm-ijw6.onrender.com/api/v1";
+    const apiHost = extensionSettings.apiHost || "https://backend.sin-ai.app/api/v1";
     const healthUrl = apiHost.replace(/\/api\/v1\/?$/, "") + "/health";
 
     apiStatusDot.className = "status-dot warning";

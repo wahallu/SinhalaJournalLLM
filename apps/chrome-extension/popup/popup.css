@@ -325,6 +325,10 @@ p {
   margin-bottom: 14px;
 }
 
+.auth-form .app-input {
+  width: 100%;
+}
+
 .auth-divider {
   display: flex;
   align-items: center;

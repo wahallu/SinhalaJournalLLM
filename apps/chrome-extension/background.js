@@ -7,12 +7,29 @@
  */
 
 const DEFAULT_SETTINGS = {
-  apiHost: "https://sinhalajournalllm-ijw6.onrender.com/api/v1",
+  apiHost: "https://backend.sin-ai.app/api/v1",
   inlineEnabled: true,
   defaultTone: "formal",
   defaultLength: "medium",
   defaultHeadlineCount: 5
 };
+
+const LOCAL_API_HOST_PATTERN = /^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(?:\/api\/v1)?$/;
+
+function normalizeApiHost(apiHost) {
+  const host = (apiHost || DEFAULT_SETTINGS.apiHost).trim().replace(/\/+$/, "");
+
+  // Keep explicit localhost development overrides, but make the SinAI domain
+  // the only remote API host accepted by the production extension.
+  if (LOCAL_API_HOST_PATTERN.test(host)) {
+    return host.endsWith("/api/v1") ? host : `${host}/api/v1`;
+  }
+
+  // The health endpoint lives at the domain root, but every feature route is
+  // registered under /api/v1. Always returning the canonical base prevents a
+  // healthy /health response followed by 404s from the feature endpoints.
+  return DEFAULT_SETTINGS.apiHost;
+}
 
 // Must match the backend's GOOGLE_CLIENT_ID (apps/backend-api/.env) and the
 // web app's VITE_GOOGLE_CLIENT_ID. Not secret — every client embeds the same
@@ -28,13 +45,13 @@ const LEGACY_TONE_MAP = {
   opinion: "editorial"
 };
 
-// Run migration check on startup to redirect old localhost/sslip.io hosts
-// to Render and remap legacy tone values.
+// Run migration checks on startup so existing installations do not keep a
+// stale API host in chrome.storage.local after an extension update.
 chrome.storage.local.get(["apiHost", "defaultTone"], (items) => {
   const updates = {};
-  const oldHostPattern = /localhost:8000|sslip\.io/;
-  if (items.apiHost && oldHostPattern.test(items.apiHost)) {
-    updates.apiHost = DEFAULT_SETTINGS.apiHost;
+  const normalizedApiHost = normalizeApiHost(items.apiHost);
+  if (normalizedApiHost !== items.apiHost) {
+    updates.apiHost = normalizedApiHost;
   }
   if (items.defaultTone && LEGACY_TONE_MAP[items.defaultTone]) {
     updates.defaultTone = LEGACY_TONE_MAP[items.defaultTone];
@@ -55,10 +72,10 @@ chrome.runtime.onInstalled.addListener(() => {
       }
     }
 
-    // Auto-migrate if pointing to old/dead hosts
-    const oldHostPattern = /localhost:8000|sslip\.io/;
-    if (items.apiHost && oldHostPattern.test(items.apiHost)) {
-      updates.apiHost = DEFAULT_SETTINGS.apiHost;
+    // Auto-migrate old or incomplete API hosts.
+    const normalizedApiHost = normalizeApiHost(items.apiHost);
+    if (normalizedApiHost !== items.apiHost) {
+      updates.apiHost = normalizedApiHost;
     }
 
     // Remap legacy tone values to trained styles
@@ -139,8 +156,10 @@ function storageRemove(keys) {
 
 async function getApiHost() {
   const { apiHost } = await storageGet(["apiHost"]);
-  let host = apiHost || DEFAULT_SETTINGS.apiHost;
-  if (host.endsWith("/")) host = host.slice(0, -1);
+  const host = normalizeApiHost(apiHost);
+  if (host !== apiHost) {
+    await storageSet({ apiHost: host });
+  }
   return host;
 }
 
