@@ -133,12 +133,12 @@ class Settings(BaseSettings):
     CLOUDINARY_URL: str = ""
 
     # ── CORS ──
-    CORS_ORIGINS: str = "http://localhost:5173,https://sinai.onrender.com,https://chat.sin-ai.app"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://sinai.onrender.com,https://chat.sin-ai.app,https://chat.sin-ai.app/admin,https://sin-ai.app,https://www.sin-ai.app"
 
     @property
     def cors_origin_list(self) -> list[str]:
         """Parse comma-separated CORS origins into a list."""
-        return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
     @property
     def is_development(self) -> bool:

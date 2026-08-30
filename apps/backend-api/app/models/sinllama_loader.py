@@ -120,6 +120,8 @@ async def sinllama_get_comparison_adapters() -> dict[str, Any]:
             return response.json()
     except httpx.HTTPError as exc:
         raise SinLlamaUnavailable(f"SinLlama comparison server unreachable: {exc}") from exc
+    except Exception as exc:
+        raise SinLlamaUnavailable(f"SinLlama comparison server unexpected error: {exc}") from exc
 
 
 async def sinllama_run_comparison(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -133,4 +135,6 @@ async def sinllama_run_comparison(payload: dict[str, Any]) -> list[dict[str, Any
             return response.json()
     except httpx.HTTPError as exc:
         raise SinLlamaUnavailable(f"SinLlama comparison server error: {exc}") from exc
+    except Exception as exc:
+        raise SinLlamaUnavailable(f"SinLlama comparison server unexpected error: {exc}") from exc
 
