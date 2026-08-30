@@ -9,6 +9,7 @@ either raw text (it wraps it itself) or a fully-formed prompt containing
 when we need knobs the server doesn't expose — e.g. summary length.
 """
 
+from app.core import fact_guard
 from app.core.text_cleaning import strip_article_media_tags
 
 # ── Style rewriter ──
@@ -183,6 +184,35 @@ def prompt_headline(
     band = HEADLINE_LENGTHS[resolve_headline_length(length)]
     hint = f"\n- {variation_hint}" if variation_hint else ""
     article = strip_article_media_tags(text)[:MAX_ARTICLE_CHARS]
+
+    # The key figure is stated as a rule, not appended as a hint.
+    #
+    # It was a hint first, merged onto every variation slot. Measured against
+    # the live model on the reported Nepal article, all four returned
+    # candidates came back with key_number_included=false: the adapter simply
+    # ignored it there. A trailing hint sits *after* "Output ONLY the
+    # headline, nothing else", which reads as a terminator, and it competes
+    # with whatever angle the variation hint asked for. Stating it inside the
+    # rules block, in the same imperative voice as the word band, is the same
+    # instruction in the position the model actually attends to.
+    #
+    # One number, not the list: offering three invites the model to satisfy
+    # the rule with none of them. salient_numbers() returns them lead-first,
+    # so [0] is the figure the story leads on. Any *other* article number the
+    # model uses instead still passes fact_guard.unverified_numbers().
+    #
+    # This is a deliberate divergence from build_prompt() in train_headline.py
+    # -- the rules block is otherwise byte-identical, see this docstring --
+    # taken because the evidence says the format-preserving version does not
+    # work.
+    key_numbers = fact_guard.salient_numbers(article)
+    number_rule = (
+        f"\n- The headline MUST include the number {key_numbers[0]}"
+        " exactly as written in the article"
+        if key_numbers
+        else ""
+    )
+
     return (
         "### Instruction:\n"
         "Generate a concise Sinhala news headline for the article below.\n\n"
@@ -190,7 +220,8 @@ def prompt_headline(
         "- Use formal Sinhala journalism style matching the article category\n"
         f"- Between {band['min_words']} and {band['max_words']} words"
         f" -- never fewer than {band['min_words']}\n"
-        "- Capture the key person, event, number, or outcome\n"
+        "- Capture the key person, event, number, or outcome"
+        f"{number_rule}\n"
         f"- Output ONLY the headline, nothing else{hint}\n\n"
         "### Input:\n"
         f"Category: {category}\n"

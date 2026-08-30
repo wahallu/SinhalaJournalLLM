@@ -46,14 +46,38 @@ _INLINE_ARTIFACT = re.compile(
 )
 
 
+# Generation noise the adapter tacks onto a finished headline. Observed
+# live on one request: "ඉහළට…!‍‍‍යි", "ඉහළට.‍‍ ‍", "ඉහළට..",
+# "අතුරුදන්…?" -- an ellipsis or dot run, sometimes followed by a stray
+# syllable, sometimes trailed by zero-width joiners and spaces. It reached
+# the UI verbatim (the "..." users see on the end of a headline) and it also
+# corrupts the word count the band logic runs on, since the junk rides along
+# on the last real word.
+#
+# A news headline never legitimately contains an ellipsis or a run of dots,
+# so everything from the first one onward goes. Single dots are left alone --
+# they carry abbreviations like "රු.මී.".
+_DOT_RUN = re.compile(r"(?:\u2026|\.{2,}).*$", re.DOTALL)
+
+# Zero-width joiners are meaningful *inside* Sinhala words (conjuncts like
+# "සංඛ්‍යාව" are built with U+200D), so they can only be stripped at the
+# edges, where they cannot be forming a conjunct.
+_EDGE_NOISE = re.compile(r"^[\s\u200c\u200d]+|[\s.,!?:;\-–—\u2026\u200c\u200d]+$")
+
+
 def strip_headline_artifacts(headline: str) -> str:
-    """Removes a trailing scraper tag from a generated headline. Safe to call
-    on every candidate before word-count/band logic runs, since the word
-    count should reflect real content, not a tag riding along on it."""
+    """Removes a trailing scraper tag and trailing generation noise from a
+    generated headline. Safe to call on every candidate before
+    word-count/band logic runs, since the word count should reflect real
+    content, not a tag or a punctuation run riding along on it."""
     if not headline:
         return headline
     cleaned = _TRAILING_ARTIFACT.sub("", headline).strip()
-    cleaned = re.sub(r"[\s\-–—:!]+$", "", cleaned).strip()
+    cleaned = _DOT_RUN.sub("", cleaned)
+    cleaned = _EDGE_NOISE.sub("", cleaned).strip()
+    # A second tag pass: the dot run can have been hiding one ("... (වීඩියෝ)").
+    cleaned = _TRAILING_ARTIFACT.sub("", cleaned).strip()
+    cleaned = _EDGE_NOISE.sub("", cleaned).strip()
     return cleaned or headline  # never return empty; keep the original if the whole thing was "artifact"
 
 

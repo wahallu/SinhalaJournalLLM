@@ -180,6 +180,40 @@ _STOPWORDS = {
 _MIN_WORD_LEN = 3
 
 
+# ── Stem grounding ──
+# Sinhala inflects by suffix and compounds freely, so verbatim grounding is
+# close to useless as a signal. Measured on the reported Nepal article, the
+# exact-match check flagged six words in one headline -- "නේපාලය" (the
+# *correct* country; the article writes "නේපාලයේ"), "වතුරෙන්" (correct; the
+# article writes "ගංවතුරින්"), "මිය" and "ගිය" (both inside the article's
+# "මියගිය"), "ඉහළට" (the article has "ඉහළ") -- and one real error. One true
+# flag in six is not something any caller can act on, which is exactly why
+# unverified_words() was documented as too heuristic to drive anything.
+#
+# Matching on a stem instead collapses all five false positives: a shared
+# opening of _STEM_LEN characters survives suffix inflection and finds a word
+# inside a compound, while a genuinely different entity shares nothing --
+# "නෙදර්ලන්තයේ" and "නේපාලයේ" have one character in common. That is what
+# makes the signal precise enough to act on; see unverified_words().
+_STEM_LEN = 4
+_SHORT_STEM_LEN = 3
+
+
+def _stem(word: str) -> str:
+    """The opening of `word` used for grounding. Shorter for short words, so
+    a 4-character word like "ඉහළට" still matches the article's "ඉහළ" instead
+    of needing itself verbatim."""
+    return word[:_STEM_LEN] if len(word) > _STEM_LEN else word[:_SHORT_STEM_LEN]
+
+
+# An ungrounded word this long is a name -- a country, a place, a person, an
+# organisation -- rather than the general vocabulary a headline is free to
+# paraphrase with. "නෙදර්ලන්තයේ" is 11 characters; the paraphrases that also
+# come back ungrounded ("ගණන", "මරණ") are three. That length gap is what lets
+# entity drift be held back while a synonym is merely ranked down.
+_ENTITY_MIN_LEN = 5
+
+
 def _headline_content_words(article: str, headline: str) -> tuple[set[str], list[str]]:
     """Article content words (as a set, for membership checks) and headline
     content words (de-duplicated, in order) -- the shared extraction both
@@ -196,11 +230,34 @@ def _headline_content_words(article: str, headline: str) -> tuple[set[str], list
 
 
 def unverified_words(article: str, headline: str) -> list[str]:
-    """Headline words (content words only, de-duplicated, in order) that
-    don't appear verbatim anywhere in `article`. See module docstring --
-    heuristic, not NER."""
-    article_words, headline_words = _headline_content_words(article, headline)
-    return [word for word in headline_words if word not in article_words]
+    """Headline content words (de-duplicated, in order) that aren't grounded
+    in `article` -- neither verbatim nor by stem.
+
+    Still not NER, but no longer merely heuristic: stem matching removes the
+    inflection and compounding false positives that made the verbatim version
+    unusable (see the _STEM_LEN comment), so what survives is a word the
+    article genuinely doesn't contain in any form. A legitimate synonym the
+    model chose over the article's wording still lands here, which is why
+    this ranks a candidate down rather than dropping it -- dropping is
+    reserved for drifted_entities()."""
+    article_text = article or ""
+    _, headline_words = _headline_content_words(article, headline)
+    return [word for word in headline_words if _stem(word) not in article_text]
+
+
+def drifted_entities(article: str, headline: str) -> list[str]:
+    """Ungrounded headline words long enough to be a name rather than
+    ordinary vocabulary -- the reported "Netherlands for Nepal" failure.
+
+    This is the part of unverified_words() worth acting on. A wrong country
+    is a factual error of the same kind as an invented number; a synonym the
+    article didn't happen to use is not, and the length floor is what
+    separates them without needing NER Sinhala doesn't support."""
+    return [
+        word
+        for word in unverified_words(article, headline)
+        if len(word) >= _ENTITY_MIN_LEN
+    ]
 
 
 def nonsense_words(article: str, headline: str) -> list[str]:
@@ -209,10 +266,11 @@ def nonsense_words(article: str, headline: str) -> list[str]:
     point 3. Unlike unverified_words(), this is trusted enough to drive a
     regeneration retry."""
     article_words, headline_words = _headline_content_words(article, headline)
+    article_text = article or ""
     return [
         word
         for word in headline_words
-        if word not in article_words and not lexicon.contains(word)
+        if _stem(word) not in article_text and not lexicon.contains(word)
     ]
 
 
@@ -221,6 +279,7 @@ class FactCheck:
     numbers_verified: bool
     unverified_numbers: list[str] = field(default_factory=list)
     unverified_words: list[str] = field(default_factory=list)
+    drifted_entities: list[str] = field(default_factory=list)
     # True in both good cases -- the headline reports one of the article's
     # figures, or the article had none to report -- so False specifically
     # means "this story had a number and the headline dropped it". Defaults
@@ -235,5 +294,6 @@ def check_headline(article: str, headline: str) -> FactCheck:
         numbers_verified=not bad_numbers,
         unverified_numbers=bad_numbers,
         unverified_words=unverified_words(article, headline),
+        drifted_entities=drifted_entities(article, headline),
         key_number_included=not missing_key_numbers(article, headline),
     )

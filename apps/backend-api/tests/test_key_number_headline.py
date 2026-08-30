@@ -42,6 +42,12 @@ _FIGURELESS = "නේපාලයේ ගංවතුර තත්ත්වය �
 _NUMBERED = "නේපාලයේ ගංවතුර හේතුවෙන් මියගිය සංඛ්‍යාව 734 දක්වා"
 
 
+_NO_NUMBER_ARTICLE = (
+    "අම්බලන්ගොඩ නගර මධ්‍යයේ ලැඟුම්හලක මියගොස් සිටි පුද්ගලයෙකුගේ මළ සිරුරක් "
+    "සොයා ගත් බව පොලීසිය පවසනවා."
+)
+
+
 def _stub_result(text: str) -> SimpleNamespace:
     return SimpleNamespace(
         text=text, provider="mock", latency_ms=1,
@@ -95,25 +101,24 @@ def test_a_figureless_headline_is_numbers_verified_but_not_key_number_included()
 
 # ── service ──
 
-@pytest.mark.asyncio
-async def test_fanout_hint_names_the_articles_own_number(monkeypatch):
-    """"Include the key number" is a category the model can decide doesn't
-    apply; "include 734" is a copy instruction. Every slot gets it, including
-    the canonical slot 0, which carries no variation hint of its own and is
-    the one that usually wins the rerank."""
-    seen: list[str | None] = []
+def test_prompt_states_the_number_as_a_rule_not_a_trailing_hint():
+    """It was a trailing hint first, merged onto every variation slot, and the
+    live model ignored it in all four candidates it returned (each came back
+    key_number_included=false). A hint sits after "Output ONLY the headline,
+    nothing else"; the requirement belongs in the rules block."""
+    from app.core.prompts import prompt_headline
 
-    async def fake_model_generate(task, text, *, variation_hint=None, **kwargs):
-        seen.append(variation_hint)
-        return _stub_result(_NUMBERED)
+    rules = prompt_headline(_ARTICLE, length="long").split("### Input")[0]
+    assert "MUST include the number 734" in rules
+    # Before "Output ONLY ...", not appended after it.
+    assert rules.index("MUST include the number") < rules.index("Output ONLY")
 
-    monkeypatch.setattr(hs, "HEADLINE_VARIATION_HINTS", ["", "b"])
-    monkeypatch.setattr(hs, "model_generate", fake_model_generate)
-    monkeypatch.setattr(hs, "persist_if_owned", _fake_persist)
 
-    await hs.generate_headlines(_ARTICLE, count=2, length="medium")
+def test_prompt_states_no_number_rule_for_an_article_without_one():
+    from app.core.prompts import prompt_headline
 
-    assert seen and all("734" in (hint or "") for hint in seen)
+    rules = prompt_headline(_NO_NUMBER_ARTICLE, length="long").split("### Input")[0]
+    assert "MUST include the number" not in rules
 
 
 @pytest.mark.asyncio
@@ -178,12 +183,6 @@ async def test_figureless_headline_is_ranked_down_not_held_back(monkeypatch):
 
     assert result.headlines == [_FIGURELESS]
     assert result.fact_checks[0].key_number_included is False
-
-
-_NO_NUMBER_ARTICLE = (
-    "අම්බලන්ගොඩ නගර මධ්‍යයේ ලැඟුම්හලක මියගොස් සිටි පුද්ගලයෙකුගේ මළ සිරුරක් "
-    "සොයා ගත් බව පොලීසිය පවසනවා."
-)
 
 
 @pytest.mark.asyncio

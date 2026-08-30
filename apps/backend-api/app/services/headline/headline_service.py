@@ -190,21 +190,6 @@ async def _gather_within(coros: list, deadline: float) -> tuple[list, bool]:
     return results, bool(pending)
 
 
-def _key_number_hint(numbers: list[str]) -> str:
-    """The fan-out hint that asks for the article's figure by name.
-
-    Naming the actual digits is the point: "include the key number" is a
-    category the model can silently decide doesn't apply, while
-    "include 734" is a copy instruction -- and because the digits come
-    straight from the article, a headline that follows it passes
-    unverified_numbers() by construction."""
-    numbers_text = ", ".join(numbers)
-    return (
-        f"ලිපියේ වාර්තා වන ප්‍රධාන සංඛ්‍යා ({numbers_text}) අතරින් වඩාත් වැදගත් එක "
-        "ලිපියේ ඇති අයුරින්ම ශීර්ෂ පාඨයට ඇතුළත් කරන්න."
-    )
-
-
 def _missing_number_hint(numbers: list[str]) -> str:
     """Retry wording for a candidate that came back with no figure at all.
     Distinct from _key_number_hint() on purpose: that one is already merged
@@ -216,6 +201,19 @@ def _missing_number_hint(numbers: list[str]) -> str:
     return (
         "ශීර්ෂ පාඨයේ සංඛ්‍යාවක් නොමැති නිසා එය අසම්පූර්ණය. "
         f"ලිපියේ ඇති සංඛ්‍යාවක් ({numbers_text}) ලිපියේ ඇති අයුරින්ම ඇතුළත් කරන්න."
+    )
+
+
+def _entity_corrective_hint(bad_entities: list[str]) -> str:
+    """Names the drifted entity so the retry has something concrete to
+    correct. The reported failure was a headline about නෙදර්ලන්තයේ (the
+    Netherlands) for an article about නේපාලයේ (Nepal) -- a word the lexicon
+    attests, so the nonsense-word guard could never see it, and one the
+    verbatim grounding check buried among five inflection false positives."""
+    entities = ", ".join(bad_entities)
+    return (
+        f"'{entities}' යන නම ලිපියේ නොමැත. ලිපියේ සඳහන් රට, ස්ථානය සහ "
+        "පුද්ගලයන්ගේ නම් පමණක් භාවිතා කරන්න."
     )
 
 
@@ -243,18 +241,19 @@ def _nonsense_corrective_hint(bad_words: list[str]) -> str:
 
 def _quality_score(
     text: str, candidate: str, band: dict, key_numbers: list[str]
-) -> tuple[int, int, int, int]:
+) -> tuple[int, int, int, int, int]:
     """How bad this candidate is, lowest is best, compared lexicographically.
 
     Ordered by consequence, not by severity of the writing problem. The first
-    two empty the response if they survive (the hold-back below drops those
-    candidates outright), the third gets silently clipped by _trim_to_band(),
-    and the fourth only costs the candidate rank -- so a retry is an
+    three can cost the candidate its place in the response (the hold-backs
+    below drop them), the fourth gets silently clipped by _trim_to_band(),
+    and the fifth only costs the candidate rank -- so a retry is an
     improvement exactly when it trades a later problem for an earlier one,
     never the reverse."""
     return (
         len(fact_guard.unverified_numbers(text, candidate)),
         len(fact_guard.nonsense_words(text, candidate)),
+        len(fact_guard.drifted_entities(text, candidate)),
         _band_distance(candidate, band),
         0
         if not key_numbers or fact_guard.includes_article_number(text, candidate)
@@ -280,6 +279,11 @@ def _correctives(
     bad_words = fact_guard.nonsense_words(text, candidate)
     if bad_words:
         parts.append(_nonsense_corrective_hint(bad_words))
+
+    bad_entities = [e for e in fact_guard.drifted_entities(text, candidate)
+                    if e not in bad_words]
+    if bad_entities:
+        parts.append(_entity_corrective_hint(bad_entities))
 
     length_hint = _corrective_hint(candidate, band)
     if length_hint:
@@ -382,20 +386,16 @@ async def generate_headlines(
     # truncates to MAX_ARTICLE_CHARS, so taking the numbers from the raw text
     # instead could name a figure that never reached the prompt.
     #
-    # Merged into every slot rather than left to the one number-angle
-    # variation hint: the base prompt's rules line offers a number as one of
-    # four things a headline *may* capture, which the model satisfies with
-    # person + event every time, and the canonical slot 0 -- the one that
-    # usually wins the rerank -- carries no variation hint at all. Empty for
-    # an article whose lead reports no figure, in which case nothing here
-    # changes and no number gets pushed into a story that has none.
+    # Used here only to decide whether a candidate is *missing* a figure.
+    # Asking for it is prompt_headline()'s job now: this was merged onto every
+    # variation hint first, and the live model ignored it in every candidate
+    # (see the comment on number_rule there), so the requirement moved into
+    # the rules block where the same computation runs off the same view of
+    # the article. Empty for an article whose lead reports no figure, in
+    # which case nothing below pushes a number into a story that has none.
     key_numbers = fact_guard.salient_numbers(
         strip_article_media_tags(text)[:MAX_ARTICLE_CHARS]
     )
-    if key_numbers:
-        hints = [
-            _merge_hints(hint or None, _key_number_hint(key_numbers)) for hint in hints
-        ]
 
     async def generate_one(hint: str | None):
         return await model_generate(
@@ -514,6 +514,23 @@ async def generate_headlines(
     generated_any_candidate = any(candidates)
     candidates = [c if c and _is_clean(c) else None for c in candidates]
 
+    # Entity drift is held back *conditionally*, unlike an invented number.
+    #
+    # A wrong country is as wrong as a wrong casualty count, so a candidate
+    # naming one should never be shown when a candidate that got it right
+    # exists. But the signal isn't as exact as the number check: the length
+    # floor in drifted_entities() separates a swapped name from a paraphrase
+    # by proxy, and a long ordinary word the article happened not to use can
+    # land on the wrong side of it. Dropping those unconditionally would
+    # empty batches over a synonym. Conditioning on a clean alternative gives
+    # the guarantee where it can be had -- a drifted candidate never outranks
+    # or displaces a grounded one -- and costs only variety where it can't.
+    if any(c and not fact_guard.drifted_entities(text, c) for c in candidates):
+        candidates = [
+            c if c and not fact_guard.drifted_entities(text, c) else None
+            for c in candidates
+        ]
+
     headlines = _dedupe([_trim_to_band(c, band) for c in candidates if c])[:count]
     if not headlines:
         if not generated_any_candidate:
@@ -565,6 +582,7 @@ async def generate_headlines(
         range(len(headlines)),
         key=lambda i: (
             not fact_checks[i].numbers_verified,
+            len(fact_checks[i].drifted_entities),
             not fact_checks[i].key_number_included,
             len(fact_checks[i].unverified_words),
         ),
@@ -595,6 +613,7 @@ async def generate_headlines(
                 numbers_verified=fc.numbers_verified,
                 unverified_numbers=fc.unverified_numbers,
                 unverified_words=fc.unverified_words,
+                drifted_entities=fc.drifted_entities,
                 key_number_included=fc.key_number_included,
             )
             for fc in fact_checks
