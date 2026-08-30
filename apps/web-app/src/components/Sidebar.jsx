@@ -68,7 +68,7 @@ function FeedbackPromo({ collapsed }) {
         rel="noopener noreferrer"
         title="Give us your feedback"
         className="feedback-promo relative flex items-center justify-center w-full py-2.5 mb-1.5
-                   rounded-lg bg-brand-600 text-white hover:bg-brand-700
+                   rounded-lg bg-brand-500 text-white hover:bg-brand-700
                    transition-colors duration-150 overflow-hidden"
       >
         <Megaphone size={17} strokeWidth={2} className="shrink-0" />

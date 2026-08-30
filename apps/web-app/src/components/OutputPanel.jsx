@@ -247,7 +247,7 @@ export default function OutputPanel({
                 <ArrowRight size={12} className="text-ink-400 md:hidden" />
                 <ResultLabel>Rewritten</ResultLabel>
                 {output.tone && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-brand-700 bg-brand-50 border border-brand-200/70 rounded-full px-2 py-0.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 bg-brand-50 border border-brand-200/70 rounded-full px-2 py-0.5">
                     {output.tone}
                   </span>
                 )}
