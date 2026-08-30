@@ -27,7 +27,7 @@ function ProfileSection({ icon: Icon, title, description, children }) {
     <section className="px-5 py-5 sm:px-6 sm:py-6 border-b border-ink-100 last:border-b-0">
       <div className="flex items-start gap-3.5 mb-5">
         <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
-          <Icon size={17} className="text-brand-700" strokeWidth={2.1} />
+          <Icon size={17} className="text-brand-600" strokeWidth={2.1} />
         </div>
         <div className="min-w-0">
           <h2 className="text-[14px] font-bold text-ink-900">{title}</h2>

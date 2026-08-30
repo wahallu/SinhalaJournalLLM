@@ -1,5 +1,5 @@
 """
-Style Rewriter API endpoints.
+Style Rewriter API endpoints. Fix Style Endpoints
 
 POST /rewrite         — Rewrite text into a target newspaper style
 GET  /rewrite/history — Paginated rewrite history

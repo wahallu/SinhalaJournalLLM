@@ -245,7 +245,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
               <ChevronRight
                 size={17}
                 strokeWidth={2.5}
-                className="absolute text-brand-600 opacity-0 transition-opacity duration-150
+                className="absolute text-brand-500 opacity-0 transition-opacity duration-150
                   group-hover:opacity-100"
                 aria-hidden="true"
               />
