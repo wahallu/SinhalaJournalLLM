@@ -55,32 +55,6 @@ async function request(endpoint, body = null, method = 'POST') {
   return res.json();
 }
 
-/** Authenticated multipart request. The browser owns the Content-Type
- * boundary; setting it manually would produce an invalid upload. */
-async function multipartRequest(endpoint, formData) {
-  const send = (token) => fetch(`${getApiBase()}${endpoint}`, {
-    method: 'POST',
-    headers: {
-      ...researchHeaders(),
-      ...authHeaders(token),
-    },
-    body: formData,
-  });
-
-  const token = getAccessToken();
-  let res = await send(token);
-  if (res.status === 401 && token) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) res = await send(refreshed);
-  }
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Request failed (${res.status})`);
-  }
-  return res.json();
-}
-
 /**
  * One API call whose body is a stream of NDJSON objects.
  *
@@ -393,19 +367,105 @@ export function getHistoryStats() {
   return request('/history/stats', null, 'GET');
 }
 
-// ── Image Generation (OpenAI GPT Image 2) ──
+// ── Image Generation (OpenAI Image API) ──
 // The authenticated backend proxy keeps OPENAI_API_KEY out of the browser and
 // returns a base64 PNG data URL.
+//
+// The response is NDJSON, not a single JSON body: image generation can take
+// up to two minutes and the router in front of the backend kills any request
+// that hasn't sent a first byte in 30 seconds, so the backend emits a
+// "working" line immediately and heartbeats until the image is ready. See
+// app/api/v1/image_generation.py. This function hides all of that -- it still
+// resolves to { image_data, prompt, model, stored } and still rejects with
+// the backend's message, exactly as when it was a plain request().
+async function imageStream(send) {
+  const token = getAccessToken();
+  let res = await send(token);
+  if (res.status === 401 && token) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) res = await send(refreshed);
+  }
+
+  // Failures cheap enough to detect before the stream opens (validation,
+  // ownership, an unreadable upload) are still ordinary HTTP errors.
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || err.message || `Request failed (${res.status})`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let terminal = null;
+
+  const consume = (line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    let event;
+    try {
+      event = JSON.parse(trimmed);
+    } catch {
+      return; // a partial or malformed line is not worth failing the run over
+    }
+    if (event.status === 'working') return; // heartbeat
+    terminal = event;
+  };
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    lines.forEach(consume);
+  }
+  consume(buffer);
+
+  if (!terminal) {
+    // The connection closed after the heartbeats but before a result --
+    // which is what a router timeout looks like from here.
+    throw new Error('Image generation ended without a result. Please try again.');
+  }
+  if (terminal.status === 'error') {
+    throw new Error(terminal.detail || 'Image generation failed.');
+  }
+
+  // Everything except the envelope's own status field is the
+  // ImageGenerationResponse the caller has always received.
+  const result = { ...terminal };
+  delete result.status;
+  return result;
+}
+
 export function generateImage(prompt, historyId = null, referenceImage = null) {
   if (!referenceImage) {
-    return request('/image/generate', { prompt, history_id: historyId });
+    return imageStream((token) =>
+      fetch(`${getApiBase()}/image/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...researchHeaders(),
+          ...authHeaders(token),
+        },
+        body: JSON.stringify({ prompt, history_id: historyId }),
+      })
+    );
   }
 
   const formData = new FormData();
   formData.append('prompt', prompt);
   if (historyId) formData.append('history_id', historyId);
   formData.append('image', referenceImage);
-  return multipartRequest('/image/generate', formData);
+  return imageStream((token) =>
+    fetch(`${getApiBase()}/image/generate`, {
+      method: 'POST',
+      headers: {
+        ...researchHeaders(),
+        ...authHeaders(token),
+      },
+      body: formData,
+    })
+  );
 }
 
 // ── Capabilities ──

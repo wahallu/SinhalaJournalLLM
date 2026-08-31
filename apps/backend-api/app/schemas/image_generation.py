@@ -2,7 +2,22 @@
 
 from pydantic import BaseModel, Field
 
-DEFAULT_IMAGE_MODEL = "gpt-image-2"
+# The image models an admin may select, newest first. Both are real OpenAI
+# Image API models: gpt-image-1 (2025) and gpt-image-2 (released 22 Apr 2026).
+# Kept here rather than in settings_registry.py so the API schema and the
+# admin whitelist can never disagree about what is selectable.
+IMAGE_MODELS: tuple[str, ...] = ("gpt-image-2", "gpt-image-1")
+
+DEFAULT_IMAGE_MODEL = IMAGE_MODELS[0]
+
+
+def resolve_image_model(model: str | None) -> str:
+    """Map a stored/admin-supplied model name onto a known one.
+
+    Falls back rather than raising: a stale value left in the settings table
+    after this list changes must not take image generation down."""
+    model = (model or "").strip()
+    return model if model in IMAGE_MODELS else DEFAULT_IMAGE_MODEL
 
 
 class ImageGenerationRequest(BaseModel):

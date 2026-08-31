@@ -48,6 +48,7 @@ def test_registry_covers_the_documented_keys():
         "grammar.agreement_validation",
         "grammar.contextual_rules",
         "limits.anon_per_hour",
+        "image.model",
     }
     assert set(REGISTRY) == expected
 

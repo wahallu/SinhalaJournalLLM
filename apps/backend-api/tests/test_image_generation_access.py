@@ -1,5 +1,7 @@
 """Authorization coverage for the billable image generation endpoint."""
 
+import json
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -18,6 +20,22 @@ def _auth(user_id: str) -> dict[str, str]:
 
 def _client() -> AsyncClient:
     return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+
+def _terminal(response) -> dict:
+    """The last NDJSON line of a streamed image response.
+
+    The endpoint answers with heartbeats followed by one terminal event, so a
+    successful generation is no longer a single JSON body -- see
+    app/api/v1/image_generation.py for why it has to stream."""
+    lines = [line for line in response.text.splitlines() if line.strip()]
+    assert lines, "expected at least one NDJSON line"
+    return json.loads(lines[-1])
+
+
+def _heartbeats(response) -> list[dict]:
+    lines = [line for line in response.text.splitlines() if line.strip()]
+    return [json.loads(line) for line in lines[:-1]]
 
 
 @pytest.fixture(autouse=True)
@@ -66,8 +84,9 @@ async def test_regular_user_cannot_generate_images():
 
 @pytest.mark.asyncio
 async def test_admin_can_generate_images(monkeypatch):
-    async def fake_generate_image(prompt: str) -> str:
+    async def fake_generate_image(prompt: str, model: str | None = None) -> str:
         assert prompt == "A news photograph"
+        assert model == "gpt-image-2"  # the registry default
         return "data:image/png;base64,aGVsbG8="
 
     monkeypatch.setattr(
@@ -83,20 +102,25 @@ async def test_admin_can_generate_images(monkeypatch):
         )
 
     assert response.status_code == 200
-    assert response.json() == {
+    assert _terminal(response) == {
+        "status": "done",
         "image_data": "data:image/png;base64,aGVsbG8=",
         "prompt": "A news photograph",
         "model": "gpt-image-2",
         "stored": False,
     }
+    # The first byte is what the platform's 30-second rule measures, and it
+    # goes out before OpenAI is called at all.
+    assert _heartbeats(response)[0] == {"status": "working", "model": "gpt-image-2"}
 
 
 @pytest.mark.asyncio
 async def test_admin_can_generate_with_reference_image(monkeypatch):
     reference = b"RIFF\x08\x00\x00\x00WEBPtest"
 
-    async def fake_edit_image(prompt, image_bytes, image_mime, image_filename):
+    async def fake_edit_image(prompt, image_bytes, image_mime, image_filename, model=None):
         assert prompt == "Use this car in a night-time news scene"
+        assert model == "gpt-image-2"
         assert image_bytes == reference
         assert image_mime == "image/webp"
         assert image_filename == "reference.webp"
@@ -113,8 +137,8 @@ async def test_admin_can_generate_with_reference_image(monkeypatch):
         )
 
     assert response.status_code == 200
-    assert response.json()["image_data"] == "data:image/png;base64,ZWRpdGVk"
-    assert response.json()["model"] == "gpt-image-2"
+    assert _terminal(response)["image_data"] == "data:image/png;base64,ZWRpdGVk"
+    assert _terminal(response)["model"] == "gpt-image-2"
 
 
 @pytest.mark.asyncio
@@ -151,7 +175,7 @@ async def test_admin_image_is_uploaded_and_attached_to_own_headline(monkeypatch,
         "created_at": "2026-08-12T00:00:00Z",
     }]
 
-    async def fake_generate_image(prompt: str) -> str:
+    async def fake_generate_image(prompt: str, model: str | None = None) -> str:
         return "data:image/png;base64,aGVsbG8="
 
     async def fake_upload(image_data: str, record_id: str):
@@ -171,11 +195,12 @@ async def test_admin_image_is_uploaded_and_attached_to_own_headline(monkeypatch,
         )
 
     assert response.status_code == 200
-    assert response.json()["image_data"].startswith("https://res.cloudinary.com/")
-    assert response.json()["stored"] is True
+    terminal = _terminal(response)
+    assert terminal["image_data"].startswith("https://res.cloudinary.com/")
+    assert terminal["stored"] is True
     saved = fake_supabase.store["headline_generations"][0]
     assert saved["visual_prompt"] == "A news photograph"
-    assert saved["image_url"] == response.json()["image_data"]
+    assert saved["image_url"] == terminal["image_data"]
     assert saved["image_model"] == "gpt-image-2"
 
 

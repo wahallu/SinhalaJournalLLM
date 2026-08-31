@@ -21,6 +21,7 @@ from typing import Any
 
 from app.core.config import get_settings
 from app.core.prompts import STYLE_INSTRUCTIONS, SUMMARY_LENGTHS
+from app.schemas.image_generation import DEFAULT_IMAGE_MODEL, IMAGE_MODELS
 
 
 # Folder names only — no path separators, so a value cannot be coaxed
@@ -167,6 +168,25 @@ def build_registry() -> dict[str, SettingSpec]:
             kind="bool", default=_env_default("GRAMMAR_CONTEXTUAL_RULES", True),
             group="Grammar Advanced",
             description="Keep deixis, honorific, register, and related context-dependent changes advisory.",
+        ),
+
+        # ── Image Generation ──
+        # Grouped separately from "Headline Generator" so it renders as its
+        # own section on that tool's settings page -- image generation is
+        # reached from the headline tool's visual prompt, but it bills a
+        # different provider and fails for entirely different reasons.
+        "image.model": SettingSpec(
+            kind="enum",
+            choices=IMAGE_MODELS,
+            default=DEFAULT_IMAGE_MODEL,
+            group="Image Generation",
+            description=(
+                "OpenAI model used for the Headline Generator's image "
+                "generation. gpt-image-2 is newer and faster; gpt-image-1 is "
+                "the older model, worth switching to if gpt-image-2 starts "
+                "failing or is not enabled on the project's OpenAI account. "
+                "Both bill the project's OpenAI account per image."
+            ),
         ),
 
         # ── Headline Generator ──
