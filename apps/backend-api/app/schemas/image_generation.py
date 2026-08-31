@@ -11,6 +11,15 @@ IMAGE_MODELS: tuple[str, ...] = ("gpt-image-2", "gpt-image-1")
 DEFAULT_IMAGE_MODEL = IMAGE_MODELS[0]
 
 
+def alternate_image_model(model: str) -> str | None:
+    """The other model to try when `model` turns out to be unavailable to this
+    OpenAI account -- gpt-image-1 requires organisation verification and
+    gpt-image-2 requires access to a newer model, so an account can easily
+    have exactly one of them. Returns None when there is nothing else to try."""
+    others = [m for m in IMAGE_MODELS if m != resolve_image_model(model)]
+    return others[0] if others else None
+
+
 def resolve_image_model(model: str | None) -> str:
     """Map a stored/admin-supplied model name onto a known one.
 

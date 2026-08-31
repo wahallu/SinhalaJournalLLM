@@ -123,3 +123,13 @@ export function getChatRun(tool, id) {
 export function getAdapters() {
   return request('/comparison/adapters');
 }
+
+/**
+ * Why is image generation failing? Answered without generating (or billing)
+ * anything: key present, OpenAI reachable, which image models this account may
+ * use, and the client timeout — a value below OpenAI's two-minute worst case
+ * breaks generation outright while looking exactly like a network fault.
+ */
+export function getImageDiagnostics() {
+  return request('/api/v1/image/diagnostics');
+}

@@ -181,3 +181,57 @@ def test_a_stale_or_unknown_model_falls_back_instead_of_failing():
     assert resolve_image_model("dall-e-3") == "gpt-image-2"
     assert resolve_image_model(None) == "gpt-image-2"
     assert resolve_image_model("gpt-image-1") == "gpt-image-1"
+
+
+# ── diagnostics ──
+
+@pytest.mark.asyncio
+async def test_diagnostics_flags_a_timeout_too_low_to_ever_succeed(monkeypatch):
+    """The check that would have found the 24-second bug in one click."""
+    from app.services import image_generation_service as svc
+
+    monkeypatch.setattr(svc, "REQUEST_TIMEOUT", 24.0)
+    monkeypatch.setattr(svc, "get_settings", lambda: type("S", (), {"OPENAI_API_KEY": ""})())
+
+    report = await svc.diagnostics("gpt-image-2")
+
+    assert report["request_timeout_seconds"] == 24.0
+    assert report["request_timeout_ok"] is False
+    assert report["api_key_configured"] is False
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_reports_per_model_availability(monkeypatch):
+    """Distinguishes "this account cannot use this model" from "the network is
+    down" -- indistinguishable from a failed generation before this existed."""
+    import httpx
+    from app.services import image_generation_service as svc
+
+    monkeypatch.setattr(svc, "get_settings", lambda: type("S", (), {"OPENAI_API_KEY": "k"})())
+
+    class FakeClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def get(self, url, headers=None, **kw):
+            request = httpx.Request("GET", url)
+            if url.endswith("gpt-image-1"):
+                return httpx.Response(403, json={"error": {
+                    "message": "Your organization must be verified to use the model `gpt-image-1`.",
+                }}, request=request)
+            return httpx.Response(200, json={"id": "gpt-image-2"}, request=request)
+
+    monkeypatch.setattr(svc.httpx, "AsyncClient", lambda **kw: FakeClient())
+
+    report = await svc.diagnostics("gpt-image-2")
+
+    assert report["reachable"] is True
+    assert report["models"]["gpt-image-2"]["available"] is True
+    assert report["models"]["gpt-image-1"]["available"] is False
+    assert "must be verified" in report["models"]["gpt-image-1"]["detail"]
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_is_admin_only():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.get("/api/v1/image/diagnostics")
+    assert response.status_code == 401

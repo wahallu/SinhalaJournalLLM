@@ -1,11 +1,15 @@
 import SettingsPanel from './SettingsPanel';
+import ImageDiagnostics from './ImageDiagnostics';
 
 export default function HeadlineSettings() {
   return (
-    <SettingsPanel
-      title="Headline Generator"
-      description="Availability, default candidate count, adapter override, and the image model used for visual prompts."
-      groups={['Headline Generator', 'Image Generation']}
-    />
+    <>
+      <SettingsPanel
+        title="Headline Generator"
+        description="Availability, default candidate count, adapter override, and the image model used for visual prompts."
+        groups={['Headline Generator', 'Image Generation']}
+      />
+      <ImageDiagnostics />
+    </>
   );
 }

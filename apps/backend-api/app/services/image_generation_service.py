@@ -23,24 +23,93 @@ Auth:
 
 import logging
 import time
+from typing import NamedTuple
 
 import httpx
 
 from app.core.config import get_settings
-from app.schemas.image_generation import DEFAULT_IMAGE_MODEL, resolve_image_model
+from app.schemas.image_generation import (
+    DEFAULT_IMAGE_MODEL,
+    IMAGE_MODELS,
+    alternate_image_model,
+    resolve_image_model,
+)
 
 OPENAI_IMAGE_ENDPOINT = "https://api.openai.com/v1/images/generations"
 OPENAI_IMAGE_EDIT_ENDPOINT = "https://api.openai.com/v1/images/edits"
-REQUEST_TIMEOUT = 24.0
+# MUST stay above OpenAI's documented image latency ("up to 2 minutes"). This
+# was 24.0, which is the bug that made image generation fail every single time:
+# httpx aborted the call with a ReadTimeout after 24s, before any real
+# generation could finish, and the retry did the same -- producing exactly the
+# reported "failed after 2 attempts. Could not reach OpenAI image generation."
+# Nothing was ever wrong with the network or the key.
+#
+# 24s was presumably chosen to stay inside the platform's 30-second limit. That
+# limit is real but it cannot be satisfied this way: no client timeout short
+# enough to beat it is long enough to generate an image. It is satisfied
+# instead by streaming the response (see app/api/v1/image_generation.py), which
+# sends the first byte immediately and leaves this free to wait as long as the
+# model actually needs. Lowering it again re-breaks image generation outright.
+REQUEST_TIMEOUT = 180.0
 MAX_RETRIES = 2
+
+# Ceiling on the whole retry loop, checked before each new attempt. Without it
+# MAX_RETRIES * REQUEST_TIMEOUT is six minutes of billable work on a request
+# whose client may have hung up long ago -- per Heroku's documentation, "your
+# application will not know that the request it is processing has reached a
+# time-out, and will continue to work on the request".
+RETRY_BUDGET_SECONDS = 240.0
+
 IMAGE_SIZE = "1536x1024"
 IMAGE_QUALITY = "high"
 
 logger = logging.getLogger(__name__)
 
 
-def _api_error(response: httpx.Response) -> tuple[str, bool]:
-    """Return a safe user-facing message and whether the failure is transient."""
+class ApiError(NamedTuple):
+    message: str
+    retryable: bool
+    model_unavailable: bool = False
+
+
+# Phrases OpenAI uses when the *account* cannot use the requested model, as
+# opposed to something being wrong with the request. gpt-image-1 requires the
+# organisation to have completed ID verification and gpt-image-2 requires
+# access to a newer model, so an account very often has exactly one of the two
+# -- which is worth failing over rather than failing.
+_MODEL_UNAVAILABLE_CODES = {
+    "model_not_found",
+    "unsupported_model",
+    "organization_must_be_verified",
+}
+_MODEL_UNAVAILABLE_PHRASES = (
+    "must be verified",
+    "does not exist",
+    "do not have access",
+    "does not have access",
+)
+
+
+def _is_model_unavailable(status: int, code: str | None, message: str) -> bool:
+    if code in _MODEL_UNAVAILABLE_CODES:
+        return True
+    if status not in (400, 403, 404):
+        return False
+    lowered = message.lower()
+    return any(phrase in lowered for phrase in _MODEL_UNAVAILABLE_PHRASES)
+
+
+def _api_error(response: httpx.Response) -> ApiError:
+    """A safe user-facing message, whether the failure is transient, and
+    whether it means this account simply cannot use this model.
+
+    OpenAI's own `error.message` is now always carried through. It used to be
+    read and then dropped on 401/403/429/5xx in favour of a generic sentence,
+    which is how the single most common real cause of a 403 here -- "Your
+    organization must be verified to use the model gpt-image-1" -- reached
+    the admin as "Check the backend OPENAI_API_KEY" and sent them to look at
+    a key that was never the problem. The generic sentences are still there,
+    but as context in front of the upstream text, never instead of it."""
     try:
         body = response.json()
     except Exception:
@@ -49,26 +118,45 @@ def _api_error(response: httpx.Response) -> tuple[str, bool]:
     error = body.get("error") if isinstance(body, dict) else None
     error = error if isinstance(error, dict) else {}
     code = error.get("code")
-    upstream_message = error.get("message")
+    upstream_message = (error.get("message") or "").strip()
+
+    def combined(prefix: str) -> str:
+        return f"{prefix} {upstream_message}".strip() if upstream_message else prefix
 
     if code == "moderation_blocked":
-        return (
-            "This image could not be generated because it did not meet safety requirements. "
-            "Try revising the visual prompt.",
+        return ApiError(
+            combined(
+                "This image could not be generated because it did not meet "
+                "safety requirements. Try revising the visual prompt."
+            ),
             False,
         )
-    if response.status_code in (401, 403):
-        return (
-            "OpenAI image generation is not authorized. Check the backend OPENAI_API_KEY.",
-            False,
-        )
-    if response.status_code == 429:
-        return ("OpenAI image generation is temporarily rate limited. Please try again.", True)
-    if response.status_code >= 500:
-        return ("OpenAI image generation is temporarily unavailable. Please try again.", True)
 
-    message = upstream_message or f"OpenAI rejected the image request ({response.status_code})."
-    return (message, False)
+    unavailable = _is_model_unavailable(response.status_code, code, upstream_message)
+
+    if response.status_code in (401, 403):
+        prefix = (
+            "OpenAI rejected this image model for your account."
+            if unavailable
+            else "OpenAI image generation is not authorized "
+                 "(check the backend OPENAI_API_KEY)."
+        )
+        return ApiError(combined(prefix), False, unavailable)
+    if response.status_code == 429:
+        return ApiError(
+            combined("OpenAI image generation is temporarily rate limited."), True
+        )
+    if response.status_code >= 500:
+        return ApiError(
+            combined("OpenAI image generation is temporarily unavailable."), True
+        )
+
+    return ApiError(
+        upstream_message
+        or f"OpenAI rejected the image request ({response.status_code}).",
+        False,
+        unavailable,
+    )
 
 
 async def generate_image(prompt: str, model: str | None = None) -> str:
@@ -113,8 +201,15 @@ async def generate_image(prompt: str, model: str | None = None) -> str:
     last_error: RuntimeError | None = None
     deadline = time.monotonic() + RETRY_BUDGET_SECONDS
     attempts = 0
+    tried_alternate = False
 
-    for attempt in range(MAX_RETRIES):
+    for attempt in range(MAX_RETRIES + 1):
+        # The +1 slot exists only so a model failover isn't paid for out of the
+        # retry budget -- switching models is a different attempt at a
+        # different problem. Without this guard it would silently hand every
+        # ordinary failure an extra retry as well.
+        if attempts >= MAX_RETRIES + (1 if tried_alternate else 0):
+            break
         if attempt and time.monotonic() >= deadline:
             logger.warning("OpenAI image retry budget spent after %s attempt(s)", attempt)
             break
@@ -139,16 +234,32 @@ async def generate_image(prompt: str, model: str | None = None) -> str:
         else:
             request_id = response.headers.get("x-request-id")
             if response.status_code != 200:
-                message, retryable = _api_error(response)
+                failure = _api_error(response)
                 logger.warning(
-                    "OpenAI image generation failed status=%s request_id=%s retryable=%s",
-                    response.status_code,
-                    request_id,
-                    retryable,
+                    "OpenAI image generation failed model=%s status=%s request_id=%s "
+                    "retryable=%s model_unavailable=%s: %s",
+                    model, response.status_code, request_id,
+                    failure.retryable, failure.model_unavailable, failure.message,
                 )
-                if not retryable:
-                    raise RuntimeError(message)
-                last_error = RuntimeError(message)
+                # An account that cannot use this model will never be able to,
+                # so retrying it is pointless -- but the other model may work,
+                # and failing over is better than handing the user an error
+                # they can only fix by finding the admin setting themselves.
+                if failure.model_unavailable and not tried_alternate:
+                    fallback = alternate_image_model(model)
+                    if fallback:
+                        logger.warning(
+                            "Falling back from unavailable image model %s to %s",
+                            model, fallback,
+                        )
+                        tried_alternate = True
+                        model = fallback
+                        payload["model"] = model
+                        last_error = RuntimeError(failure.message)
+                        continue
+                if not failure.retryable:
+                    raise RuntimeError(failure.message)
+                last_error = RuntimeError(failure.message)
             else:
                 image_data = _response_image_data(response, request_id)
                 if image_data:
@@ -199,8 +310,15 @@ async def edit_image(
     last_error: RuntimeError | None = None
     deadline = time.monotonic() + RETRY_BUDGET_SECONDS
     attempts = 0
+    tried_alternate = False
 
-    for attempt in range(MAX_RETRIES):
+    for attempt in range(MAX_RETRIES + 1):
+        # The +1 slot exists only so a model failover isn't paid for out of the
+        # retry budget -- switching models is a different attempt at a
+        # different problem. Without this guard it would silently hand every
+        # ordinary failure an extra retry as well.
+        if attempts >= MAX_RETRIES + (1 if tried_alternate else 0):
+            break
         if attempt and time.monotonic() >= deadline:
             logger.warning("OpenAI image retry budget spent after %s attempt(s)", attempt)
             break
@@ -224,16 +342,28 @@ async def edit_image(
         else:
             request_id = response.headers.get("x-request-id")
             if response.status_code != 200:
-                message, retryable = _api_error(response)
+                failure = _api_error(response)
                 logger.warning(
-                    "OpenAI image edit failed status=%s request_id=%s retryable=%s",
-                    response.status_code,
-                    request_id,
-                    retryable,
+                    "OpenAI image edit failed model=%s status=%s request_id=%s "
+                    "retryable=%s model_unavailable=%s: %s",
+                    model, response.status_code, request_id,
+                    failure.retryable, failure.model_unavailable, failure.message,
                 )
-                if not retryable:
-                    raise RuntimeError(message)
-                last_error = RuntimeError(message)
+                if failure.model_unavailable and not tried_alternate:
+                    fallback = alternate_image_model(model)
+                    if fallback:
+                        logger.warning(
+                            "Falling back from unavailable image model %s to %s",
+                            model, fallback,
+                        )
+                        tried_alternate = True
+                        model = fallback
+                        data["model"] = model
+                        last_error = RuntimeError(failure.message)
+                        continue
+                if not failure.retryable:
+                    raise RuntimeError(failure.message)
+                last_error = RuntimeError(failure.message)
             else:
                 image_data = _response_image_data(response, request_id)
                 if image_data:
@@ -276,3 +406,62 @@ async def _retry_delay(seconds: float) -> None:
     import asyncio
 
     await asyncio.sleep(seconds)
+
+
+OPENAI_MODEL_ENDPOINT = "https://api.openai.com/v1/models"
+# Diagnostics only ever ask OpenAI to describe a model, never to generate one,
+# so this is fast and unbillable and can afford a short timeout.
+DIAGNOSTIC_TIMEOUT = 10.0
+
+
+async def diagnostics(selected_model: str) -> dict:
+    """Answer, without generating (or billing) anything: is the key present,
+    can this backend reach OpenAI at all, and which image models may this
+    account actually use?
+
+    This exists because every failure mode this endpoint has had was
+    indistinguishable from the outside. A 24-second client timeout, a missing
+    key, an unverified organisation and a genuinely unreachable network all
+    surfaced to the admin as one sentence -- "Could not reach OpenAI image
+    generation" -- and answering which one it was took a code read each time.
+    """
+    settings = get_settings()
+    api_key = settings.OPENAI_API_KEY
+
+    report: dict = {
+        "api_key_configured": bool(api_key),
+        "selected_model": selected_model,
+        # Surfaced because a too-short value here silently breaks generation
+        # outright: it must stay above OpenAI's documented "up to 2 minutes".
+        "request_timeout_seconds": REQUEST_TIMEOUT,
+        "request_timeout_ok": REQUEST_TIMEOUT >= 120.0,
+        "reachable": False,
+        "models": {},
+    }
+    if not api_key:
+        report["detail"] = "OPENAI_API_KEY is not configured on the backend."
+        return report
+
+    headers = {"Authorization": f"Bearer {api_key}"}
+    try:
+        async with httpx.AsyncClient(timeout=DIAGNOSTIC_TIMEOUT) as client:
+            for name in IMAGE_MODELS:
+                response = await client.get(
+                    f"{OPENAI_MODEL_ENDPOINT}/{name}", headers=headers
+                )
+                report["reachable"] = True
+                if response.status_code == 200:
+                    report["models"][name] = {"available": True, "detail": "ok"}
+                else:
+                    failure = _api_error(response)
+                    report["models"][name] = {
+                        "available": False,
+                        "detail": failure.message,
+                    }
+    except httpx.HTTPError as exc:
+        report["detail"] = (
+            f"Could not reach {OPENAI_MODEL_ENDPOINT} ({type(exc).__name__}): {exc}"
+        )
+        logger.warning("OpenAI diagnostics failed: %s: %s", type(exc).__name__, exc)
+
+    return report
