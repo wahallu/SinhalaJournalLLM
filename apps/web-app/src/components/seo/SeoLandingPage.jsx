@@ -14,7 +14,7 @@ export default function SeoLandingPage({ page }) {
             <a href="https://sin-ai.app/" className="hidden text-sm font-medium text-ink-600 hover:text-brand-700 sm:inline-flex" target="_blank" rel="noopener noreferrer">
               Research <ExternalLink size={13} className="ml-1" />
             </a>
-            <Link to={page.ctaHref} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700">
+            <Link to={page.ctaHref} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700">
               Open tool <ArrowRight size={15} />
             </Link>
           </div>

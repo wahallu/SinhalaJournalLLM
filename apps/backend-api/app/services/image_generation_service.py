@@ -31,17 +31,8 @@ from app.schemas.image_generation import DEFAULT_IMAGE_MODEL, resolve_image_mode
 
 OPENAI_IMAGE_ENDPOINT = "https://api.openai.com/v1/images/generations"
 OPENAI_IMAGE_EDIT_ENDPOINT = "https://api.openai.com/v1/images/edits"
-# Comfortably past OpenAI's documented "up to 2 minutes" so a slow-but-working
-# generation is never cut off by us.
-REQUEST_TIMEOUT = 180.0
-MAX_RETRIES = 3
-
-# Ceiling on the whole retry loop, checked before each new attempt. Without it
-# MAX_RETRIES * REQUEST_TIMEOUT is nine minutes of billable work on a request
-# whose client hung up long ago -- retries are only worth attempting while
-# someone might still be listening.
-RETRY_BUDGET_SECONDS = 240.0
-
+REQUEST_TIMEOUT = 24.0
+MAX_RETRIES = 2
 IMAGE_SIZE = "1536x1024"
 IMAGE_QUALITY = "high"
 
