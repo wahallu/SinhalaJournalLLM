@@ -39,7 +39,11 @@ from app.schemas.image_generation import ImageGenerationRequest, ImageGeneration
 from app.schemas.image_generation import resolve_image_model
 from app.core.deps import require_admin
 from app.schemas.auth import AuthUser
-from app.services.image_generation_service import edit_image, generate_image
+from app.services.image_generation_service import (
+    diagnostics as openai_diagnostics,
+    edit_image,
+    generate_image,
+)
 from app.services.cloudinary_service import is_configured, upload_history_image
 from app.repositories.headline_repository import get_generation, update_generation_assets
 
@@ -252,3 +256,19 @@ async def generate_image_endpoint(
         # Proxies that buffer would defeat the entire point of streaming.
         headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"},
     )
+
+
+@router.get("/diagnostics")
+async def image_diagnostics_endpoint(admin: AuthUser = Depends(require_admin)):
+    """Why is image generation failing? Answered without generating anything.
+
+    Checks the three things that are indistinguishable from a failed
+    generation: whether the key is configured, whether this backend can reach
+    OpenAI at all, and which image models this account may actually use. Also
+    reports the client timeout, because a value below OpenAI's documented
+    two-minute worst case breaks generation outright while looking like a
+    network fault. Admin-only, like generation itself, since the response
+    describes the project's OpenAI account.
+    """
+    model = resolve_image_model(await runtime_settings.get("image.model"))
+    return await openai_diagnostics(model)
