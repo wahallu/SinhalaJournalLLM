@@ -139,6 +139,13 @@ def derive_corrections(
             ),
             None,
         )
+        # Character similarity alone can mislabel a tense replacement as a
+        # spelling correction (live example: යනවා. -> ගියා.). The validator
+        # already identified the semantic tense change, so keep the visible
+        # correction category aligned with that stronger evidence.
+        if validation_edit and any("TENSE" in rule_id for rule_id in validation_edit.rule_ids):
+            kind = "grammar"
+            rule = "Tense consistency warning (කාල භේදය පරීක්ෂා කිරීම)"
         corrections.append(
             CorrectionDetail(
                 position=position,

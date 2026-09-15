@@ -82,8 +82,6 @@ function toEvent(edit, action, { runId, tool, adapter }) {
 export function useSuggestionTelemetry({ runId, edits, tool = 'grammar', adapter } = {}) {
   const queue = useRef([]);
   const timer = useRef(null);
-  const meta = useRef({ runId, tool, adapter });
-  meta.current = { runId, tool, adapter };
 
   const flush = useCallback(() => {
     const batch = queue.current;
@@ -105,8 +103,8 @@ export function useSuggestionTelemetry({ runId, edits, tool = 'grammar', adapter
   useEffect(() => {
     if (!runId || !edits?.length || shownFor.current === runId) return;
     shownFor.current = runId;
-    edits.forEach((edit) => push(toEvent(edit, 'shown', meta.current)));
-  }, [runId, edits, push]);
+    edits.forEach((edit) => push(toEvent(edit, 'shown', { runId, tool, adapter })));
+  }, [runId, edits, push, tool, adapter]);
 
   // Send whatever is pending before the tab goes away, otherwise the last few
   // decisions of every session — often the interesting ones — are lost.
@@ -121,8 +119,8 @@ export function useSuggestionTelemetry({ runId, edits, tool = 'grammar', adapter
   }, [flush]);
 
   const onDecision = useCallback((edit, accepted) => {
-    push(toEvent(edit, accepted ? 'accepted' : 'rejected', meta.current));
-  }, [push]);
+    push(toEvent(edit, accepted ? 'accepted' : 'rejected', { runId, tool, adapter }));
+  }, [push, runId, tool, adapter]);
 
   return { onDecision };
 }

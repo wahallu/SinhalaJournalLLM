@@ -588,9 +588,9 @@ function App() {
               <RouteDialog
                 title="Profile"
                 description="Your identity and newsroom preferences."
-                size="xl"
+                size="profile"
                 showHeader={false}
-                inverseClose
+                closePlacement="start"
               >
                 <ProfilePage variant="dialog" />
               </RouteDialog>

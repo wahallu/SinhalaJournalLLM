@@ -110,7 +110,14 @@ async def test_admin_can_reach_admin_routes():
     async with _client() as c:
         for path in _admin_get_routes():
             response = await c.get(path, headers=_auth(ADMIN_ID))
-            assert response.status_code < 400, f"{path} gave {response.status_code} to an admin"
+            # Detail routes can legitimately return 404 for the synthetic
+            # placeholder id. This test is an authorization gate: an admin
+            # must not be rejected as anonymous/non-admin, and the handler
+            # must not crash.
+            assert response.status_code not in {401, 403}, (
+                f"{path} rejected an admin with {response.status_code}"
+            )
+            assert response.status_code < 500, f"{path} crashed with {response.status_code}"
 
 
 @pytest.mark.asyncio

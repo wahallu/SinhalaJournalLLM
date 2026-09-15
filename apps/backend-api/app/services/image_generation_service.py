@@ -31,8 +31,17 @@ from app.schemas.image_generation import DEFAULT_IMAGE_MODEL, resolve_image_mode
 
 OPENAI_IMAGE_ENDPOINT = "https://api.openai.com/v1/images/generations"
 OPENAI_IMAGE_EDIT_ENDPOINT = "https://api.openai.com/v1/images/edits"
-REQUEST_TIMEOUT = 24.0
-MAX_RETRIES = 2
+# The endpoint sends a heartbeat every ten seconds, so the platform router no
+# longer needs this call to finish inside its 30-second first-byte window.
+# Keep enough room for OpenAI's documented slow image generations instead of
+# cancelling every request that takes longer than 24 seconds.
+REQUEST_TIMEOUT = 180.0
+MAX_RETRIES = 3
+
+# Cap the retry loop as a whole. This constant was lost when the streaming and
+# short-timeout branches were merged, leaving both generation paths with a
+# NameError before their first HTTP request.
+RETRY_BUDGET_SECONDS = 240.0
 IMAGE_SIZE = "1536x1024"
 IMAGE_QUALITY = "high"
 

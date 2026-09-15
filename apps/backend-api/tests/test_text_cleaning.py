@@ -28,6 +28,15 @@ def test_leaves_clean_headline_untouched():
     assert strip_headline_artifacts(headline) == headline
 
 
+def test_strips_repeated_and_orphan_joiners_inside_generated_word():
+    assert strip_headline_artifacts("නව වැඩසටහන ඇරඹේ‍‍‍යි") == "නව වැඩසටහන ඇරඹේයි"
+
+
+def test_preserves_one_joiner_after_sinhala_virama():
+    headline = "ශ්‍රී ලංකාවට නව ජයක්"
+    assert strip_headline_artifacts(headline) == headline
+
+
 def test_falls_back_to_original_if_entire_headline_is_a_tag():
     # A pathological case shouldn't return an empty headline.
     tag_only = "(Video)"

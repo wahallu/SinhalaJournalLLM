@@ -64,6 +64,14 @@ _DOT_RUN = re.compile(r"(?:\u2026|\.{2,}).*$", re.DOTALL)
 # edges, where they cannot be forming a conjunct.
 _EDGE_NOISE = re.compile(r"^[\s\u200c\u200d]+|[\s.,!?:;\-–—\u2026\u200c\u200d]+$")
 
+# One joiner immediately after a Sinhala virama is meaningful (for example in
+# a conjunct). Repeated joiners, or a joiner anywhere else, are generation
+# debris. A live headline returned "ඇරඹේ‍‍‍යි": visually confusing, and not
+# something the existing edge-only cleanup could reach because the noise sat
+# in the middle of the word.
+_REPEATED_JOINERS = re.compile(r"[\u200c\u200d]{2,}")
+_ORPHAN_JOINER = re.compile(r"(?<!\u0dca)[\u200c\u200d]")
+
 
 def strip_headline_artifacts(headline: str) -> str:
     """Removes a trailing scraper tag and trailing generation noise from a
@@ -74,6 +82,8 @@ def strip_headline_artifacts(headline: str) -> str:
         return headline
     cleaned = _TRAILING_ARTIFACT.sub("", headline).strip()
     cleaned = _DOT_RUN.sub("", cleaned)
+    cleaned = _REPEATED_JOINERS.sub("", cleaned)
+    cleaned = _ORPHAN_JOINER.sub("", cleaned)
     cleaned = _EDGE_NOISE.sub("", cleaned).strip()
     # A second tag pass: the dot run can have been hiding one ("... (වීඩියෝ)").
     cleaned = _TRAILING_ARTIFACT.sub("", cleaned).strip()

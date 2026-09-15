@@ -17,7 +17,15 @@ import Dialog from './ui/Dialog';
  * where `navigate(-1)` would leave the site entirely, so it falls back to the
  * dashboard instead.
  */
-export default function RouteDialog({ title, description, size, showHeader, inverseClose, children }) {
+export default function RouteDialog({
+  title,
+  description,
+  size,
+  showHeader,
+  inverseClose,
+  closePlacement,
+  children,
+}) {
   const navigate = useNavigate();
 
   const close = useCallback(() => {
@@ -34,6 +42,7 @@ export default function RouteDialog({ title, description, size, showHeader, inve
       size={size}
       showHeader={showHeader}
       inverseClose={inverseClose}
+      closePlacement={closePlacement}
     >
       {children}
     </Dialog>

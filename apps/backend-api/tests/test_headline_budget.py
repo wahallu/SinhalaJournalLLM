@@ -86,6 +86,39 @@ async def test_both_correctives_travel_in_one_call(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_current_server_batches_initial_candidates_in_one_call(monkeypatch):
+    """A server exposing meta.candidates should need one initial GPU call,
+    rather than one serialized HTTP generation per requested headline."""
+    calls: list[int] = []
+    article = "පාසලේ නව පුස්තකාලය අද සිසුන් සඳහා විවෘත කෙරිණි."
+    sampled = [
+        "පාසලේ නව පුස්තකාලය අද සිසුන් සඳහා",
+        "අද සිසුන් සඳහා පාසලේ නව පුස්තකාලය",
+    ]
+
+    async def fake(task, text, *, num_candidates=1, **kwargs):
+        calls.append(num_candidates)
+        return SimpleNamespace(
+            text=sampled[0], provider="sinllama", latency_ms=7,
+            meta={
+                "adapter": "headline_sinllama_v19",
+                "input_tokens": 10,
+                "output_tokens": 20,
+                "candidates": sampled,
+            },
+        )
+
+    monkeypatch.setattr(hs, "HEADLINE_VARIATION_HINTS", ["", "actor"])
+    monkeypatch.setattr(hs, "model_generate", fake)
+    monkeypatch.setattr(hs, "persist_if_owned", _persist)
+
+    result = await hs.generate_headlines(article, count=2, length="medium")
+
+    assert calls == [2]
+    assert result.headlines == sampled
+
+
+@pytest.mark.asyncio
 async def test_slow_model_server_degrades_instead_of_timing_out(monkeypatch):
     """The fan-out itself is deadline-bounded: when the model server is slower
     than the budget, the candidates that did arrive are returned rather than

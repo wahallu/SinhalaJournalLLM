@@ -5,7 +5,12 @@ hallucinations documented in the SinLlama v19 vs Claude comparison (injury
 count, dengue count, death count, and the money-amount unit-conversion miss).
 """
 
-from app.core.fact_guard import check_headline, unverified_numbers, unverified_words
+from app.core.fact_guard import (
+    check_headline,
+    nonsense_words,
+    unverified_numbers,
+    unverified_words,
+)
 
 
 def test_flags_invented_number_not_in_article():
@@ -71,3 +76,14 @@ def test_check_headline_bundles_both_signals():
     result = check_headline(article, "බස් අනතුරින් 10කට තුවාල")
     assert result.numbers_verified is False
     assert result.unverified_numbers == ["10"]
+
+
+def test_common_headline_predicates_are_not_treated_as_nonsense():
+    article = "පාසලේ නව තාක්ෂණික වැඩසටහනක් අද ආරම්භ කෙරිණි."
+    assert nonsense_words(article, "නව තාක්ෂණයට මුලපුරයි") == []
+    assert nonsense_words(article, "අධ්‍යාපනයේ අලුත් පිටුවක් පෙරළයි") == []
+
+
+def test_joined_sinhala_word_is_tokenized_as_one_word():
+    article = "නව තාක්ෂණික අධ්‍යාපන වැඩසටහනක් ආරම්භ කෙරිණි."
+    assert nonsense_words(article, "නව තාක්ෂණික අධ්‍යාපනයට ප්‍රවේශයක්") == []

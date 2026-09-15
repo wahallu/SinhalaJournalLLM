@@ -1,9 +1,11 @@
 """
 Headline generation service.
 
-The headline adapter produces one headline per prompt, so N distinct
-candidates come from N prompt variations — each variation appends one extra
-constraint line while staying inside the training format.
+The headline adapter can sample several headlines in one generation.  The
+preferred path therefore asks the SinLlama server for the whole fan-out in a
+single GPU call.  Older servers and providers that only return one candidate
+fall back to N prompt variations, so this optimisation is backwards
+compatible.
 
 Length control is a two-layer affair. The requested band (short 3-5, medium
 6-7, long 8-10 words) goes into the prompt, but no headline adapter is fully
@@ -126,7 +128,12 @@ class HeadlineBudgetExhausted(RuntimeError):
 # systematic model behavior (same wrong rounding every time) can still fail
 # every candidate in a large batch, which is what HeadlineQualityExhausted
 # is for.
-_FACT_CHECK_HEADROOM = 3
+# Batched sampling makes extra draws cheap (the live server returns eight in
+# roughly the same wall time as six), while the v19 adapter occasionally emits
+# several noisy variants in one batch. Five spare draws gave the fact guard
+# enough grounded alternatives in the measured demo case without adding more
+# serialized model calls.
+_FACT_CHECK_HEADROOM = 5
 
 
 # Regeneration rounds for candidates that still have something wrong with
@@ -397,46 +404,76 @@ async def generate_headlines(
         strip_article_media_tags(text)[:MAX_ARTICLE_CHARS]
     )
 
-    async def generate_one(hint: str | None):
+    async def generate_one(hint: str | None, *, num_candidates: int = 1):
         return await model_generate(
             "headline",
             text,
             category=category,
             length=resolved_length,
             variation_hint=hint or None,
+            num_candidates=num_candidates,
             adapter=adapter,
         )
 
-    # Deadline-bounded like the repair rounds below: on a slow inference
-    # server the fan-out alone can outlast the router's patience, and eight
-    # candidates nobody ever receives are worth less than the three that
-    # arrived in time.
-    results, _ = await _gather_within(
-        [generate_one(hint) for hint in hints], deadline
+    # A current SinLlama server can draw the whole candidate set in one
+    # model.generate() call.  That is materially faster than queueing up to
+    # eight calls behind the server's global generation lock.  Providers (or
+    # older SinLlama deployments) that ignore num_candidates return no
+    # meta["candidates"]; in that case keep their first result and fan out the
+    # remaining variation prompts exactly as before.
+    first_results, _ = await _gather_within(
+        [generate_one(hints[0], num_candidates=fanout)], deadline
     )
+    first_outcome = first_results[0]
+    sampled_candidates = None
+    if first_outcome is not None and not isinstance(first_outcome, BaseException):
+        sampled = first_outcome.meta.get("candidates")
+        if isinstance(sampled, list) and sampled:
+            sampled_candidates = [str(candidate) for candidate in sampled[:fanout]]
+
+    if sampled_candidates is not None:
+        results = first_results
+    elif fanout > 1 and not _expired(deadline):
+        remaining_results, _ = await _gather_within(
+            [generate_one(hint) for hint in hints[1:]], deadline
+        )
+        results = first_results + remaining_results
+    else:
+        results = first_results
 
     # Slot i stays paired with hints[i] through the retry rounds, so a
     # regenerated candidate keeps the angle its variation hint asked for.
     candidates: list[str | None] = []
+    candidate_hints: list[str] = []
     provider = None
     adapter_used = None
     total_latency = 0
     # Summed across every call this request makes — the initial fan-out plus
     # each retry round — the same way latency already is.
     input_tokens, output_tokens = None, None
-    for outcome in results:
+    for outcome_index, outcome in enumerate(results):
         if outcome is None:
             # Cancelled by the deadline rather than failed. Distinguished from
             # the exception case only in the log line: both leave an empty
             # slot the repair loop skips.
             logger.warning("Headline candidate abandoned at the deadline")
             candidates.append(None)
+            candidate_hints.append(hints[min(outcome_index, len(hints) - 1)])
             continue
         if isinstance(outcome, BaseException):
             logger.warning("Headline candidate failed: %s", outcome)
             candidates.append(None)
+            candidate_hints.append(hints[min(outcome_index, len(hints) - 1)])
             continue
-        candidates.append(strip_headline_artifacts(outcome.text))
+        outcome_candidates = (
+            sampled_candidates
+            if sampled_candidates is not None and outcome is first_outcome
+            else [outcome.text]
+        )
+        candidates.extend(strip_headline_artifacts(value) for value in outcome_candidates)
+        candidate_hints.extend(
+            [hints[min(outcome_index, len(hints) - 1)]] * len(outcome_candidates)
+        )
         provider = provider or outcome.provider
         adapter_used = adapter_used or outcome.meta.get("adapter")
         total_latency += outcome.latency_ms
@@ -461,17 +498,47 @@ async def generate_headlines(
             logger.warning("Headline repair budget spent; returning candidates as-is")
             break
 
+        # Headroom exists so quality checks can discard a few weak samples;
+        # it should not turn into extra latency once we already have enough
+        # fact-safe results.  Missing a preferred number or undershooting the
+        # word band makes a headline weaker, not unsafe (and both are allowed
+        # by the response contract), so repairing every one of six sampled
+        # candidates needlessly put the request back on the 22-second budget
+        # ceiling after the initial batch itself completed in a few seconds.
+        safe_slots = [
+            i
+            for i, candidate in enumerate(candidates)
+            if candidate
+            and not fact_guard.unverified_numbers(text, candidate)
+            and not fact_guard.nonsense_words(text, candidate)
+        ]
+        populated_count = sum(candidate is not None for candidate in candidates)
+        if len(safe_slots) >= count and populated_count > count:
+            break
+
         repairs = {
             i: _correctives(text, candidate, band, key_numbers)
             for i, candidate in enumerate(candidates)
             if candidate
         }
         retry_slots = [i for i, hint in repairs.items() if hint]
+        if len(safe_slots) < count:
+            # Safe candidates already fill part of the response. Repair only
+            # as many blocked candidates as are needed to fill the remainder,
+            # starting with the ones closest to acceptable.
+            unsafe_slots = [i for i in retry_slots if i not in safe_slots]
+            unsafe_slots.sort(
+                key=lambda i: _quality_score(text, candidates[i], band, key_numbers)
+            )
+            retry_slots = unsafe_slots[: count - len(safe_slots)]
         if not retry_slots:
             break
 
         retries, timed_out = await _gather_within(
-            [generate_one(_merge_hints(hints[i] or None, repairs[i])) for i in retry_slots],
+            [
+                generate_one(_merge_hints(candidate_hints[i] or None, repairs[i]))
+                for i in retry_slots
+            ],
             deadline,
         )
 

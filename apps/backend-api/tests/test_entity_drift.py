@@ -76,6 +76,12 @@ def test_a_short_synonym_is_not_treated_as_a_drifted_entity():
     assert "ගණන" not in fact_guard.drifted_entities(_ARTICLE, _WRONG_COUNTRY)
 
 
+def test_long_ordinary_words_are_not_treated_as_entities():
+    article = "පාසලේ නව තාක්ෂණික වැඩසටහනක් ආරම්භ කෙරිණි."
+    headline = "නව තාක්ෂණයෙන් සන්නද්ධ සිසු පරපුරක්"
+    assert fact_guard.drifted_entities(article, headline) == []
+
+
 def test_the_lexicon_guard_could_never_have_caught_this():
     """Why a new check was needed rather than a tweak to the old one."""
     from app.services.grammar import lexicon

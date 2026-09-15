@@ -128,6 +128,36 @@ def test_derive_corrections_no_change():
     assert derive_corrections("මම ගෙදර යනවා", "මම ගෙදර යනවා") == []
 
 
+def test_tense_validation_is_not_presented_as_a_spelling_error():
+    from app.services.grammar.rule_types import ConfidenceLevel, Decision, ValidationEdit
+
+    validation_edit = ValidationEdit(
+        operation="replace",
+        original="යනවා",
+        candidate="ගියා",
+        decision=Decision.SUGGEST,
+        rule_ids=["VERB_TENSE_001"],
+        confidence=None,
+        confidence_level=ConfidenceLevel.LOW,
+        reason="Tense changed",
+        category="semantics",
+        severity="warning",
+        original_start=14,
+        original_end=18,
+        candidate_start=14,
+        candidate_end=18,
+    )
+
+    [correction] = derive_corrections(
+        "ඔහු ඊයේ පාසලට යනවා.",
+        "ඔහු ඊයේ පාසලට ගියා.",
+        validation_edits=[validation_edit],
+    )
+
+    assert correction.type == "grammar"
+    assert "Tense" in correction.rule
+
+
 # ── _sanitize_correction ──
 # Mirrors test_grammar.py (SinAI-Training)'s correct_sentence() safety net:
 # production's stop sequences don't catch a bare newline the way the eval

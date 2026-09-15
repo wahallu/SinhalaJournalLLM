@@ -46,6 +46,7 @@ import re
 from dataclasses import dataclass, field
 
 from app.services.grammar import lexicon
+from app.services.grammar.substitution_guard import is_probable_name
 
 _NUMBER = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
 
@@ -159,7 +160,10 @@ def missing_key_numbers(article: str, headline: str) -> list[str]:
     return salient_numbers(article)
 
 
-_WORD = re.compile(r"[඀-෿]+|[A-Za-z]+")
+# ZWJ/ZWNJ are part of valid Sinhala orthographic clusters (for example the
+# `්‍ර` in ප්‍රවේශය). Omitting them split one real word into two
+# tokens and made the trailing fragment look invented to nonsense_words().
+_WORD = re.compile(r"[඀-෿‌‍]+|[A-Za-z]+")
 
 # Common Sinhala function words and headline-verb forms -- excluded so the
 # grounding check only flags content words (candidate names, places,
@@ -173,6 +177,11 @@ _STOPWORDS = {
     "ඇති", "ඇත", "ඇතැයි", "කරයි", "කරන", "කළ", "කළේ", "කරගත්", "ලද", "ලදි",
     "ලබා", "ලබයි", "ලබාදෙයි", "සිදු", "සිදුවිය", "සිදුවේ", "පැවති",
     "පැවැත්වීම", "තිබෙන", "තිබේ", "නොවේ", "රට", "රටේ", "රජය", "රජයේ", "නව",
+    # Common productive headline predicates. The finite forms are valid even
+    # when the corpus lexicon only contains a sibling inflection such as
+    # මුලපුරන or පෙරළීම; treating them as invented words caused
+    # unnecessary regeneration and discarded otherwise safe candidates.
+    "මුලපුරයි", "පෙරළයි",
 }
 
 # Below this length a Sinhala token is almost always a particle/suffix
@@ -206,12 +215,23 @@ def _stem(word: str) -> str:
     return word[:_STEM_LEN] if len(word) > _STEM_LEN else word[:_SHORT_STEM_LEN]
 
 
-# An ungrounded word this long is a name -- a country, a place, a person, an
-# organisation -- rather than the general vocabulary a headline is free to
-# paraphrase with. "නෙදර්ලන්තයේ" is 11 characters; the paraphrases that also
-# come back ungrounded ("ගණන", "මරණ") are three. That length gap is what lets
-# entity drift be held back while a synonym is merely ranked down.
-_ENTITY_MIN_LEN = 5
+# High-confidence location stems that commonly appear in Sinhala news. A
+# length-only proxy mislabeled ordinary long words such as මුහුණුවරක් and
+# සන්නද්ධ as entities. Known name morphology plus this compact location set
+# is narrower, but precise enough to block the documented Nepal -> Netherlands
+# substitution without discarding normal paraphrases.
+_LOCATION_STEMS = (
+    "ශ්‍රී ලංකා", "ලංකා", "ඉන්දියා", "නේපාල", "නෙදර්ලන්ත",
+    "පාකිස්තාන", "පාකිස්ථාන", "චීන", "ඇමරිකා", "අමෙරිකා",
+    "එංගලන්ත", "ඕස්ට්‍රේලියා", "බංග්ලාදේශ", "රුසියා", "යුක්රේන",
+    "ජපාන", "ජර්මන", "ප්‍රංශ", "කැනඩා", "කොළඹ", "ගාල්ල", "මහනුවර",
+)
+
+
+def _is_entity_like(word: str) -> bool:
+    if re.fullmatch(r"[A-Za-z]+", word):
+        return True
+    return is_probable_name(word) or any(word.startswith(stem) for stem in _LOCATION_STEMS)
 
 
 def _headline_content_words(article: str, headline: str) -> tuple[set[str], list[str]]:
@@ -246,17 +266,15 @@ def unverified_words(article: str, headline: str) -> list[str]:
 
 
 def drifted_entities(article: str, headline: str) -> list[str]:
-    """Ungrounded headline words long enough to be a name rather than
-    ordinary vocabulary -- the reported "Netherlands for Nepal" failure.
+    """High-confidence name/location words not grounded in the article.
 
-    This is the part of unverified_words() worth acting on. A wrong country
-    is a factual error of the same kind as an invented number; a synonym the
-    article didn't happen to use is not, and the length floor is what
-    separates them without needing NER Sinhala doesn't support."""
+    This intentionally uses known name morphology and location stems rather
+    than token length: long Sinhala words are routinely ordinary vocabulary,
+    so length alone discarded valid paraphrases."""
     return [
         word
         for word in unverified_words(article, headline)
-        if len(word) >= _ENTITY_MIN_LEN
+        if _is_entity_like(word)
     ]
 
 

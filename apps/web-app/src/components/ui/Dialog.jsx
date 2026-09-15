@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { Dialog as RadixDialog } from 'radix-ui';
 import { X } from 'lucide-react';
 
@@ -17,15 +18,17 @@ import { X } from 'lucide-react';
  * @param {(open: boolean) => void} props.onOpenChange  Fires on Escape, overlay click and the close button.
  * @param {string} props.title
  * @param {string} [props.description]
- * @param {'sm'|'md'|'lg'|'xl'} [props.size='sm']
+ * @param {'sm'|'md'|'lg'|'xl'|'profile'} [props.size='sm']
  * @param {boolean} [props.showHeader=true]  False when the body renders its own heading.
  * @param {boolean} [props.inverseClose=false] Use on dark custom headers.
+ * @param {'start'|'end'} [props.closePlacement='end'] Place the close control at the top-left or top-right.
  */
 const WIDTHS = {
   sm: 'max-w-[26rem]',
   md: 'max-w-lg',
   lg: 'max-w-2xl',
   xl: 'max-w-3xl',
+  profile: 'max-w-[96rem]',
 };
 
 export default function Dialog({
@@ -36,8 +39,11 @@ export default function Dialog({
   size = 'sm',
   showHeader = true,
   inverseClose = false,
+  closePlacement = 'end',
   children,
 }) {
+  const contentRef = useRef(null);
+
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
@@ -51,6 +57,11 @@ export default function Dialog({
             trapping the overflow inside it. */}
         <div className="fixed inset-0 z-[60] overflow-y-auto p-4 sm:p-6 flex items-start sm:items-center justify-center pointer-events-none">
           <RadixDialog.Content
+            ref={contentRef}
+            onOpenAutoFocus={(event) => {
+              event.preventDefault();
+              contentRef.current?.focus();
+            }}
             className={`pointer-events-auto relative w-full ${WIDTHS[size] ?? WIDTHS.sm} my-auto
               bg-white dark:bg-ink-50 rounded-2xl border border-ink-200/80 shadow-pop
               focus:outline-none
@@ -59,7 +70,8 @@ export default function Dialog({
               data-[state=closed]:animate-out data-[state=closed]:fade-out`}
           >
             <RadixDialog.Close
-              className={`absolute top-3.5 right-3.5 z-10 flex items-center justify-center w-8 h-8 rounded-lg
+              className={`absolute z-10 flex h-8 w-8 items-center justify-center rounded-lg
+                ${closePlacement === 'start' ? 'left-5 top-[1.3rem]' : 'right-3.5 top-3.5'}
                 ${inverseClose ? 'text-white/75 hover:text-white hover:bg-white/15' : 'text-ink-400 hover:text-ink-800 hover:bg-ink-100'} cursor-pointer
                 transition-colors duration-150 focus:outline-none
                 focus-visible:ring-2 ${inverseClose ? 'focus-visible:ring-white/70' : 'focus-visible:ring-brand-400'}`}

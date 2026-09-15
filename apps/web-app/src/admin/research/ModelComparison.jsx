@@ -181,6 +181,75 @@ function getModelArchetype(name, task = 'summarizer') {
   };
 }
 
+function adaptersForTask(currentTask, groups) {
+  const list = groups[currentTask] || [];
+  if (currentTask === 'summarizer') {
+    const latestSinllama = list.find(a => a.includes('v07'))
+      || list.find(a => a.includes('v06'))
+      || list[0]
+      || 'summarization_sinllama_v07';
+    const mt5 = groups.mt5?.find(a => a === 'mt5-base') || 'mt5-base';
+    return Array.from(new Set([latestSinllama, mt5, 'textrank', 'base']));
+  }
+  return [...list, 'base'];
+}
+
+function AdapterRow({
+  name,
+  category,
+  displayName,
+  selectedAdapters,
+  loadedInGpu,
+  task,
+  onToggle,
+}) {
+  const isSelected = selectedAdapters.includes(name);
+  const isLoaded = loadedInGpu.includes(name);
+  const archetype = getModelArchetype(name, task);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onToggle(name)}
+      aria-pressed={isSelected}
+      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border cursor-pointer transition-all duration-150 text-left
+        ${isSelected
+          ? 'border-brand-300 bg-brand-50/70 shadow-sm'
+          : 'border-ink-100 hover:bg-ink-50 hover:border-ink-200'}`}
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        {isSelected
+          ? <CheckSquare size={16} className="text-brand-600 shrink-0" />
+          : <Square size={16} className="text-ink-300 shrink-0" />}
+        <div className="flex flex-col min-w-0">
+          <span className={`text-[13px] truncate ${isSelected ? 'font-bold text-ink-900' : 'font-medium text-ink-700'}`}>
+            {displayName ?? name}
+          </span>
+          <span className="text-[10px] text-ink-400 truncate">{archetype.shortType}</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-1 shrink-0 ml-2">
+        {isLoaded && (
+          <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded" title="Loaded in GPU cache">
+            GPU
+          </span>
+        )}
+        {category === 'summarizer' && isLengthConditionedAdapter(name) && (
+          <span
+            className="text-[9px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded"
+            title="Trained on short/medium/long targets — honors the summary length control"
+          >
+            3-LEN
+          </span>
+        )}
+        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${archetype.color}`}>
+          {archetype.icon} {archetype.id}
+        </span>
+      </div>
+    </button>
+  );
+}
+
 export default function ModelComparison() {
   const [adaptersGroup, setAdaptersGroup] = useState({});
   const [loadedInGpu, setLoadedInGpu] = useState([]);
@@ -203,6 +272,8 @@ export default function ModelComparison() {
   // Helper to heal broken BPE subword token splits
   const healSinhalaText = (text) => {
     if (!text) return text;
+    // The pattern intentionally includes Sinhala combining sequences.
+    // eslint-disable-next-line no-misleading-character-class
     let healed = text.replace(/\b([\u0D80-\u0DFF][්‍්]?[ර්‍ර])\s+([\u0D80-\u0DFF]+)/gu, '$1$2');
     const splits = [
       [/ප්‍ර\s+දේශ/gu, 'ප්‍රදේශ'],
@@ -282,7 +353,7 @@ export default function ModelComparison() {
     );
   };
 
-  // Fetch list of adapters from server on mount
+  // Fetch list of adapters from server on demand.
   const fetchAdapters = async () => {
     setError(null);
     setServerMode('checking');
@@ -292,35 +363,39 @@ export default function ModelComparison() {
       setLoadedInGpu(data.loaded_in_gpu || []);
       setServerMode(data.mode || 'gpu');
 
-      autoSelectForTask(task, data.adapters || {});
+      setSelectedAdapters(adaptersForTask(task, data.adapters || {}));
     } catch (err) {
       setError(err.message || 'Failed to retrieve adapters from GPU server.');
       setServerMode('error');
     }
   };
 
+  // Initial synchronization stays inside the promise callbacks so mounting
+  // does not trigger a chain of synchronous effect updates.
   useEffect(() => {
-    fetchAdapters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let active = true;
+    getComparisonAdapters().then((data) => {
+      if (!active) return;
+      const groups = data.adapters || {};
+      setAdaptersGroup(groups);
+      setLoadedInGpu(data.loaded_in_gpu || []);
+      setServerMode(data.mode || 'gpu');
+      setSelectedAdapters(adaptersForTask('summarizer', groups));
+    }).catch((err) => {
+      if (!active) return;
+      setError(err.message || 'Failed to retrieve adapters from GPU server.');
+      setServerMode('error');
+    });
+    return () => { active = false; };
   }, []);
 
-  useEffect(() => {
-    autoSelectForTask(task, adaptersGroup);
-    if (PRESET_CASES[task] && PRESET_CASES[task][0]) {
-      setInputText(PRESET_CASES[task][0].input);
-      setReferenceText(PRESET_CASES[task][0].reference);
-    }
-  }, [task]);
-
-  const autoSelectForTask = (currentTask, groups) => {
-    const list = groups[currentTask] || [];
-    if (currentTask === 'summarizer') {
-      // Default to the Showcase 4-Model Suite for presentations
-      const latestSinllama = list.find(a => a.includes('v07')) || list.find(a => a.includes('v06')) || list[0] || 'summarization_sinllama_v07';
-      const mt5 = groups['mt5']?.find(a => a === 'mt5-base') || 'mt5-base';
-      setSelectedAdapters(Array.from(new Set([latestSinllama, mt5, 'textrank', 'base'])));
-    } else {
-      setSelectedAdapters([...list, 'base']);
+  const handleTaskChange = (nextTask) => {
+    setTask(nextTask);
+    setSelectedAdapters(adaptersForTask(nextTask, adaptersGroup));
+    const firstPreset = PRESET_CASES[nextTask]?.[0];
+    if (firstPreset) {
+      setInputText(firstPreset.input);
+      setReferenceText(firstPreset.reference);
     }
   };
 
@@ -472,56 +547,6 @@ export default function ModelComparison() {
       inputWordCount: getInputWordCount(inputText)
     };
   }, [results, inputText, task]);
-
-  const AdapterRow = ({ name, category, displayName }) => {
-    const isSelected = selectedAdapters.includes(name);
-    const isLoaded = loadedInGpu.includes(name);
-    const archetype = getModelArchetype(name, task);
-
-    return (
-      <button
-        type="button"
-        onClick={() => handleSelectAdapter(name)}
-        aria-pressed={isSelected}
-        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border cursor-pointer transition-all duration-150 text-left
-          ${isSelected
-            ? 'border-brand-300 bg-brand-50/70 shadow-sm'
-            : 'border-ink-100 hover:bg-ink-50 hover:border-ink-200'}`}
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          {isSelected
-            ? <CheckSquare size={16} className="text-brand-600 shrink-0" />
-            : <Square size={16} className="text-ink-300 shrink-0" />}
-          <div className="flex flex-col min-w-0">
-            <span className={`text-[13px] truncate ${isSelected ? 'font-bold text-ink-900' : 'font-medium text-ink-700'}`}>
-              {displayName ?? name}
-            </span>
-            <span className="text-[10px] text-ink-400 truncate">
-              {archetype.shortType}
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-1 shrink-0 ml-2">
-          {isLoaded && (
-            <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded" title="Loaded in GPU cache">
-              GPU
-            </span>
-          )}
-          {category === 'summarizer' && isLengthConditionedAdapter(name) && (
-            <span
-              className="text-[9px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded"
-              title="Trained on short/medium/long targets — honors the summary length control"
-            >
-              3-LEN
-            </span>
-          )}
-          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${archetype.color}`}>
-            {archetype.icon} {archetype.id}
-          </span>
-        </div>
-      </button>
-    );
-  };
 
   return (
     <div className="flex flex-col gap-6 pb-12">
@@ -698,7 +723,7 @@ export default function ModelComparison() {
               {TASKS.map((t) => (
                 <button
                   key={t.id}
-                  onClick={() => setTask(t.id)}
+                  onClick={() => handleTaskChange(t.id)}
                   aria-pressed={task === t.id}
                   className={`py-2 px-3 text-[13px] font-semibold rounded-lg border transition-all duration-150 cursor-pointer text-center
                     ${task === t.id
@@ -908,7 +933,14 @@ export default function ModelComparison() {
 
           {/* Model selection list */}
           <div className="flex flex-col gap-1.5 max-h-[300px] overflow-y-auto overflow-x-hidden pr-1">
-            <AdapterRow name="base" displayName="SinLLaMA Base" />
+            <AdapterRow
+              name="base"
+              displayName="SinLLaMA Base"
+              selectedAdapters={selectedAdapters}
+              loadedInGpu={loadedInGpu}
+              task={task}
+              onToggle={handleSelectAdapter}
+            />
 
             {Object.keys(adaptersGroup).map((category) => {
               const list = adaptersGroup[category] || [];
@@ -922,7 +954,15 @@ export default function ModelComparison() {
                     {category} Domain
                   </span>
                   {list.map((name) => (
-                    <AdapterRow key={name} name={name} category={category} />
+                    <AdapterRow
+                      key={name}
+                      name={name}
+                      category={category}
+                      selectedAdapters={selectedAdapters}
+                      loadedInGpu={loadedInGpu}
+                      task={task}
+                      onToggle={handleSelectAdapter}
+                    />
                   ))}
                 </div>
               );
