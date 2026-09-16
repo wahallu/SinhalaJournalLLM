@@ -23,6 +23,38 @@ function authHeaders(token) {
  * Authorization header at all: the four writing tools accept anonymous
  * requests, so a 401 here is a real failure, not a missing session.
  */
+/**
+ * Turn a failed response into an Error the UI can act on.
+ *
+ * FastAPI's `detail` is usually a string, but the plan-quota responses send
+ * an object — a 429 carries used/limit/resets_at so the UI can say when the
+ * user gets their requests back, and a 403 carries a reason so "come back
+ * tomorrow" is never shown for "this needs a different plan". Reading
+ * `err.detail` straight into `new Error()` would render those as
+ * "[object Object]", so the structured fields are attached to the error
+ * instead and `message` falls back to the human sentence inside.
+ */
+export async function apiError(res) {
+  const payload = await res.json().catch(() => ({}));
+  const detail = payload.detail;
+  const structured = detail && typeof detail === 'object' ? detail : null;
+
+  const error = new Error(
+    structured?.detail
+      || (typeof detail === 'string' ? detail : null)
+      || payload.message
+      || `Request failed (${res.status})`
+  );
+  error.status = res.status;
+  if (structured) {
+    error.reason = structured.reason;
+    error.quota = structured.quota ?? null;
+    error.planSlug = structured.plan_slug ?? null;
+    error.planName = structured.plan_name ?? null;
+  }
+  return error;
+}
+
 async function request(endpoint, body = null, method = 'POST') {
   const send = (token) => {
     const options = {
@@ -48,8 +80,7 @@ async function request(endpoint, body = null, method = 'POST') {
   }
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Request failed (${res.status})`);
+    throw await apiError(res);
   }
 
   return res.json();
@@ -89,8 +120,7 @@ async function streamRequest(endpoint, body, onEvent, { signal } = {}) {
   // Errors are still ordinary JSON — the server does every check that can
   // produce a status code before it starts writing the stream.
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Request failed (${res.status})`);
+    throw await apiError(res);
   }
 
   const reader = res.body.getReader();
@@ -389,8 +419,7 @@ async function imageStream(send) {
   // Failures cheap enough to detect before the stream opens (validation,
   // ownership, an unreadable upload) are still ordinary HTTP errors.
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || err.message || `Request failed (${res.status})`);
+    throw await apiError(res);
   }
 
   const reader = res.body.getReader();
@@ -472,4 +501,25 @@ export function generateImage(prompt, historyId = null, referenceImage = null) {
 // Tasks, styles, lengths, provider status, feature flags and global defaults.
 export function getMeta() {
   return request('/meta', null, 'GET');
+}
+
+
+// ── Plans ──
+//
+// The catalog is admin-owned data now, not a hardcoded array in Plans.jsx.
+
+/** Visible plan tiers, in display order. Readable signed out. */
+export function getPlans() {
+  return request('/plans', null, 'GET');
+}
+
+/**
+ * The caller's plan and today's usage against it.
+ *
+ * Resolves to null when there is no catalog yet — before the migration has
+ * been applied, for instance — which the UI treats as "nothing to show"
+ * rather than an error.
+ */
+export function getMyPlan() {
+  return request('/plans/me', null, 'GET');
 }

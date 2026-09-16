@@ -1,8 +1,22 @@
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Tags, SlidersHorizontal, ScrollText,
-  MessagesSquare, Bot, Layers, Scale, ArrowLeft, Moon, Sun,
-  SpellCheck, Newspaper, PenLine, FileText,
+  ArrowLeft,
+  Bot,
+  CreditCard,
+  FileText,
+  Layers,
+  LayoutDashboard,
+  MessagesSquare,
+  Moon,
+  Newspaper,
+  PenLine,
+  Scale,
+  ScrollText,
+  SlidersHorizontal,
+  SpellCheck,
+  Sun,
+  Tags,
+  Users,
 } from 'lucide-react';
 
 const NAV = [
@@ -10,6 +24,7 @@ const NAV = [
   { to: '/admin/users', end: false, label: 'Users', icon: Users },
   { to: '/admin/chats', end: false, label: 'Chats', icon: MessagesSquare },
   { to: '/admin/categories', end: false, label: 'Categories', icon: Tags },
+  { to: '/admin/plans', end: false, label: 'Plans', icon: CreditCard },
   { to: '/admin/activity', end: false, label: 'Activity', icon: ScrollText },
   // Common only — Model gateway and the anonymous-usage limit. Everything
   // tool-specific lives on that tool's own page, listed separately below.

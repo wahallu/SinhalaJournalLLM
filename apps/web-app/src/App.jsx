@@ -42,6 +42,7 @@ const AdminUsers         = lazy(() => import('./admin/pages/Users'));
 const UserDetail         = lazy(() => import('./admin/pages/UserDetail'));
 const Chats              = lazy(() => import('./admin/pages/Chats'));
 const Categories         = lazy(() => import('./admin/pages/Categories'));
+const AdminPlans         = lazy(() => import('./admin/pages/Plans'));
 const AdminSettings      = lazy(() => import('./admin/pages/Settings'));
 const GrammarSettings    = lazy(() => import('./admin/pages/settings/GrammarSettings'));
 const HeadlineSettings   = lazy(() => import('./admin/pages/settings/HeadlineSettings'));
@@ -509,6 +510,7 @@ function App() {
           <Route path="users/:userId" element={<UserDetail />} />
           <Route path="chats" element={<Chats />} />
           <Route path="categories" element={<Categories />} />
+          <Route path="plans" element={<AdminPlans />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="settings/grammar" element={<GrammarSettings />} />
           <Route path="settings/headlines" element={<HeadlineSettings />} />
@@ -596,7 +598,11 @@ function App() {
                   to anonymous visitors, who simply do not get results saved. */}
               <Route path="/history" element={<ProtectedRoute><HistoryPage onSelectTool={handleSelectTool} onRerun={handleQuickStart} onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage onBack={() => navigate('/dashboard')} onDefaultsChange={handleDefaultsChange} theme={theme} onThemeChange={handleThemeChange} /></ProtectedRoute>} />
-              <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
+              {/* Public: a pricing page behind a login wall cannot do its
+                  job, and the catalog is marketing copy rather than anyone's
+                  data. Signed-in extras (current-tier badge, today's usage)
+                  come from /plans/me, which does require a session. */}
+              <Route path="/plans" element={<Plans />} />
 
               {/* The research tools moved to /admin/research/*. Send old
                   bookmarks to the dashboard rather than the admin route —

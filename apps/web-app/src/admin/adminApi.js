@@ -133,3 +133,33 @@ export function getAdapters() {
 export function getImageDiagnostics() {
   return request('/api/v1/image/diagnostics');
 }
+
+// ── Plans ──
+//
+// Plan copy and limits used to be hardcoded in components/Plans.jsx, so
+// changing a tier needed a frontend deploy. These endpoints own it now.
+
+export function listPlans() {
+  return request('/admin/plans');
+}
+
+export function createPlan(plan) {
+  return request('/admin/plans', { method: 'POST', body: plan });
+}
+
+export function updatePlan(planId, changes) {
+  return request(`/admin/plans/${planId}`, { method: 'PATCH', body: changes });
+}
+
+/**
+ * Archive a plan. The server refuses the default one — new signups resolve
+ * to it, so retiring it would strand them.
+ */
+export function archivePlan(planId) {
+  return request(`/admin/plans/${planId}`, { method: 'DELETE' });
+}
+
+/** Move a user onto a tier. `planId` of null clears the assignment. */
+export function setUserPlan(userId, planId) {
+  return request(`/admin/users/${userId}`, { method: 'PATCH', body: { plan_id: planId } });
+}
