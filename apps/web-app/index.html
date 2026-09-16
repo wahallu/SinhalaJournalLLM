@@ -29,9 +29,49 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      /* Inline, and ahead of the render-blocking font stylesheets above, so
+         the splash paints on the first frame. An external file would be one
+         more round trip, which is the problem being solved. System stack
+         only: Gwen and Satoshi have not loaded at this point. */
+      #sinai-splash {
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 18px;
+        background: #f5f4f4;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      #sinai-splash .sinai-splash-mark {
+        font-size: 30px; font-weight: 700; letter-spacing: -0.02em; color: #1a1416;
+      }
+      #sinai-splash .sinai-splash-mark span { color: #cd191a; }
+      #sinai-splash .sinai-splash-bar {
+        width: 132px; height: 3px; border-radius: 999px;
+        background: rgba(205, 25, 26, 0.16); overflow: hidden;
+      }
+      #sinai-splash .sinai-splash-bar::after {
+        content: ''; display: block; width: 40%; height: 100%; border-radius: 999px;
+        background: #cd191a; animation: sinai-splash-slide 1.1s ease-in-out infinite;
+      }
+      @keyframes sinai-splash-slide {
+        0%   { transform: translateX(-100%); }
+        100% { transform: translateX(330%); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #sinai-splash .sinai-splash-bar::after { animation: none; width: 100%; opacity: 0.55; }
+      }
+      @media (prefers-color-scheme: dark) {
+        #sinai-splash { background: #161112; }
+        #sinai-splash .sinai-splash-mark { color: #f8f7f7; }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><!--shell-start--><div id="sinai-splash" role="status" aria-live="polite">
+        <div class="sinai-splash-mark">Sin<span>Ai</span></div>
+        <div class="sinai-splash-bar"></div>
+        <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Loading SinAi</span>
+      </div><!--shell-end--></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

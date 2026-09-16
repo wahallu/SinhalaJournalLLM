@@ -50,6 +50,12 @@ function managedHead(page) {
     <!-- seo:managed-end -->`
 }
 
+/* The swappable region inside #root, delimited in index.html by
+   <!--shell-start--> / <!--shell-end-->. Comment markers rather than a match
+   on the markup itself, so editing the splash cannot silently break the
+   prerender. Group 1 is the untouched original, used for the app entry. */
+const SHELL_SLOT = /(<!--shell-start-->[\s\S]*?<!--shell-end-->)/
+
 function staticPageMarkup(page) {
   const cards = page.items.map((item) => {
     const inner = `<h2>${escapeHtml(item.title)}</h2><p>${escapeHtml(item.description)}</p>`
@@ -102,9 +108,21 @@ function seoPrerenderPlugin() {
         const template = fs.readFileSync(indexPath, 'utf8')
 
         for (const page of Object.values(SEO_PAGES)) {
+          // The app's own entry document keeps the managed <head> block --
+          // title, canonical, OG -- but NOT a prerendered body: whatever is
+          // written into #root is painted unstyled until the bundle parses and
+          // React replaces it, which is a wall of Times New Roman on the one
+          // URL every real session starts at. The same copy is already
+          // crawlable at /sinhala-ai, which exists for exactly that purpose,
+          // so nothing is lost for search. It keeps the splash instead.
+          //
+          // A landing page gets its prerendered markup *in place of* the
+          // splash, not alongside it. The splash is position:fixed with a high
+          // z-index, so leaving both would hide the very content these pages
+          // exist to serve -- permanently, for anyone whose JS never runs.
           const html = template
             .replace(/<!-- seo:managed-start -->[\s\S]*?<!-- seo:managed-end -->/, managedHead(page))
-            .replace('<div id="root"></div>', `<div id="root">${staticPageMarkup(page)}</div>`)
+            .replace(SHELL_SLOT, page.path === '/' ? '$1' : staticPageMarkup(page))
 
           const destination = page.path === '/'
             ? indexPath
