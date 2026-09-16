@@ -410,6 +410,14 @@ grant all on table public.request_telemetry  to service_role;
 grant all on table public.audit_log          to service_role;
 grant all on table public.app_settings       to service_role;
 grant all on table public.usage_daily        to service_role;
+grant all on table public.plans              to service_role;
+-- suggestion_events was missing from this list from the day it was added.
+-- record_events() never raises -- losing an event must not fail the request
+-- that produced it -- so every write failed with 42501 and was swallowed as
+-- a log warning. The research signal this table exists to capture was being
+-- dropped silently. tests/test_schema_grants.py now fails on any table that
+-- is created here without a matching grant.
+grant all on table public.suggestion_events  to service_role;
 grant all on table public.grammar_corrections  to service_role;
 grant all on table public.headline_generations to service_role;
 grant all on table public.style_rewrites       to service_role;

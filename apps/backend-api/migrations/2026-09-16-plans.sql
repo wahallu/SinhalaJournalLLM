@@ -36,6 +36,14 @@ create index if not exists idx_plans_sort on plans (sort_order, created_at);
 
 alter table plans enable row level security;
 -- No policy: service-role only, matching app_settings and audit_log.
+--
+-- RLS decides which ROWS a role may touch; the grant decides whether it may
+-- touch the table AT ALL. A table created by raw SQL does not inherit the
+-- privileges Supabase attaches to tables made through its UI, so without
+-- this every read fails with 42501 "permission denied for table plans" and
+-- reaches the client as a 500. See the Grants section of schema.sql, which
+-- documents the same trap.
+grant all on table public.plans to service_role;
 
 alter table profiles add column if not exists plan_id uuid
     references plans(id) on delete set null;
