@@ -26,6 +26,60 @@ function iconFor(slug) {
   return PLAN_ICONS[slug] ?? Layers;
 }
 
+/**
+ * The card's call-to-action.
+ *
+ * Three states, in order: this is your plan, the admin set a destination,
+ * or there is nothing to offer. The last renders NO button at all — every
+ * card used to show a disabled "Coming soon", which is three dead controls
+ * on the page and reads as a broken product rather than an honest one.
+ *
+ * The href is whitelisted server-side (see PlanBase._safe_href); rel and
+ * target are set here because an admin-entered link is usually offsite.
+ */
+function PlanAction({ plan, isCurrentPlan, isFeatured, reserveSpace }) {
+  if (isCurrentPlan) {
+    return (
+      <p className="flex h-[42px] w-full items-center justify-center mb-6 px-5 rounded-xl
+        bg-ink-100 text-[13.5px] font-semibold text-ink-600">
+        Current plan
+      </p>
+    );
+  }
+
+  if (!plan.cta_label || !plan.cta_href) {
+    /* No filler button — but hold the row's height when a SIBLING card has
+       one, or this card's feature list rides up and the three "Includes"
+       headings stop lining up. When no card in the grid has an action, the
+       space is not reserved at all and the whole row simply sits higher.
+
+       Only from md up, where the cards are actually side by side. Stacked on
+       a phone there is nothing to align with, and the reserved strip is just
+       a hole in the card. */
+    return (
+      <div
+        className={`mb-6 ${reserveSpace ? 'md:h-[42px]' : ''}`}
+        aria-hidden="true"
+      />
+    );
+  }
+
+  const external = !plan.cta_href.startsWith('/');
+  return (
+    <a
+      href={plan.cta_href}
+      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+      className={`flex h-[42px] w-full items-center justify-center mb-6 px-5 rounded-xl
+        text-center text-[13.5px] font-semibold transition-colors cursor-pointer
+        ${isFeatured
+          ? 'bg-brand-600 text-white hover:bg-brand-700'
+          : 'border border-ink-200 text-ink-800 hover:border-ink-300 hover:bg-ink-50'}`}
+    >
+      {plan.cta_label}
+    </a>
+  );
+}
+
 function UsageBar({ quota }) {
   if (!quota || quota.limit === null) return null;
   const pct = Math.min(100, Math.round((quota.used / quota.limit) * 100));
@@ -61,6 +115,12 @@ export default function Plans() {
      the previous user's usage while the next fetch is in flight. */
   const [quotaFor, setQuotaFor] = useState({ userId: null, quota: null });
   const mine = quotaFor.userId === (user?.id ?? null) ? quotaFor.quota : null;
+
+  /* Whether any card in the grid renders an action, so the ones that do not
+     can hold the same height and keep the feature lists aligned. */
+  const anyAction = (plans ?? []).some(
+    (p) => (p.cta_label && p.cta_href) || mine?.plan_slug === p.slug
+  );
 
   useEffect(() => {
     let active = true;
@@ -161,15 +221,12 @@ export default function Plans() {
                   <p className="text-[12.5px] text-ink-500 leading-relaxed min-h-10">{plan.description}</p>
                 </div>
 
-                <button
-                  className={`w-full py-2.5 px-5 rounded-xl font-semibold text-[13.5px] mb-6 cursor-not-allowed
-                    ${isCurrentPlan
-                      ? 'bg-ink-100 text-ink-500'
-                      : 'bg-ink-50 text-ink-400 border border-ink-200'}`}
-                  disabled
-                >
-                  {isCurrentPlan ? 'Current plan' : 'Coming soon'}
-                </button>
+                <PlanAction
+                  plan={plan}
+                  isCurrentPlan={isCurrentPlan}
+                  isFeatured={isFeatured}
+                  reserveSpace={anyAction}
+                />
 
                 <div className="flex-1">
                   <p className="text-[10.5px] font-bold text-ink-500 mb-3.5 uppercase tracking-[0.14em]">Includes</p>

@@ -10,7 +10,7 @@ is the same argument settings_registry.py makes for its own whitelist.
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # The tool names passed to enforce_plan_quota at each call site. Defined here
 # rather than imported from the routers, which would be a cycle;
@@ -25,6 +25,33 @@ TOOL_NAMES: tuple[str, ...] = (
 
 # Matches the upper bound on defaults.headline_count in settings_registry.py.
 MAX_HEADLINE_COUNT = 10
+
+# Schemes a plan's call-to-action may point at.
+#
+# A whitelist, not a blocklist. cta_href is rendered as an <a href> on
+# /plans, which is PUBLIC, so a "javascript:" value there is stored XSS
+# against every visitor. Admin-only is not a sufficient defence on its own:
+# one compromised admin account should not be able to reach every anonymous
+# visitor. A leading "/" is allowed for an in-app destination.
+_SAFE_CTA_SCHEMES = ("https://", "http://", "mailto:")
+
+
+def _validate_cta_href(value: str | None) -> str | None:
+    if value is None:
+        return None
+    cleaned = value.strip()
+    if not cleaned:
+        return None
+    lowered = cleaned.lower()
+    if cleaned.startswith("/") and not cleaned.startswith("//"):
+        # In-app path. "//" excluded: it is protocol-relative, i.e. offsite.
+        return cleaned
+    if any(lowered.startswith(scheme) for scheme in _SAFE_CTA_SCHEMES):
+        return cleaned
+    raise ValueError(
+        "cta_href must start with https://, http://, mailto:, or / "
+        f"(got {cleaned[:32]!r})"
+    )
 
 
 class PlanLimits(BaseModel):
@@ -72,6 +99,29 @@ class PlanBase(BaseModel):
     limits: PlanLimits = Field(default_factory=PlanLimits)
     sort_order: int = 0
     is_visible: bool = True
+    # The card's call-to-action. Both unset means no button renders, which is
+    # the right default for a tier with nowhere to send people yet.
+    cta_label: str | None = Field(default=None, max_length=40)
+    cta_href: str | None = Field(default=None, max_length=512)
+
+    @field_validator("cta_href")
+    @classmethod
+    def _safe_href(cls, value: str | None) -> str | None:
+        return _validate_cta_href(value)
+
+    @field_validator("cta_label")
+    @classmethod
+    def _blank_label_is_none(cls, value: str | None) -> str | None:
+        return value.strip() or None if value else None
+
+    @model_validator(mode="after")
+    def _cta_is_complete(self):
+        if self.cta_label and not self.cta_href:
+            raise ValueError(
+                "cta_href is required when cta_label is set — a labelled "
+                "button that goes nowhere is the dead button this replaces"
+            )
+        return self
 
 
 class PlanCreate(PlanBase):
@@ -91,6 +141,13 @@ class PlanUpdate(BaseModel):
     sort_order: int | None = None
     is_visible: bool | None = None
     is_default: bool | None = None
+    cta_label: str | None = None
+    cta_href: str | None = None
+
+    @field_validator("cta_href")
+    @classmethod
+    def _safe_href(cls, value: str | None) -> str | None:
+        return _validate_cta_href(value)
 
 
 class Plan(PlanBase):

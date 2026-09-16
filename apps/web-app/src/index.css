@@ -604,3 +604,21 @@ textarea { resize: vertical; }
     animation: none;
   }
 }
+
+
+/* Matches the index.html splash exactly, so the handoff from the pre-mount
+   splash to the session-resolving state is invisible. Defined here rather
+   than reusing animate-shimmer: shimmer is a sweep across a placeholder
+   block, which reads wrong on a logo. */
+@keyframes splash-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.97); }
+  50%      { opacity: 1;    transform: scale(1); }
+}
+
+.animate-splash-pulse {
+  animation: splash-pulse 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-splash-pulse { animation: none; opacity: 0.85; }
+}

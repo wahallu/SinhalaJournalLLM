@@ -21,6 +21,7 @@ const INPUT = `w-full px-3 py-2 text-[13px] rounded-md border bg-background text
 const BLANK = {
   slug: '', name: '', description: '', badge: '',
   featuresText: '', requestsPerDay: '', sortOrder: 0, isVisible: true, isDefault: false,
+  ctaLabel: '', ctaHref: '',
 };
 
 /** Mirrors the API's ^[a-z0-9-]{1,40}$ so the problem shows before submitting. */
@@ -39,6 +40,8 @@ function toForm(plan) {
     sortOrder: plan.sort_order ?? 0,
     isVisible: plan.is_visible !== false,
     isDefault: Boolean(plan.is_default),
+    ctaLabel: plan.cta_label ?? '',
+    ctaHref: plan.cta_href ?? '',
   };
 }
 
@@ -91,6 +94,10 @@ export default function Plans() {
         sort_order: Number(form.sortOrder) || 0,
         is_visible: form.isVisible,
         is_default: form.isDefault,
+        // Empty means "no button on the card" — the server turns blank into
+        // null, and both being null is what suppresses it.
+        cta_label: form.ctaLabel.trim() || null,
+        cta_href: form.ctaHref.trim() || null,
       };
 
       if (form.id) {
@@ -244,6 +251,38 @@ export default function Plans() {
           </div>
 
           <div>
+            <label htmlFor="plan-cta-label" className="block text-[12px] font-semibold text-card-foreground mb-1.5">
+              Button label
+            </label>
+            <input
+              id="plan-cta-label" maxLength={40} value={form.ctaLabel}
+              onChange={(e) => setForm({ ...form, ctaLabel: e.target.value })}
+              className={INPUT} style={{ borderColor: 'var(--input)' }}
+              placeholder="e.g. Join the waitlist"
+            />
+            <p className="text-[11.5px] mt-1 text-muted-foreground">
+              Leave empty for no button. The user&apos;s own tier always shows
+              &ldquo;Current plan&rdquo; instead.
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="plan-cta-href" className="block text-[12px] font-semibold text-card-foreground mb-1.5">
+              Button link
+            </label>
+            <input
+              id="plan-cta-href" maxLength={512} value={form.ctaHref}
+              onChange={(e) => setForm({ ...form, ctaHref: e.target.value })}
+              className={INPUT} style={{ borderColor: 'var(--input)' }}
+              placeholder="https://… or mailto:…"
+            />
+            <p className="text-[11.5px] mt-1 text-muted-foreground">
+              Must start with https://, http://, mailto: or / — anything else is
+              rejected, because this renders as a link on the public page.
+            </p>
+          </div>
+
+          <div>
             <label htmlFor="plan-sort" className="block text-[12px] font-semibold text-card-foreground mb-1.5">Sort order</label>
             <input
               id="plan-sort" type="number" value={form.sortOrder}
@@ -322,6 +361,11 @@ export default function Plans() {
                       )}
                       {archived && (
                         <span className="px-1.5 py-0.5 rounded bg-accent text-muted-foreground font-semibold">Archived</span>
+                      )}
+                      {plan.cta_label && (
+                        <span className="px-1.5 py-0.5 rounded bg-accent text-muted-foreground font-semibold">
+                          {plan.cta_label}
+                        </span>
                       )}
                     </span>
                   </td>

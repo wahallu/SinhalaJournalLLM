@@ -41,10 +41,25 @@ const NAV_SECTIONS = [
   },
 ];
 
-const BOTTOM_NAV = [
-  { id: 'history', label: 'History', icon: History },
-  { id: 'settings', label: 'Settings', icon: Settings },
-];
+/**
+ * The bottom rail, which depends on whether there is a session.
+ *
+ * Settings is deliberately absent for signed-in users: it already sits in
+ * the profile menu, and listing it twice made the rail the longest thing in
+ * the sidebar while saying nothing new.
+ *
+ * A signed-out visitor has no profile menu to reach anything from, so the
+ * slot goes to Upgrade instead — /plans is public, which makes it the one
+ * item here they can actually act on.
+ */
+function bottomNavFor(user) {
+  return user
+    ? [{ id: 'history', label: 'History', icon: History }]
+    : [
+        { id: 'history', label: 'History', icon: History },
+        { id: 'plans', label: 'Upgrade', icon: Zap },
+      ];
+}
 
 const FEEDBACK_URL = 'https://forms.gle/uD3tXZ4nEL11k6uA6';
 
@@ -310,7 +325,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
         {/* Bottom navigation */}
         <div className={`relative z-10 py-3 space-y-0.5 border-t border-ink-100 ${collapsed ? 'px-3' : 'px-3.5'}`}>
           <FeedbackPromo collapsed={collapsed} />
-          {BOTTOM_NAV.map(renderNavItem)}
+          {bottomNavFor(user).map(renderNavItem)}
         </div>
 
         {/* User — a signed-out visitor gets a real sign-in button rather than

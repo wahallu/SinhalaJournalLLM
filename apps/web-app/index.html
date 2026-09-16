@@ -25,53 +25,50 @@
     <title>SinAi — Free Sinhala AI Writing Assistant</title>
     <!-- seo:managed-end -->
     <link rel="manifest" href="/site.webmanifest" />
+    <!-- The splash below is the first paint; without this the mark arrives late. -->
+    <link rel="preload" as="image" href="/logored.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-      /* Inline, and ahead of the render-blocking font stylesheets above, so
-         the splash paints on the first frame. An external file would be one
-         more round trip, which is the problem being solved. System stack
-         only: Gwen and Satoshi have not loaded at this point. */
+      /* Inline so the splash paints on the first frame — an external file
+         would be one more round trip, which is the problem being solved.
+
+         The mark alone, breathing. No progress bar: nothing here knows how
+         far along the bundle is, so a moving bar would imply progress it
+         cannot measure. A shimmer says "working" without claiming to know
+         how long. No wordmark either — it would need Gwen, which has not
+         loaded at this point, so it would render in a fallback face and
+         then jump. */
       #sinai-splash {
         position: fixed; inset: 0; z-index: 9999;
-        display: flex; flex-direction: column;
-        align-items: center; justify-content: center; gap: 18px;
+        display: flex; align-items: center; justify-content: center;
         background: #f5f4f4;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
-      #sinai-splash .sinai-splash-mark {
-        font-size: 30px; font-weight: 700; letter-spacing: -0.02em; color: #1a1416;
+      #sinai-splash img {
+        width: 56px; height: 56px; object-fit: contain;
+        animation: sinai-splash-pulse 1.5s ease-in-out infinite;
       }
-      #sinai-splash .sinai-splash-mark span { color: #cd191a; }
-      #sinai-splash .sinai-splash-bar {
-        width: 132px; height: 3px; border-radius: 999px;
-        background: rgba(205, 25, 26, 0.16); overflow: hidden;
-      }
-      #sinai-splash .sinai-splash-bar::after {
-        content: ''; display: block; width: 40%; height: 100%; border-radius: 999px;
-        background: #cd191a; animation: sinai-splash-slide 1.1s ease-in-out infinite;
-      }
-      @keyframes sinai-splash-slide {
-        0%   { transform: translateX(-100%); }
-        100% { transform: translateX(330%); }
+      @keyframes sinai-splash-pulse {
+        0%, 100% { opacity: 0.35; transform: scale(0.97); }
+        50%      { opacity: 1;    transform: scale(1); }
       }
       @media (prefers-reduced-motion: reduce) {
-        #sinai-splash .sinai-splash-bar::after { animation: none; width: 100%; opacity: 0.55; }
+        #sinai-splash img { animation: none; opacity: 0.85; }
       }
+      /* Follows the OS, not the app's own theme. The app stores that per
+         account under sinai_theme:<userId>, and the user is not known until
+         the bundle has run -- which is the thing being waited on. OS
+         preference is the only signal available this early, so a user whose
+         app theme disagrees with their OS sees one brief switch on load. */
       @media (prefers-color-scheme: dark) {
         #sinai-splash { background: #161112; }
-        #sinai-splash .sinai-splash-mark { color: #f8f7f7; }
       }
     </style>
   </head>
   <body>
-    <div id="root"><!--shell-start--><div id="sinai-splash" role="status" aria-live="polite">
-        <div class="sinai-splash-mark">Sin<span>Ai</span></div>
-        <div class="sinai-splash-bar"></div>
-        <span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Loading SinAi</span>
-      </div><!--shell-end--></div>
+    <div id="root"><!--shell-start--><div id="sinai-splash" role="status" aria-live="polite"><img src="/logored.svg" alt="" /><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Loading SinAi</span></div><!--shell-end--></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

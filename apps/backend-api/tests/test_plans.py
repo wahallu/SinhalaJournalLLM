@@ -56,6 +56,57 @@ def test_a_positive_limit_is_not_unlimited():
     assert PlanLimits(requests_per_day=1).is_unlimited is False
 
 
+# ── CTA link safety ───────────────────────────────────────────────────────
+#
+# cta_href is set by an admin and rendered as an <a href> on /plans, which
+# is PUBLIC. A javascript: URL there is stored XSS against every visitor,
+# so the scheme is whitelisted rather than sanitized. Admin-only is not a
+# sufficient defence: one compromised admin account should not be able to
+# reach every anonymous visitor.
+
+import pytest as _pytest  # noqa: E402
+from app.schemas.plan import PlanCreate  # noqa: E402
+
+
+@_pytest.mark.parametrize("href", [
+    "javascript:alert(1)",
+    "JavaScript:alert(1)",
+    "  javascript:alert(1)",
+    "jAvAsCrIpT:alert(1)",
+    "data:text/html,<script>alert(1)</script>",
+    "vbscript:msgbox(1)",
+    "file:///etc/passwd",
+    "ftp://example.com",
+])
+def test_dangerous_cta_hrefs_are_rejected(href):
+    with _pytest.raises(ValidationError):
+        PlanCreate(slug="x", name="X", cta_label="Go", cta_href=href)
+
+
+@_pytest.mark.parametrize("href", [
+    "https://example.com/waitlist",
+    "http://example.com",
+    "mailto:hello@sin-ai.app",
+    "/signup",
+])
+def test_safe_cta_hrefs_are_accepted(href):
+    plan = PlanCreate(slug="x", name="X", cta_label="Go", cta_href=href)
+    assert plan.cta_href == href
+
+
+def test_cta_label_without_href_is_rejected():
+    """A labelled button that goes nowhere is the dead button being removed."""
+    with _pytest.raises(ValidationError):
+        PlanCreate(slug="x", name="X", cta_label="Go")
+
+
+def test_no_cta_at_all_is_fine():
+    """The default: no button renders until an admin sets one."""
+    plan = PlanCreate(slug="x", name="X")
+    assert plan.cta_label is None
+    assert plan.cta_href is None
+
+
 # ── Catalog API ──────────────────────────────────────────────────────────
 #
 # Authorization is covered in test_admin_auth.py; this covers what the

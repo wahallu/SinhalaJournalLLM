@@ -477,15 +477,15 @@ function App() {
   if (authLoading) {
     return (
       <div
-        className="h-full bg-canvas flex flex-col items-center justify-center gap-4"
+        className="h-full bg-canvas flex items-center justify-center"
         role="status"
         aria-live="polite"
       >
         <span className="sr-only">Loading your workspace</span>
-        <img src="/logored.svg" alt="" className="w-9 h-9 object-contain" />
-        <div className="w-28 h-[3px] rounded-full bg-brand-600/15 overflow-hidden">
-          <div className="h-full w-2/5 rounded-full bg-brand-600 animate-shimmer" />
-        </div>
+        {/* Same mark and same motion as the index.html splash, so resolving
+            the session after it clears reads as one continuous state rather
+            than two different loaders. */}
+        <img src="/logored.svg" alt="" className="w-14 h-14 object-contain animate-splash-pulse" />
       </div>
     );
   }
