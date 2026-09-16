@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from app.core.deps import require_admin
 from app.core.rate_limit import client_ip, hash_ip
-from app.repositories import admin_repository, audit_repository, profile_repository
+from app.repositories import admin_repository, audit_repository, plan_repository, profile_repository
 from app.repositories.history_repository import list_recent
 from app.schemas.admin import AdminUser, AdminUserListResponse, UserUpdateRequest
 from app.schemas.auth import AuthUser
@@ -73,6 +73,16 @@ async def update_user(
     changes = payload.model_dump(exclude_unset=True)
     if not changes:
         return AdminUser(**before)
+
+    # A plan_id that does not exist would leave the account resolving to the
+    # default tier forever, with the admin believing they had assigned
+    # something else. Clearing it (None) is allowed and means "use default".
+    if changes.get("plan_id"):
+        if await plan_repository.get(changes["plan_id"]) is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Unknown plan.",
+            )
 
     # Self-lockout guards. An admin demoting or suspending themselves could
     # leave the system with no administrator and no route back in short of

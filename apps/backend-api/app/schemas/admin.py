@@ -14,6 +14,7 @@ class AdminUser(BaseModel):
     role: str
     status: str
     category_id: str | None = None
+    plan_id: str | None = None
     created_at: datetime | None = None
     last_seen_at: datetime | None = None
 
@@ -31,6 +32,10 @@ class UserUpdateRequest(BaseModel):
     role: str | None = Field(default=None, pattern="^(user|admin)$")
     status: str | None = Field(default=None, pattern="^(active|suspended)$")
     category_id: str | None = None
+    # Which tier this account is on. Assigned here rather than through a
+    # route of its own so it inherits the existing audit trail and the
+    # self-lockout guards on PATCH /admin/users/{id}.
+    plan_id: str | None = None
 
 
 class CategoryIn(BaseModel):

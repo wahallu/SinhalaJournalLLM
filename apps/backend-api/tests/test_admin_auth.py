@@ -53,6 +53,7 @@ def _fill(path: str) -> str:
     return (
         path.replace("{user_id}", USER_ID)
         .replace("{category_id}", "c1")
+        .replace("{plan_id}", "p1")
         .replace("{key}", "features.grammar")
     )
 

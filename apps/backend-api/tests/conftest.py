@@ -48,7 +48,7 @@ def _matches_or(row: dict, expression: str) -> bool:
     return False
 
 
-def _matches_all(row: dict, eq_filters, gte_filters, or_expr) -> bool:
+def _matches_all(row: dict, query) -> bool:
     """
     Whether a row satisfies every filter on the query.
 
@@ -57,14 +57,28 @@ def _matches_all(row: dict, eq_filters, gte_filters, or_expr) -> bool:
     at all, `all([])` is True, so a `.delete().gte("created_at", cutoff)`
     matched EVERY row. A retention-prune test would have passed while
     production emptied the table.
+
+    Takes the query rather than individual filter lists for the same reason:
+    a builder added without a matching clause here is an omission in ONE
+    place, not three call sites that each silently drop it.
     """
-    for column, value in eq_filters:
+    for column, value in query._filters:
         if str(row.get(column)) != str(value):
             return False
-    for column, value in gte_filters:
+    for column, value in query._neq_filters:
+        if str(row.get(column)) == str(value):
+            return False
+    for column, value in query._gte_filters:
         if not str(row.get(column) or "") >= str(value):
             return False
-    if or_expr and not _matches_or(row, or_expr):
+    for column, value in query._is_filters:
+        # PostgREST spells these as strings: is("col", "null").
+        actual_is_null = row.get(column) is None
+        if value in ("null", None) and not actual_is_null:
+            return False
+        if value == "not.null" and actual_is_null:
+            return False
+    if query._or and not _matches_or(row, query._or):
         return False
     return True
 
@@ -77,6 +91,8 @@ class _FakeQuery:
         self._payload: dict | None = None
         self._filters: list[tuple[str, object]] = []
         self._gte_filters: list[tuple[str, object]] = []
+        self._neq_filters: list[tuple[str, object]] = []
+        self._is_filters: list[tuple[str, object]] = []
         self._order_desc = True
         self._range: tuple[int, int] | None = None
         self._limit: int | None = None
@@ -139,6 +155,18 @@ class _FakeQuery:
         self._gte_filters.append((column, value))
         return self
 
+    def neq(self, column: str, value):
+        """PostgREST neq() — used by plan_repository.clear_default to demote
+        every default EXCEPT the plan being promoted."""
+        self._neq_filters.append((column, value))
+        return self
+
+    def is_(self, column: str, value):
+        """PostgREST is() — only the "null"/"not.null" forms are interpreted,
+        which is all plan_repository.list_all emits for archived_at."""
+        self._is_filters.append((column, value))
+        return self
+
     def order(self, _column: str, desc: bool = False):
         self._order_desc = desc
         return self
@@ -199,7 +227,7 @@ class _FakeQuery:
         if self._operation == "update":
             updated = []
             for row in rows:
-                if _matches_all(row, self._filters, self._gte_filters, self._or):
+                if _matches_all(row, self):
                     row.update(self._payload)
                     updated.append(dict(row))
             return SimpleNamespace(data=updated, count=None)
@@ -207,7 +235,7 @@ class _FakeQuery:
         if self._operation == "delete":
             removed = [
                 r for r in rows
-                if _matches_all(r, self._filters, self._gte_filters, self._or)
+                if _matches_all(r, self)
             ]
             self._store[self._table] = [r for r in rows if r not in removed]
             return SimpleNamespace(data=[dict(r) for r in removed], count=None)
@@ -218,7 +246,7 @@ class _FakeQuery:
         # bugs that only appear against the real HTTP client.
         result = [
             dict(r) for r in rows
-            if _matches_all(r, self._filters, self._gte_filters, self._or)
+            if _matches_all(r, self)
         ]
         result.sort(key=lambda r: r.get("created_at") or "", reverse=self._order_desc)
         total = len(result)

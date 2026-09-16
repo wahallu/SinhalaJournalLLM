@@ -54,3 +54,162 @@ def test_none_and_zero_are_unlimited(value):
 
 def test_a_positive_limit_is_not_unlimited():
     assert PlanLimits(requests_per_day=1).is_unlimited is False
+
+
+# ── Catalog API ──────────────────────────────────────────────────────────
+#
+# Authorization is covered in test_admin_auth.py; this covers what the
+# endpoints do once a legitimate admin is through the gate.
+
+import pytest_asyncio  # noqa: E402
+from httpx import ASGITransport, AsyncClient  # noqa: E402
+
+from app.main import app  # noqa: E402
+from tests.test_admin_auth import ADMIN_ID, USER_ID, _auth  # noqa: E402
+
+FREE_ID = "f0000000-0000-0000-0000-000000000001"
+PRO_ID = "f0000000-0000-0000-0000-000000000002"
+HIDDEN_ID = "f0000000-0000-0000-0000-000000000003"
+
+
+def _api() -> AsyncClient:
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+
+@pytest.fixture
+def seeded(fake_supabase):
+    fake_supabase.store["profiles"] = [
+        {"id": ADMIN_ID, "email": "admin@sinai.lk", "role": "admin", "status": "active",
+         "category_id": None, "plan_id": FREE_ID, "created_at": "2026-01-01T00:00:00Z"},
+        {"id": USER_ID, "email": "user@sinai.lk", "role": "user", "status": "active",
+         "category_id": None, "plan_id": FREE_ID, "created_at": "2026-01-01T00:00:00Z"},
+    ]
+    fake_supabase.store["plans"] = [
+        {"id": FREE_ID, "slug": "free", "name": "Free", "description": "",
+         "badge": None, "features": ["a"], "limits": {"requests_per_day": 50},
+         "sort_order": 0, "is_default": True, "is_visible": True, "archived_at": None},
+        {"id": PRO_ID, "slug": "pro", "name": "Pro", "description": "",
+         "badge": None, "features": ["b"], "limits": {"requests_per_day": None},
+         "sort_order": 1, "is_default": False, "is_visible": True, "archived_at": None},
+        {"id": HIDDEN_ID, "slug": "secret", "name": "Secret", "description": "",
+         "badge": None, "features": [], "limits": {},
+         "sort_order": 2, "is_default": False, "is_visible": False, "archived_at": None},
+    ]
+    return fake_supabase
+
+
+@pytest.mark.asyncio
+async def test_public_catalog_hides_invisible_plans(seeded):
+    """A tier an admin hid must not appear on the pricing page."""
+    async with _api() as c:
+        r = await c.get("/api/v1/plans")
+    assert r.status_code == 200
+    assert sorted(p["slug"] for p in r.json()) == ["free", "pro"]
+
+
+@pytest.mark.asyncio
+async def test_public_catalog_is_readable_signed_out(seeded):
+    """/plans has to render for a visitor with no session."""
+    async with _api() as c:
+        r = await c.get("/api/v1/plans")
+    assert r.status_code == 200
+    assert r.json()
+
+
+@pytest.mark.asyncio
+async def test_admin_catalog_includes_hidden(seeded):
+    async with _api() as c:
+        r = await c.get("/api/v1/admin/plans", headers=_auth(ADMIN_ID))
+    assert r.status_code == 200
+    assert "secret" in [p["slug"] for p in r.json()]
+
+
+@pytest.mark.asyncio
+async def test_create_rejects_duplicate_slug(seeded):
+    async with _api() as c:
+        r = await c.post(
+            "/api/v1/admin/plans",
+            json={"slug": "free", "name": "Another Free"},
+            headers=_auth(ADMIN_ID),
+        )
+    assert r.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_create_rejects_bad_limits(seeded):
+    """The jsonb column's guard rail, exercised through the API."""
+    async with _api() as c:
+        r = await c.post(
+            "/api/v1/admin/plans",
+            json={"slug": "typo", "name": "Typo", "limits": {"requests_per_dayy": 5}},
+            headers=_auth(ADMIN_ID),
+        )
+    assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_promoting_a_plan_demotes_the_incumbent(seeded):
+    """The partial unique index makes two defaults impossible."""
+    async with _api() as c:
+        r = await c.patch(
+            f"/api/v1/admin/plans/{PRO_ID}",
+            json={"is_default": True},
+            headers=_auth(ADMIN_ID),
+        )
+    assert r.status_code == 200
+    by_id = {p["id"]: p for p in seeded.store["plans"]}
+    assert by_id[PRO_ID]["is_default"] is True
+    assert by_id[FREE_ID]["is_default"] is False
+
+
+@pytest.mark.asyncio
+async def test_cannot_clear_the_only_default(seeded):
+    """Leaving no default would strand every new signup."""
+    async with _api() as c:
+        r = await c.patch(
+            f"/api/v1/admin/plans/{FREE_ID}",
+            json={"is_default": False},
+            headers=_auth(ADMIN_ID),
+        )
+    assert r.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_cannot_archive_the_default_plan(seeded):
+    async with _api() as c:
+        r = await c.delete(f"/api/v1/admin/plans/{FREE_ID}", headers=_auth(ADMIN_ID))
+    assert r.status_code == 400
+    assert "default" in r.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_archive_a_non_default_plan(seeded):
+    async with _api() as c:
+        r = await c.delete(f"/api/v1/admin/plans/{PRO_ID}", headers=_auth(ADMIN_ID))
+    assert r.status_code == 200
+    archived = {p["id"]: p for p in seeded.store["plans"]}[PRO_ID]
+    assert archived["archived_at"] is not None
+
+
+@pytest.mark.asyncio
+async def test_assigning_an_unknown_plan_is_rejected(seeded):
+    """Otherwise the account silently resolves to the default forever."""
+    async with _api() as c:
+        r = await c.patch(
+            f"/api/v1/admin/users/{USER_ID}",
+            json={"plan_id": "99999999-9999-9999-9999-999999999999"},
+            headers=_auth(ADMIN_ID),
+        )
+    assert r.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_assigning_a_known_plan_succeeds(seeded):
+    async with _api() as c:
+        r = await c.patch(
+            f"/api/v1/admin/users/{USER_ID}",
+            json={"plan_id": PRO_ID},
+            headers=_auth(ADMIN_ID),
+        )
+    assert r.status_code == 200
+    assert r.json()["plan_id"] == PRO_ID
