@@ -4,8 +4,24 @@
     {
       "name": "web-app-dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "apps/web-app"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "apps/web-app"
+      ],
       "port": 5173
+    },
+    {
+      "name": "web-app-dist",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "serve",
+        "apps/web-app/dist",
+        "-l",
+        "4173"
+      ],
+      "port": 4173
     }
   ]
 }
