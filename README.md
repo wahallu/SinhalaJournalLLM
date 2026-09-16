@@ -113,6 +113,14 @@ databases must also run `apps/backend-api/migrations/2026-08-12-complete-history
 once; it adds the fields required to reopen complete tool outputs, visual
 prompts, and Cloudinary image URLs.
 
+Every database must run `apps/backend-api/migrations/2026-09-16-plans.sql` once.
+It creates the `plans` catalog, adds `profiles.plan_id`, seeds the Free / Plus /
+Pro tiers, and puts every existing profile on the default tier. Until it is
+applied, `/plans` shows a "could not be loaded" notice and no quota is enforced
+— `plan_quota.resolve_plan` finds no catalog and lets every request through.
+Like the rest, it is idempotent: `if not exists` throughout, `on conflict do
+nothing` on the seeds, and the backfill only touches rows with no plan.
+
 Tests (fully offline — fake Supabase + mock provider): `python -m pytest tests/ -v`
 
 ### 2. Model server (optional, needs GPU)
