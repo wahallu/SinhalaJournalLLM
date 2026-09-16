@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, ArrowDownToLine } from 'lucide-react';
 import Sidebar from './components/Sidebar';
@@ -10,13 +10,8 @@ import Editor from './components/editor/Editor';
 import ResultsPane from './components/editor/ResultsPane';
 import OutputPanel from './components/OutputPanel';
 import HeadlineOutputPanel from './components/HeadlineOutputPanel';
-import OptimizePage from './components/optimize/OptimizePage';
 import RouteDialog from './components/RouteDialog';
 import Dashboard from './components/Dashboard';
-import HistoryPage from './components/HistoryPage';
-import SettingsPage from './components/SettingsPage';
-import ProfilePage from './components/ProfilePage';
-import Plans from './components/Plans';
 import { useToolProcessor } from './hooks/useToolProcessor';
 import { usePlatformMeta } from './hooks/usePlatformMeta';
 import { checkGrammar, generateHeadlines, hydrateHeadlineOutput, rewriteStyle, summarizeNews } from './services/api';
@@ -27,25 +22,43 @@ import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import VerifyEmail from './pages/auth/VerifyEmail';
-import AdminRoute from './admin/AdminRoute';
-import AdminLayout from './admin/AdminLayout';
-import Overview from './admin/pages/Overview';
-import AdminUsers from './admin/pages/Users';
-import UserDetail from './admin/pages/UserDetail';
-import Chats from './admin/pages/Chats';
-import Categories from './admin/pages/Categories';
-import AdminSettings from './admin/pages/Settings';
-import GrammarSettings from './admin/pages/settings/GrammarSettings';
-import HeadlineSettings from './admin/pages/settings/HeadlineSettings';
-import RewriterSettings from './admin/pages/settings/RewriterSettings';
-import SummarizerSettings from './admin/pages/settings/SummarizerSettings';
-import Activity from './admin/pages/Activity';
-import SinLLamaPage from './admin/research/SinLLamaPage';
-import ModelComparison from './admin/research/ModelComparison';
-import Onboarding from './components/onboarding/Onboarding';
-import SeoLandingPage from './components/seo/SeoLandingPage';
 import { SEO_PAGES } from './seo/site';
 import { usePageSeo } from './seo/usePageSeo';
+
+import ErrorBoundary from './components/ErrorBoundary';
+import RouteFallback from './components/ui/RouteFallback';
+
+/* ── Lazily loaded routes ──
+   The dashboard and the four writing tools stay eager: they are the first
+   paint of nearly every session, so splitting them would trade a smaller
+   bundle for a slower start on the common path.
+
+   Everything below is off that path. The admin console alone is 14 pages
+   plus recharts, and no ordinary visitor needs a byte of it. */
+const AdminRoute         = lazy(() => import('./admin/AdminRoute'));
+const AdminLayout        = lazy(() => import('./admin/AdminLayout'));
+const Overview           = lazy(() => import('./admin/pages/Overview'));
+const AdminUsers         = lazy(() => import('./admin/pages/Users'));
+const UserDetail         = lazy(() => import('./admin/pages/UserDetail'));
+const Chats              = lazy(() => import('./admin/pages/Chats'));
+const Categories         = lazy(() => import('./admin/pages/Categories'));
+const AdminSettings      = lazy(() => import('./admin/pages/Settings'));
+const GrammarSettings    = lazy(() => import('./admin/pages/settings/GrammarSettings'));
+const HeadlineSettings   = lazy(() => import('./admin/pages/settings/HeadlineSettings'));
+const RewriterSettings   = lazy(() => import('./admin/pages/settings/RewriterSettings'));
+const SummarizerSettings = lazy(() => import('./admin/pages/settings/SummarizerSettings'));
+const Activity           = lazy(() => import('./admin/pages/Activity'));
+const SinLLamaPage       = lazy(() => import('./admin/research/SinLLamaPage'));
+const ModelComparison    = lazy(() => import('./admin/research/ModelComparison'));
+
+const OptimizePage   = lazy(() => import('./components/optimize/OptimizePage'));
+const HistoryPage    = lazy(() => import('./components/HistoryPage'));
+const SettingsPage   = lazy(() => import('./components/SettingsPage'));
+const ProfilePage    = lazy(() => import('./components/ProfilePage'));
+const Plans          = lazy(() => import('./components/Plans'));
+const Onboarding     = lazy(() => import('./components/onboarding/Onboarding'));
+const SeoLandingPage = lazy(() => import('./components/seo/SeoLandingPage'));
+
 
 /* Routes that render as a dialog over whatever page is behind them, rather
    than as a page of their own. In-app navigation to one of these carries the
@@ -443,7 +456,13 @@ function App() {
   }, []);
 
   if (seoLandingPage) {
-    return <SeoLandingPage page={seoLandingPage} />;
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<RouteFallback />}>
+          <SeoLandingPage page={seoLandingPage} />
+        </Suspense>
+      </ErrorBoundary>
+    );
   }
 
   const isEditor = EDITOR_TOOLS.includes(activeTool);
@@ -455,13 +474,27 @@ function App() {
   const toolDisabled = toolForPath in features && features[toolForPath] === false;
 
   if (authLoading) {
-    return <div className="h-full bg-white" aria-label="Loading your workspace" />;
+    return (
+      <div
+        className="h-full bg-canvas flex flex-col items-center justify-center gap-4"
+        role="status"
+        aria-live="polite"
+      >
+        <span className="sr-only">Loading your workspace</span>
+        <img src="/logored.svg" alt="" className="w-9 h-9 object-contain" />
+        <div className="w-28 h-[3px] rounded-full bg-brand-600/15 overflow-hidden">
+          <div className="h-full w-2/5 rounded-full bg-brand-600 animate-shimmer" />
+        </div>
+      </div>
+    );
   }
 
   /* The admin dashboard has its own shell and token scope — it must not
      render inside the SinAi sidebar layout. */
   if (location.pathname.startsWith('/admin')) {
     return (
+      <ErrorBoundary>
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route
           path="/admin"
@@ -487,11 +520,19 @@ function App() {
           <Route path="research/comparison" element={<ModelComparison />} />
         </Route>
       </Routes>
+      </Suspense>
+      </ErrorBoundary>
     );
   }
 
   if (user && !user.onboarding_completed_at) {
-    return <Onboarding user={user} onComplete={updateAccount} />;
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<RouteFallback />}>
+          <Onboarding user={user} onComplete={updateAccount} />
+        </Suspense>
+      </ErrorBoundary>
+    );
   }
 
   if (toolDisabled) {
@@ -541,6 +582,8 @@ function App() {
               animate-in fade-in slide-in-from-bottom-2 duration-300
               ${isEditor ? 'xl:flex-1 xl:min-h-0 xl:flex xl:flex-col' : ''}`}
           >
+            <ErrorBoundary>
+            <Suspense fallback={<RouteFallback />}>
             <Routes location={backgroundLocation}>
               <Route path="/" element={dashboard} />
               <Route path="/dashboard" element={dashboard} />
@@ -563,6 +606,8 @@ function App() {
               <Route path="/comparison" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
+            </Suspense>
+            </ErrorBoundary>
           </div>
         </main>
       </div>
@@ -575,6 +620,8 @@ function App() {
           changes; the page underneath is whichever route backgroundLocation
           resolved to above. Both dialogs are portalled to the body regardless
           of where in the tree they render. */}
+      <ErrorBoundary>
+      <Suspense fallback={null}>
       <Routes location={location}>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
@@ -599,6 +646,8 @@ function App() {
         />
         <Route path="*" element={null} />
       </Routes>
+      </Suspense>
+      </ErrorBoundary>
     </div>
   );
 }
