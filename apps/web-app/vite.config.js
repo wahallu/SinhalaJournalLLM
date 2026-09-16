@@ -11,6 +11,7 @@ import {
   absoluteUrl,
   buildStructuredData,
 } from './src/seo/site.js'
+import { SPA_ROUTE_SOURCES } from './src/appRoutes.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -56,6 +57,30 @@ function managedHead(page) {
    prerender. Group 1 is the untouched original, used for the app entry. */
 const SHELL_SLOT = /(<!--shell-start-->[\s\S]*?<!--shell-end-->)/
 
+/* Inline and scoped to the prerendered subtree. These pages must ship their
+   copy in the HTML for crawlers, which means a human on a slow connection
+   sees that copy first -- as Times New Roman at full window width unless it
+   is styled here. Scoped to [data-seo-prerendered] so nothing can leak into
+   the mounted app, and dropped entirely the moment React replaces the node. */
+const PRERENDER_CSS = `
+[data-seo-prerendered]{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+color:#1a1416;background:#f5f4f4;max-width:56rem;margin:0 auto;padding:2rem 1.25rem 4rem;line-height:1.6}
+[data-seo-prerendered] nav{display:flex;gap:1rem;align-items:center;margin-bottom:3rem;font-weight:600}
+[data-seo-prerendered] a{color:#cd191a;text-decoration:none}
+[data-seo-prerendered] h1{font-size:2.1rem;line-height:1.15;letter-spacing:-.02em;margin:.5rem 0 1rem}
+[data-seo-prerendered] h2{font-size:1.05rem;margin:0 0 .35rem}
+[data-seo-prerendered] p{color:#5b5153;margin:0 0 .75rem}
+[data-seo-prerendered] section{margin-bottom:2.5rem}
+[data-seo-prerendered] section[aria-label] a,[data-seo-prerendered] article{
+display:block;border:1px solid #e7e4e4;border-radius:14px;padding:1rem 1.15rem;margin-bottom:.75rem;background:#fff}
+[data-seo-prerendered] footer{border-top:1px solid #e7e4e4;padding-top:1.25rem;display:flex;gap:1rem}
+@media(prefers-color-scheme:dark){
+[data-seo-prerendered]{background:#161112;color:#f8f7f7}
+[data-seo-prerendered] p{color:#a9a0a2}
+[data-seo-prerendered] section[aria-label] a,[data-seo-prerendered] article{background:#1f1819;border-color:#2e2527}
+[data-seo-prerendered] footer{border-color:#2e2527}}
+`.replace(/\n/g, '')
+
 function staticPageMarkup(page) {
   const cards = page.items.map((item) => {
     const inner = `<h2>${escapeHtml(item.title)}</h2><p>${escapeHtml(item.description)}</p>`
@@ -68,7 +93,7 @@ function staticPageMarkup(page) {
     `<article><h2>${escapeHtml(faq.question)}</h2><p>${escapeHtml(faq.answer)}</p></article>`
   )).join('')
 
-  return `<div data-seo-prerendered="true">
+  return `<style>${PRERENDER_CSS}</style><div data-seo-prerendered="true">
     <header><nav aria-label="Main navigation"><a href="/">SinAi</a> <a href="${escapeHtml(page.ctaHref)}">Open tool</a></nav></header>
     <main>
       <section>
@@ -122,7 +147,10 @@ function seoPrerenderPlugin() {
           // exist to serve -- permanently, for anyone whose JS never runs.
           const html = template
             .replace(/<!-- seo:managed-start -->[\s\S]*?<!-- seo:managed-end -->/, managedHead(page))
-            .replace(SHELL_SLOT, page.path === '/' ? '$1' : staticPageMarkup(page))
+            // Function replacement, not a string: page copy is interpolated
+            // into the markup, and a literal "$&" or "$1" in a description
+            // would otherwise be read as a substitution pattern.
+            .replace(SHELL_SLOT, (match) => (page.path === '/' ? match : staticPageMarkup(page)))
 
           const destination = page.path === '/'
             ? indexPath
@@ -131,6 +159,33 @@ function seoPrerenderPlugin() {
           fs.mkdirSync(path.dirname(destination), { recursive: true })
           fs.writeFileSync(destination, html)
         }
+
+        // Routing config for `serve`, which the production start script uses.
+        // Written here rather than kept in public/ so it can never disagree
+        // with the set of pages this plugin just emitted.
+        //
+        // Deliberately NOT a single catch-all: see src/appRoutes.js. Only the
+        // router's own paths are rewritten, so the prerendered landing pages
+        // are found on disk instead of being swallowed by the SPA fallback.
+        // Unknown paths 404, and serve-handler renders `404.html` when it
+        // exists. Shipping the app shell there keeps the router's catch-all
+        // redirect working for a mistyped URL, while still returning 404
+        // rather than 200 for a page that genuinely is not there.
+        //
+        // Read back from disk rather than reusing `template`: the loop above
+        // has just rewritten the entry's <head>, and the 404 shell should
+        // carry the same one.
+        fs.writeFileSync(path.join(outputDir, '404.html'), fs.readFileSync(indexPath, 'utf8'))
+
+        fs.writeFileSync(
+          path.join(outputDir, 'serve.json'),
+          JSON.stringify({
+            rewrites: SPA_ROUTE_SOURCES.map((source) => ({
+              source,
+              destination: '/index.html',
+            })),
+          }, null, 2)
+        )
       } catch (err) {
         console.warn(`[sinai-seo-prerender] Warning during SEO prerender: ${err.message}`)
       }
