@@ -27,6 +27,7 @@ from app.core.deps import optional_user
 from app.core.features import TOOL_LABELS, is_enabled
 from app.core.model_gateway import add_tokens
 from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
+from app.core.plan_quota import enforce_plan_quota
 from app.repositories.telemetry_repository import record_request
 from app.schemas.auth import AuthUser
 from app.schemas.optimize import OptimizeEvent, OptimizeRequest
@@ -74,6 +75,7 @@ async def optimize_endpoint(
     later failure is reported as a `failed` event instead.
     """
     await enforce_anonymous_limit(request, user)
+    await enforce_plan_quota(request, user, "optimize")
 
     if not any([await is_enabled(tool) for tool in _ESSENTIAL_FEATURES]):
         disabled = ", ".join(TOOL_LABELS[tool] for tool in _ESSENTIAL_FEATURES)

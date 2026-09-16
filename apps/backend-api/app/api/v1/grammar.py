@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.core.features import require_tool_enabled
 from app.core.deps import optional_user, require_user
 from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
+from app.core.plan_quota import enforce_plan_quota
 from app.core.research import actor_from
 from app.repositories.grammar_repository import (
     get_correction_by_id,
@@ -66,6 +67,7 @@ async def grammar_check_endpoint(
     Returns the corrected text along with a list of individual corrections.
     """
     await enforce_anonymous_limit(request, user)
+    await enforce_plan_quota(request, user, "grammar")
 
     actor = actor_from(request, user)
 

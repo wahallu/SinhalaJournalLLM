@@ -49,3 +49,25 @@ async def count_recent_by_ip(ip_hash: str, within_seconds: int) -> int:
         .execute()
     )
     return response.count or 0
+
+
+async def count_recent_by_user(user_id: str, since_iso: str) -> int:
+    """
+    How many requests this user made at or after `since_iso`.
+
+    Counterpart to count_recent_by_ip, used for per-plan daily quotas. Takes
+    an absolute timestamp rather than a trailing window because the quota
+    resets at UTC midnight, not N seconds ago.
+
+    Resolved via the `base` module attribute for the same reason as the
+    function above — see its comment.
+    """
+    client = await base.get_supabase()
+    response = await (
+        client.table(TABLE)
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .gte("created_at", since_iso)
+        .execute()
+    )
+    return response.count or 0

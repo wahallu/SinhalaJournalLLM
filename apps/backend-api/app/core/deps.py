@@ -83,6 +83,7 @@ async def _resolve(request: Request) -> AuthUser | None:
         role=profile.get("role", "user"),
         status=profile.get("status", "active"),
         category_id=profile.get("category_id"),
+        plan_id=profile.get("plan_id"),
         full_name=profile.get("full_name"),
         newsroom_roles=profile.get("newsroom_roles") or [],
         journalism_interests=profile.get("journalism_interests") or [],

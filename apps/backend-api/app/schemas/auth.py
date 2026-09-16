@@ -24,6 +24,10 @@ class AuthUser(BaseModel):
     role: str = "user"
     status: str = "active"
     category_id: str | None = None
+    # The tier this account is on. Resolved to the default plan when unset —
+    # see core/plan_quota.resolve_plan — so an unassigned profile is never a
+    # denial, only a fallback.
+    plan_id: str | None = None
     full_name: str | None = None
     newsroom_roles: list[str] = Field(default_factory=list)
     journalism_interests: list[str] = Field(default_factory=list)

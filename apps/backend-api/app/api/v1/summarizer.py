@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from app.core.features import require_tool_enabled
 from app.core.deps import optional_user, require_user
 from app.core.rate_limit import client_ip, enforce_anonymous_limit, hash_ip
+from app.core.plan_quota import enforce_plan_quota
 from app.core.research import actor_from
 from app.repositories.summarizer_repository import get_summaries
 from app.repositories.telemetry_repository import record_request
@@ -41,6 +42,7 @@ async def summarize_news_endpoint(
     research/admin feed without appearing in any user's personal history.
     """
     await enforce_anonymous_limit(request, user)
+    await enforce_plan_quota(request, user, "summarizer")
     actor = actor_from(request, user)
 
     started = time.perf_counter()

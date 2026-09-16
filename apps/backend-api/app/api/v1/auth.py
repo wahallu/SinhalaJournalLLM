@@ -32,7 +32,7 @@ from app.core.email import (
     send_password_reset_email,
     send_verification_email,
 )
-from app.repositories import base, user_repository
+from app.repositories import base, plan_repository, user_repository
 from app.repositories.profile_repository import get_profile, update_profile
 from app.schemas.auth import (
     AccessTokenResponse,
@@ -107,6 +107,25 @@ async def _create_profile(user: dict, email: str, full_name: str | None) -> None
     retryable failure.
     """
     client = await base.get_supabase()
+
+    # Start every account on the default tier.
+    #
+    # Done here rather than in schema.sql's handle_new_user() trigger: that
+    # trigger fires on auth.users and is a leftover from the Supabase-Auth
+    # era, not the current signup path. Wiring it there too would create a
+    # second, divergent source of truth.
+    #
+    # A failure to read the catalog must not fail signup. An unassigned
+    # profile resolves to the default plan at request time anyway
+    # (core/plan_quota.resolve_plan), so the worst case is a row that gets
+    # its plan resolved dynamically instead of being stamped.
+    plan_id = None
+    try:
+        default_plan = await plan_repository.get_default()
+        plan_id = default_plan["id"] if default_plan else None
+    except Exception:
+        logger.exception("Could not read the default plan for %s — continuing unassigned", email)
+
     try:
         await client.table("profiles").insert({
             "id": user["id"],
@@ -114,6 +133,7 @@ async def _create_profile(user: dict, email: str, full_name: str | None) -> None
             "full_name": full_name,
             "role": "user",
             "status": "active",
+            "plan_id": plan_id,
         }).execute()
     except Exception as exc:
         logger.exception("Profile insert failed for %s — rolling back the user row", email)
