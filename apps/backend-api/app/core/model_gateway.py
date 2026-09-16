@@ -13,7 +13,9 @@ settings.MODEL_FALLBACK is true a failing provider falls through to the next
 in the chain, so the product keeps working while the GPU box is down.
 """
 
+import asyncio
 import logging
+import random
 
 import httpx
 import time
@@ -93,6 +95,58 @@ async def _provider_chain() -> list[str]:
     return [primary] + [p for p in _PROVIDER_ORDER if p != primary]
 
 
+# One immediate retry for failures that fail FAST. A refused connection or a
+# 5xx costs milliseconds, so trying again usually beats degrading to a weaker
+# provider — the fallback chain exists for an outage, not a blip.
+#
+# Timeouts are excluded at the source (SinLlamaUnavailable.retryable): one has
+# already spent the full SINLLAMA_TIMEOUT_SECONDS, and retrying would double
+# the worst case a user waits.
+_MAX_ATTEMPTS = 2
+_RETRY_BASE_DELAY = 0.25
+
+
+async def _call_provider(
+    provider: str,
+    task: str,
+    text: str,
+    style: str | None,
+    length: str | None,
+    category: str | None,
+    variation_hint: str | None,
+    *,
+    num_candidates: int,
+    adapter: str | None,
+) -> tuple[str, dict]:
+    """Run one provider, retrying once on a fast transient failure."""
+    for attempt in range(1, _MAX_ATTEMPTS + 1):
+        try:
+            if provider == "sinllama":
+                return await _via_sinllama(
+                    task, text, style, length, category, variation_hint,
+                    num_candidates=num_candidates, adapter=adapter,
+                )
+            if provider == "openrouter":
+                return await _via_openrouter(
+                    task, text, style, length, category, variation_hint
+                )
+            return _via_mock(task, text, style, length, category, variation_hint)
+        except SinLlamaUnavailable as exc:
+            if attempt >= _MAX_ATTEMPTS or not getattr(exc, "retryable", False):
+                raise
+            # Jitter so a fleet of instances retrying a recovering server does
+            # not arrive in lockstep and knock it over again.
+            delay = _RETRY_BASE_DELAY * attempt * (1 + random.random())
+            logger.warning(
+                "Provider %s failed (%s) — retrying in %.2fs (attempt %d/%d)",
+                provider, exc, delay, attempt + 1, _MAX_ATTEMPTS,
+            )
+            await asyncio.sleep(delay)
+
+    # Unreachable: the loop either returns or raises.
+    raise ModelGatewayError(f"{provider} exhausted its attempts")
+
+
 async def model_generate(
     task: str,
     text: str,
@@ -146,19 +200,11 @@ async def model_generate(
     for provider in await _provider_chain():
         started = time.perf_counter()
         try:
-            if provider == "sinllama":
-                result_text, meta = await _via_sinllama(
-                    task, text, resolved_style, resolved_length, resolved_category, variation_hint,
-                    num_candidates=num_candidates, adapter=adapter,
-                )
-            elif provider == "openrouter":
-                result_text, meta = await _via_openrouter(
-                    task, text, resolved_style, resolved_length, resolved_category, variation_hint
-                )
-            else:
-                result_text, meta = _via_mock(
-                    task, text, resolved_style, resolved_length, resolved_category, variation_hint
-                )
+            result_text, meta = await _call_provider(
+                provider, task, text, resolved_style, resolved_length,
+                resolved_category, variation_hint,
+                num_candidates=num_candidates, adapter=adapter,
+            )
         except (SinLlamaUnavailable, OpenRouterUnavailable) as exc:
             errors.append(f"{provider}: {exc}")
             logger.warning("Provider %s failed (%s) — trying next", provider, exc)

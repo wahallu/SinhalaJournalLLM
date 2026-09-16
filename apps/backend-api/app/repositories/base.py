@@ -347,3 +347,25 @@ async def fetch_recent(
         raise DatabaseUnavailable(f"Failed to read {table}: {exc}") from exc
     _record_success()
     return response.data
+
+
+async def ping() -> bool:
+    """
+    Cheapest possible round trip to the database, for the readiness probe.
+
+    Lives here rather than in main.py so it resolves the client through this
+    module's own `get_supabase` — the binding the test fake patches. Importing
+    `get_supabase` directly into main would bind a separate name at import
+    time and keep reaching the real service under test, which is the exact
+    failure mode documented on count_recent_by_ip and _create_profile.
+
+    Deliberately ignores the circuit breaker: readiness is what should tell
+    an orchestrator the breaker has opened, so consulting it would hide the
+    thing being asked about.
+    """
+    client = await get_supabase()
+    await asyncio.wait_for(
+        client.table("profiles").select("id", count="exact", head=True).execute(),
+        timeout=READ_TIMEOUT_SECONDS,
+    )
+    return True

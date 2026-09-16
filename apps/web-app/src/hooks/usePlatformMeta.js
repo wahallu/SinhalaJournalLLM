@@ -22,6 +22,10 @@ export function usePlatformMeta() {
   const [features, setFeatures] = useState(ALL_ENABLED);
   const [defaults, setDefaults] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  // Failing open is right, but failing open SILENTLY meant a /meta outage
+  // was indistinguishable from "everything is on" — including to whoever
+  // was debugging it. Surfaced so the admin System Status panel can say so.
+  const [degraded, setDegraded] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -32,9 +36,15 @@ export function usePlatformMeta() {
         if (!active) return;
         setFeatures({ ...ALL_ENABLED, ...(meta.features ?? {}) });
         setDefaults(meta.defaults ?? null);
-      } catch {
-        // Deliberately silent: fail open, keep the defaults above.
-        if (active) setFeatures(ALL_ENABLED);
+        setDegraded(false);
+      } catch (err) {
+        // Still fails open — a monitoring blip must not make the product
+        // look dismantled — but no longer silently.
+        if (active) {
+          console.warn('Platform metadata unavailable; assuming every tool is enabled', err);
+          setFeatures(ALL_ENABLED);
+          setDegraded(true);
+        }
       } finally {
         if (active) setLoaded(true);
       }
@@ -45,7 +55,7 @@ export function usePlatformMeta() {
     };
   }, []);
 
-  return { features, defaults, loaded };
+  return { features, defaults, loaded, degraded };
 }
 
 export default usePlatformMeta;

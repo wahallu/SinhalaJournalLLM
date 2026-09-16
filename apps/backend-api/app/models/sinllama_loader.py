@@ -28,7 +28,21 @@ logger = logging.getLogger(__name__)
 
 
 class SinLlamaUnavailable(Exception):
-    """Raised when the inference server can't be reached or errors out."""
+    """
+    Raised when the inference server can't be reached or errors out.
+
+    `retryable` says whether trying again immediately is worth it. A refused
+    connection or a 5xx fails fast, so a second attempt costs little and
+    often succeeds. A TIMEOUT has already spent the full
+    SINLLAMA_TIMEOUT_SECONDS budget (120s by default) — retrying it would
+    double the worst case a user waits, for a request the server is most
+    likely still chewing on. The gateway reads this flag; see
+    core/model_gateway.model_generate.
+    """
+
+    def __init__(self, message: str, *, retryable: bool = False) -> None:
+        super().__init__(message)
+        self.retryable = retryable
 
 
 async def sinllama_generate(
@@ -88,10 +102,17 @@ async def sinllama_generate(
         if exc.response.status_code == 422:
             raise
         raise SinLlamaUnavailable(
-            f"SinLlama server returned {exc.response.status_code}"
+            f"SinLlama server returned {exc.response.status_code}",
+            # 5xx is the server having a moment, not a bad request.
+            retryable=exc.response.status_code >= 500,
         ) from exc
+    except httpx.TimeoutException as exc:
+        # Deliberately NOT retryable — see SinLlamaUnavailable.
+        raise SinLlamaUnavailable(f"SinLlama server timed out: {exc}") from exc
     except httpx.HTTPError as exc:
-        raise SinLlamaUnavailable(f"SinLlama server unreachable: {exc}") from exc
+        raise SinLlamaUnavailable(
+            f"SinLlama server unreachable: {exc}", retryable=True
+        ) from exc
 
     if "response" not in data:
         raise SinLlamaUnavailable(f"Unexpected SinLlama response shape: {data}")
