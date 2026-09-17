@@ -113,9 +113,14 @@ databases must also run `apps/backend-api/migrations/2026-08-12-complete-history
 once; it adds the fields required to reopen complete tool outputs, visual
 prompts, and Cloudinary image URLs.
 
-Every database must run `apps/backend-api/migrations/2026-09-16-plans.sql` once.
-It creates the `plans` catalog, adds `profiles.plan_id`, seeds the Free / Plus /
-Pro tiers, and puts every existing profile on the default tier. Until it is
+Every database must run these once, in order:
+`apps/backend-api/migrations/2026-09-16-plans.sql`,
+`2026-09-17-plan-cta.sql`, then `2026-09-17-plan-pricing-upgrades.sql`.
+The first
+creates the `plans` catalog, adds `profiles.plan_id`, seeds the Free / Plus /
+Pro tiers, and puts every existing profile on the default tier. The second adds
+the admin-editable call-to-action; the third adds pricing columns and the
+`plan_upgrade_requests` table behind the bank-transfer upgrade flow. Until it is
 applied, `/plans` shows a "could not be loaded" notice and no quota is enforced
 — `plan_quota.resolve_plan` finds no catalog and lets every request through.
 Like the rest, it is idempotent: `if not exists` throughout, `on conflict do

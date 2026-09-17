@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import DotField from './DotField';
 import { useAuth } from '../auth/useAuth';
+import { useLanguage } from '../i18n/useLanguage.js';
+import { T } from '../i18n/T.jsx';
 import ConfirmModal from './ui/ConfirmModal';
 
 const TOOL_PATHS = {
@@ -25,17 +27,17 @@ const NAV_SECTIONS = [
     id: 'workspace',
     label: '',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'dashboard', k: 'nav.dashboard', icon: LayoutDashboard },
     ],
   },
   {
     id: 'writing-tools',
     label: '',
     items: [
-      { id: 'grammar', label: 'Grammar Checker', icon: SpellCheck },
-      { id: 'headlines', label: 'Headline Generator', icon: Newspaper },
-      { id: 'rewriter', label: 'Style Rewriter', icon: PenLine },
-      { id: 'summarizer', label: 'News Summarizer', icon: FileText },
+      { id: 'grammar', k: 'nav.grammar', icon: SpellCheck },
+      { id: 'headlines', k: 'nav.headlines', icon: Newspaper },
+      { id: 'rewriter', k: 'nav.rewriter', icon: PenLine },
+      { id: 'summarizer', k: 'nav.summarizer', icon: FileText },
     ],
   },
 ];
@@ -53,10 +55,10 @@ const NAV_SECTIONS = [
  */
 function bottomNavFor(user) {
   return user
-    ? [{ id: 'history', label: 'History', icon: History }]
+    ? [{ id: 'history', k: 'nav.history', icon: History }]
     : [
-        { id: 'history', label: 'History', icon: History },
-        { id: 'plans', label: 'Upgrade', icon: Zap },
+        { id: 'history', k: 'nav.history', icon: History },
+        { id: 'plans', k: 'nav.upgrade', icon: Zap },
       ];
 }
 
@@ -93,7 +95,9 @@ function ThemeToggle({ theme, onThemeChange, collapsed }) {
       `}
     >
       <Icon size={17} strokeWidth={2} className="shrink-0 text-ink-500" />
-      {!collapsed && <span className="truncate">{isDark ? 'Dark mode' : 'Light mode'}</span>}
+      {!collapsed && (
+        <span className="truncate"><T k={isDark ? 'nav.darkMode' : 'nav.lightMode'} /></span>
+      )}
     </button>
   );
 }
@@ -139,7 +143,7 @@ function FeedbackPromo({ collapsed }) {
         <Megaphone size={16} strokeWidth={2.2} className="shrink-0 mt-[3px]" />
         <div className="min-w-0">
           <div className="flex items-center gap-1 text-[13px] font-semibold leading-tight">
-            <span className="truncate">Give us your feedback</span>
+            <span className="truncate"><T k="nav.feedback" /></span>
             <ArrowUpRight
               size={13}
               strokeWidth={2.5}
@@ -148,7 +152,7 @@ function FeedbackPromo({ collapsed }) {
             />
           </div>
           <p className="mt-0.5 text-[11.5px] leading-snug text-white/75">
-            Takes a minute
+            <T k="nav.feedbackHint" />
           </p>
         </div>
       </div>
@@ -162,9 +166,10 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  const { tu } = useLanguage();
 
-  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Guest';
-  const displayEmail = user?.email || 'Not signed in';
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || tu('nav.guest');
+  const displayEmail = user?.email || tu('nav.notSignedIn');
   const initial = displayName.charAt(0).toUpperCase();
 
   const select = (id) => {
@@ -176,7 +181,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
     if (window.innerWidth < 1024 && onToggle) onToggle();
   };
 
-  const renderNavItem = ({ id, label, icon: Icon }) => {
+  const renderNavItem = ({ id, k, icon: Icon }) => {
     const targetPath = TOOL_PATHS[id] || `/${id}`;
     const isActive = activeTool
       ? activeTool === id
@@ -187,7 +192,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
         key={id}
         id={`nav-${id}`}
         onClick={() => select(id)}
-        title={collapsed ? label : undefined}
+        title={collapsed ? tu(k) : undefined}
         aria-current={isActive ? 'page' : undefined}
         className={`
           relative w-full flex items-center gap-3 rounded-lg cursor-pointer
@@ -203,7 +208,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
           strokeWidth={2}
           className={`shrink-0 ${isActive ? 'text-white' : 'text-ink-500'}`}
         />
-        {!collapsed && <span className="truncate">{label}</span>}
+        {!collapsed && <span className="truncate"><T k={k} /></span>}
       </button>
     );
   };
@@ -403,10 +408,10 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
                     bg-white dark:bg-ink-50 rounded-xl shadow-pop py-1.5 border border-ink-200/80
                     animate-in fade-in slide-in-from-bottom-1 duration-150`}>
                     {[
-                      { id: 'profile-view-btn', label: 'View profile', icon: User, tool: 'profile' },
-                      { id: 'profile-upgrade-btn', label: 'Plans', icon: Zap, tool: 'plans' },
-                      { id: 'profile-signout-btn', label: 'Sign out', icon: LogOut, action: 'signout' },
-                    ].map(({ id, label, icon: Icon, tool, action }) => (
+                      { id: 'profile-view-btn', k: 'nav.profile', icon: User, tool: 'profile' },
+                      { id: 'profile-upgrade-btn', k: 'nav.plans', icon: Zap, tool: 'plans' },
+                      { id: 'profile-signout-btn', k: 'nav.signOut', icon: LogOut, action: 'signout' },
+                    ].map(({ id, k, icon: Icon, tool, action }) => (
                       <button
                         key={id}
                         id={id}
@@ -422,7 +427,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
                           hover:bg-ink-50 hover:text-brand-700 cursor-pointer transition-colors"
                       >
                         <Icon size={15} strokeWidth={2} className="text-ink-400" />
-                        <span>{label}</span>
+                        <span><T k={k} /></span>
                       </button>
                     ))}
                   </div>
@@ -433,7 +438,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
             <button
               id="sidebar-signin"
               onClick={() => navigate('/login', { state: { backgroundLocation: location } })}
-              title={collapsed ? 'Sign in' : undefined}
+              title={collapsed ? tu('nav.signIn') : undefined}
               className={`
                 w-full flex items-center gap-2.5 rounded-xl cursor-pointer border border-ink-200
                 ${collapsed ? 'justify-center px-0 py-2.5' : 'px-2.5 py-2.5'}
@@ -441,7 +446,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
               `}
             >
               <LogIn size={16} className="text-ink-500 shrink-0" />
-              {!collapsed && <span className="text-[13px] font-semibold text-ink-800">Sign in</span>}
+              {!collapsed && <span className="text-[13px] font-semibold text-ink-800"><T k="nav.signIn" /></span>}
             </button>
           )}
         </div>

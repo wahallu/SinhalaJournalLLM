@@ -4,6 +4,8 @@
  * Takes `tabs` rather than reading a module constant, so the tab set is owned
  * by ProfilePage and this stays a presentational component.
  */
+import { T } from '../../i18n/T.jsx';
+
 export default function ProfileNav({ tabs, activeTab, onChange }) {
   const handleKeyDown = (event, currentIndex) => {
     const keys = ['ArrowDown', 'ArrowRight', 'ArrowUp', 'ArrowLeft', 'Home', 'End'];
@@ -33,7 +35,7 @@ export default function ProfileNav({ tabs, activeTab, onChange }) {
       role="tablist"
       aria-orientation="vertical"
     >
-      {tabs.map(({ id, label, icon: Icon }, index) => {
+      {tabs.map(({ id, k, icon: Icon }, index) => {
         const selected = activeTab === id;
         return (
           <button
@@ -53,7 +55,7 @@ export default function ProfileNav({ tabs, activeTab, onChange }) {
                 : 'text-ink-500 hover:bg-ink-50 hover:text-ink-800'}`}
           >
             <Icon size={18} strokeWidth={1.9} className="shrink-0" />
-            {label}
+            <T k={k} />
           </button>
         );
       })}

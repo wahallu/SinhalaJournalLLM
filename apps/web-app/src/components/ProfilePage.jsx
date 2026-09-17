@@ -12,6 +12,7 @@ import PageHeader from './ui/PageHeader';
 import ActionButton from './ui/ActionButton';
 import { getCategories, saveOnboarding, setMyCategory } from '../services/api';
 import { useAuth } from '../auth/useAuth';
+import { T } from '../i18n/T.jsx';
 import { NEWSROOM_ROLES } from './onboarding/options';
 import ProfileNav from './profile/ProfileNav';
 import AccountPanel from './profile/AccountPanel';
@@ -32,10 +33,10 @@ import SecurityPanel from './profile/SecurityPanel';
  */
 
 const PROFILE_TABS = [
-  { id: 'account', label: 'Account', icon: UserRound },
-  { id: 'preferences', label: 'Preferences', icon: SlidersHorizontal },
-  { id: 'usage', label: 'Usage', icon: Activity },
-  { id: 'security', label: 'Security', icon: LockKeyhole },
+  { id: 'account', k: 'profile.account', icon: UserRound },
+  { id: 'preferences', k: 'profile.preferences', icon: SlidersHorizontal },
+  { id: 'usage', k: 'profile.usage', icon: Activity },
+  { id: 'security', k: 'profile.security', icon: LockKeyhole },
 ];
 
 function PanelHeading({ title, description }) {
@@ -163,7 +164,7 @@ export default function ProfilePage({ onBack, variant = 'page' }) {
       >
         <aside className="shrink-0 border-b border-ink-200/80 bg-white dark:bg-ink-50 sm:w-[15.5rem] sm:border-b-0 sm:border-r lg:w-[18rem]">
           <div className={`flex h-[4.6rem] items-center border-ink-200/80 px-5 sm:border-b ${asDialog ? 'pl-16' : ''}`}>
-            <h1 className="text-[18px] font-bold tracking-tight text-ink-950">Profile</h1>
+            <h1 className="text-[18px] font-bold tracking-tight text-ink-950"><T k="profile.title" /></h1>
           </div>
           <ProfileNav tabs={PROFILE_TABS} activeTab={activeTab} onChange={setActiveTab} />
         </aside>
@@ -231,17 +232,17 @@ export default function ProfilePage({ onBack, variant = 'page' }) {
               <div className="min-h-5">
                 {saveState === 'saved' && (
                   <p className="flex items-center gap-1.5 text-[12px] font-semibold text-emerald-700" role="status">
-                    <CheckCircle2 size={14} /> Profile saved
+                    <CheckCircle2 size={14} /> <T k="profile.saved" />
                   </p>
                 )}
                 {error && <p className="text-[12px] text-brand-700" role="alert">{error}</p>}
                 {!error && saveState !== 'saved' && dirty && (
-                  <p className="text-[11.5px] text-ink-500">You have unsaved changes</p>
+                  <p className="text-[11.5px] text-ink-500"><T k="profile.unsaved" /></p>
                 )}
               </div>
               <div className="ml-auto flex items-center gap-2">
                 <ActionButton variant="ghost" onClick={reset} disabled={!dirty || saveState === 'saving'}>
-                  Discard
+                  <T k="profile.discard" />
                 </ActionButton>
                 <ActionButton
                   type="submit"
@@ -251,7 +252,7 @@ export default function ProfilePage({ onBack, variant = 'page' }) {
                   disabled={!dirty || !name.trim()}
                   className="rounded-full px-5"
                 >
-                  {saveState === 'saving' ? 'Saving…' : 'Save changes'}
+                  <T k={saveState === 'saving' ? 'profile.saving' : 'profile.saveChanges'} />
                 </ActionButton>
               </div>
             </div>

@@ -163,3 +163,25 @@ export function archivePlan(planId) {
 export function setUserPlan(userId, planId) {
   return request(`/admin/users/${userId}`, { method: 'PATCH', body: { plan_id: planId } });
 }
+
+// ── Upgrade requests ──
+
+export function listUpgradeRequests(status) {
+  return request(`/admin/upgrades${status ? `?status=${encodeURIComponent(status)}` : ''}`);
+}
+
+/** Approving is what actually moves the user onto the plan. */
+export function reviewUpgradeRequest(requestId, status, reviewerNote) {
+  return request(`/admin/upgrades/${requestId}`, {
+    method: 'PATCH',
+    body: { status, reviewer_note: reviewerNote || null },
+  });
+}
+
+export function getBankDetails() {
+  return request('/admin/upgrades/bank-details');
+}
+
+export function setBankDetails(details) {
+  return request('/admin/upgrades/bank-details', { method: 'PUT', body: details });
+}

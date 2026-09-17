@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 import { Check, Sparkles, Zap, Shield, Layers } from 'lucide-react';
 import { Card } from './ui/Card';
 import { SkeletonLines } from './ui/Skeleton';
-import { getPlans, getMyPlan } from '../services/api';
+import { getPlans, getMyPlan, getMyUpgradeRequests, cancelUpgradeRequest } from '../services/api';
 import { useAuth } from '../auth/useAuth';
+import { T } from '../i18n/T.jsx';
+import { annualSavingPercent, formatPrice } from '../lib/money.js';
+import UpgradeDialog from './UpgradeDialog';
 
 /**
  * Plan catalog.
@@ -37,13 +40,32 @@ function iconFor(slug) {
  * The href is whitelisted server-side (see PlanBase._safe_href); rel and
  * target are set here because an admin-entered link is usually offsite.
  */
-function PlanAction({ plan, isCurrentPlan, isFeatured, reserveSpace }) {
+function PlanAction({ plan, isCurrentPlan, isFeatured, reserveSpace, canUpgrade, onUpgrade }) {
   if (isCurrentPlan) {
     return (
       <p className="flex h-[42px] w-full items-center justify-center mb-6 px-5 rounded-xl
         bg-ink-100 text-[13.5px] font-semibold text-ink-600">
-        Current plan
+        <T k="plans.currentPlan" />
       </p>
+    );
+  }
+
+  // A priced plan gets a real upgrade action ahead of any admin CTA: the
+  // CTA exists for tiers with nowhere to send people, and this one has
+  // somewhere to send them.
+  if (canUpgrade) {
+    return (
+      <button
+        type="button"
+        onClick={() => onUpgrade(plan)}
+        className={`flex h-[42px] w-full items-center justify-center mb-6 px-5 rounded-xl
+          text-[13.5px] font-semibold transition-colors cursor-pointer
+          ${isFeatured
+            ? 'bg-brand-600 text-white hover:bg-brand-700'
+            : 'border border-ink-200 text-ink-800 hover:border-ink-300 hover:bg-ink-50'}`}
+      >
+        <T k="plans.upgrade" />
+      </button>
     );
   }
 
@@ -84,6 +106,9 @@ export default function Plans() {
   const { user } = useAuth();
   const [plans, setPlans] = useState(null);
   const [error, setError] = useState('');
+  // Bumped after submitting or cancelling a request, to refetch rather than
+  // patch local state into agreeing with the server.
+  const [refreshKey, setRefreshKey] = useState(0);
 
   /* Keyed by account, the same shape App.jsx uses for the theme override.
      Storing the owner alongside the value means signing out — or switching
@@ -94,6 +119,11 @@ export default function Plans() {
 
   /* Whether any card in the grid renders an action, so the ones that do not
      can hold the same height and keep the feature lists aligned. */
+  const [upgradeTarget, setUpgradeTarget] = useState(null);
+  const [requests, setRequests] = useState([]);
+  const pending = requests.find((r) => r.status === 'pending') ?? null;
+  const lastDeclined = !pending && requests.find((r) => r.status === 'declined');
+
   const anyAction = (plans ?? []).some(
     (p) => (p.cta_label && p.cta_href) || mine?.plan_slug === p.slug
   );
@@ -120,20 +150,23 @@ export default function Plans() {
     getMyPlan()
       .then((data) => { if (active) setQuotaFor({ userId, quota: data }); })
       .catch(() => { if (active) setQuotaFor({ userId, quota: null }); });
+    getMyUpgradeRequests()
+      .then((rows) => { if (active) setRequests(rows ?? []); })
+      .catch(() => { if (active) setRequests([]); });
     return () => { active = false; };
-  }, [user]);
+  }, [user, refreshKey]);
 
   return (
     <div className="w-full flex flex-col items-center pt-2 pb-10">
       <div className="text-center mb-9 max-w-xl">
         <h1 className="text-[1.6rem] font-bold text-ink-900 tracking-tight mb-2 text-balance">
-          Upgrade your workflow
+          <T k="plans.title" />
         </h1>
         <p className="text-[13.5px] text-ink-500 leading-relaxed">
-          Where SinAi is heading for newsrooms writing, editing, and publishing in Sinhala.
+          <T k="plans.subtitle" />
         </p>
         <p className="text-[12.5px] text-ink-400 mt-3">
-          Paid plans are not available yet — every tool is currently free to use.
+          <T k="plans.notAvailable" />
         </p>
         {/* Today's usage lives on the Profile page's Usage tab now, next to
             the 90-day activity heatmap — a running-count-and-history pair is
@@ -142,6 +175,38 @@ export default function Plans() {
             without adding anything the Usage tab does not already show
             better. */}
       </div>
+
+      {pending && (
+        <div className="mb-6 w-full max-w-2xl rounded-2xl border border-brand-200 bg-brand-50 px-5 py-4">
+          <p className="text-[13px] font-semibold text-ink-900"><T k="plans.requestPending" /></p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-ink-600">
+            <T k="plans.requestPendingBody" />
+          </p>
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await cancelUpgradeRequest(pending.id);
+                setRefreshKey((k) => k + 1);
+              } catch (err) {
+                setError(err.message);
+              }
+            }}
+            className="mt-2 cursor-pointer text-[12px] font-semibold text-brand-700 hover:underline"
+          >
+            <T k="plans.cancelRequest" />
+          </button>
+        </div>
+      )}
+
+      {lastDeclined && (
+        <div className="mb-6 w-full max-w-2xl rounded-2xl border border-ink-200 bg-ink-50 px-5 py-4">
+          <p className="text-[13px] font-semibold text-ink-900"><T k="plans.requestDeclined" /></p>
+          {lastDeclined.reviewer_note && (
+            <p className="mt-1 text-[12.5px] leading-relaxed text-ink-600">{lastDeclined.reviewer_note}</p>
+          )}
+        </div>
+      )}
 
       {plans === null && (
         <div className="w-full max-w-5xl" role="status" aria-live="polite">
@@ -197,6 +262,31 @@ export default function Plans() {
                     <Icon size={18} strokeWidth={2.25} />
                   </div>
                   <h2 className="text-[16px] font-bold text-ink-900 mb-1">{plan.name}</h2>
+
+                  {plan.price_cents != null && (
+                    <div className="mb-1.5">
+                      <span className="text-[22px] font-bold tracking-tight text-ink-950">
+                        {formatPrice(plan.price_cents, plan.currency)}
+                      </span>
+                      <span className="ml-1.5 text-[12px] text-ink-500">
+                        <T k={plan.billing_period === 'yearly' ? 'plans.perYear'
+                          : plan.billing_period === 'one_off' ? 'plans.oneOff' : 'plans.perMonth'} />
+                      </span>
+                      {annualSavingPercent(plan.price_cents, plan.annual_price_cents) && (
+                        <p className="mt-0.5 text-[11.5px] text-ink-500">
+                          <span className="line-through text-ink-400">
+                            {formatPrice(plan.price_cents * 12, plan.currency)}
+                          </span>{' '}
+                          <span className="font-semibold text-emerald-700">
+                            {formatPrice(plan.annual_price_cents, plan.currency)}
+                          </span>{' '}
+                          <T k="plans.saveVsMonthly" />
+                          {' '}(−{annualSavingPercent(plan.price_cents, plan.annual_price_cents)}%)
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <p className="text-[12.5px] text-ink-500 leading-relaxed min-h-10">{plan.description}</p>
                 </div>
 
@@ -205,10 +295,12 @@ export default function Plans() {
                   isCurrentPlan={isCurrentPlan}
                   isFeatured={isFeatured}
                   reserveSpace={anyAction}
+                  canUpgrade={Boolean(user) && !isCurrentPlan && !pending && plan.price_cents != null}
+                  onUpgrade={setUpgradeTarget}
                 />
 
                 <div className="flex-1">
-                  <p className="text-[10.5px] font-bold text-ink-500 mb-3.5 uppercase tracking-[0.14em]">Includes</p>
+                  <p className="text-[10.5px] font-bold text-ink-500 mb-3.5 uppercase tracking-[0.14em]"><T k="plans.includes" /></p>
                   <ul className="space-y-3">
                     {plan.features.map((feature, i) => (
                       <li key={i} className="flex items-start gap-2.5">
@@ -223,12 +315,12 @@ export default function Plans() {
 
                   {plan.limits?.requests_per_day != null && (
                     <p className="mt-4 pt-4 border-t border-ink-200/70 text-[11.5px] text-ink-500">
-                      {plan.limits.requests_per_day} requests per day
+                      {plan.limits.requests_per_day} <T k="plans.perDay" />
                     </p>
                   )}
                   {plan.limits && plan.limits.requests_per_day == null && (
                     <p className="mt-4 pt-4 border-t border-ink-200/70 text-[11.5px] text-ink-500">
-                      Unlimited daily requests
+                      <T k="plans.unlimited" />
                     </p>
                   )}
                 </div>
@@ -236,6 +328,17 @@ export default function Plans() {
             );
           })}
         </div>
+      )}
+
+      {upgradeTarget && (
+        <UpgradeDialog
+          plan={upgradeTarget}
+          onClose={() => setUpgradeTarget(null)}
+          onSubmitted={() => {
+            setUpgradeTarget(null);
+            setRefreshKey((k) => k + 1);
+          }}
+        />
       )}
     </div>
   );

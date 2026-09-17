@@ -45,6 +45,20 @@
 
 .font-legacy-sinhala {
   font-family: 'UBIN16S', sans-serif;
+
+  /* Case is DATA here, not styling. Legacy Sinhala stores glyph slots on
+     Latin code points, so text-transform does not change the presentation of
+     a letter — it selects a different glyph. "we;=<;a" (ඇතුළත්) uppercased
+     becomes "WE;=<;A", which draws an unrelated string. Any ancestor with
+     `uppercase` on it (a section heading, a badge, a table header) would
+     silently corrupt every Sinhala label inside it, so it is refused here
+     rather than remembered at each call site. */
+  text-transform: none !important;
+
+  /* Same reasoning: these substitute glyphs by pattern, and the patterns are
+     meaningless against visual-order legacy slots. */
+  font-variant: normal;
+  font-feature-settings: normal;
 }
 
 /* ── Sinhala body text ────────────────────────────────────────────────────

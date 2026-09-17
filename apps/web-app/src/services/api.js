@@ -533,3 +533,30 @@ export function getMyPlan() {
 export function getMyUsage() {
   return request('/usage/me', null, 'GET');
 }
+
+
+// ── Upgrading ──
+//
+// No payment gateway: these record an intent an admin confirms against an
+// actual bank transfer. None of them changes the caller's plan.
+
+/** Where to send the transfer. Requires a session — not public info. */
+export function getPaymentDetails() {
+  return request('/plans/payment-details', null, 'GET');
+}
+
+export function getMyUpgradeRequests() {
+  return request('/plans/upgrade-requests/me', null, 'GET');
+}
+
+export function requestUpgrade({ planId, paymentReference, note }) {
+  return request('/plans/upgrade-requests', {
+    plan_id: planId,
+    payment_reference: paymentReference,
+    note: note || null,
+  });
+}
+
+export function cancelUpgradeRequest(requestId) {
+  return request(`/plans/upgrade-requests/${requestId}/cancel`, {});
+}

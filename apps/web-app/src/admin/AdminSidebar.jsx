@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   ArrowLeft,
+  BadgeDollarSign,
   Bot,
   CreditCard,
   FileText,
@@ -25,6 +26,7 @@ const NAV = [
   { to: '/admin/chats', end: false, label: 'Chats', icon: MessagesSquare },
   { to: '/admin/categories', end: false, label: 'Categories', icon: Tags },
   { to: '/admin/plans', end: false, label: 'Plans', icon: CreditCard },
+  { to: '/admin/upgrades', end: false, label: 'Upgrades', icon: BadgeDollarSign },
   { to: '/admin/activity', end: false, label: 'Activity', icon: ScrollText },
   // Common only — Model gateway and the anonymous-usage limit. Everything
   // tool-specific lives on that tool's own page, listed separately below.

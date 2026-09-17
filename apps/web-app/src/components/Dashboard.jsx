@@ -12,6 +12,9 @@ import Auralis from './ui/auralis';
 import EmptyState from './ui/EmptyState';
 import { OPTIMIZE_META, TOOL_LIST, TOOL_META } from '../lib/toolMeta';
 import { useAuth } from '../auth/useAuth';
+import { useLanguage } from '../i18n/useLanguage.js';
+import { T } from '../i18n/T.jsx';
+import LanguageToggle from './ui/LanguageToggle';
 import {
   getCategories, getHistoryRun, getHistoryStats, getUnifiedHistory,
 } from '../services/api';
@@ -24,7 +27,7 @@ import {
  * Asia/Colombo is UTC+5:30 year-round with no daylight saving, but the
  * offset is left to Intl rather than hardcoded.
  */
-function greeting(now = new Date()) {
+function greetingKey(now = new Date()) {
   let hour;
   try {
     hour = Number(
@@ -38,10 +41,10 @@ function greeting(now = new Date()) {
     // Intl without full tz data (very old engines) — fall back to local.
     hour = now.getHours();
   }
-  if (hour < 5) return 'Working late';
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour < 5) return 'dash.late';
+  if (hour < 12) return 'dash.morning';
+  if (hour < 17) return 'dash.afternoon';
+  return 'dash.evening';
 }
 
 /** How long each category sits before the next slides up. */
@@ -121,6 +124,7 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, profile } = useAuth();
+  const { tu } = useLanguage();
   const [history, setHistory] = useState([]);
   const [stats, setStats] = useState(null);
   const [error, setError] = useState(null);
@@ -289,13 +293,21 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
           is
         </span>
 
+        {/* Dashboard top bar. Sits inside the hero rather than above it so it
+            reads as chrome on the banner instead of a second header stacked
+            over the page, and so the toggle picks up the light-on-dark
+            treatment the rest of the hero already uses. */}
+        <div className="relative z-10 mb-5 flex items-center justify-end">
+          <LanguageToggle />
+        </div>
+
         <div className="relative z-10 max-w-2xl">
           <h1 className="text-[1.75rem] sm:text-[2rem] font-bold tracking-tight leading-tight text-balance">
-            {greeting()},{' '}
-            {user ? signedInName : <RotatingName names={categoryNames.length ? categoryNames : ['Journalist']} />}
+            <T k={greetingKey()} />,{' '}
+            {user ? signedInName : <RotatingName names={categoryNames.length ? categoryNames : [tu('dash.journalist')]} />}
           </h1>
           <p className="text-[13.5px] text-white/70 mt-2 max-w-lg leading-relaxed">
-            The first AI writing assistant built for Sinhala journalism
+            <T k="dash.tagline" />
           </p>
           <div className="flex items-center mt-6">
             {/* Replaces "Start a grammar check": grammar is the first step of
@@ -306,7 +318,7 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
               icon={OPTIMIZE_META.icon}
               onClick={() => onSelectTool('optimize')}
             >
-              {OPTIMIZE_META.label}
+              <T k="tool.optimize" />
             </ShinyButton>
           </div>
         </div>
@@ -322,25 +334,25 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
               opposite of what an unreachable history store means — and it is
               the reading a user is most likely to panic about. */}
           <StatCard
-            label="Total runs"
+            label={<T k="dash.totalRuns" />}
             loading={loading}
             value={error ? '—' : stats ? stats.total : history.length}
-            hint={error ? 'Unavailable' : stats ? 'Across all tools' : 'Across all tools (recent)'}
+            hint={error ? tu('dash.unavailable') : tu('dash.acrossTools')}
           />
           <StatCard
-            label="Today"
+            label={<T k="profile.today" />}
             loading={loading}
             value={!error && stats ? stats.today : '—'}
             hint={!error && stats ? 'Runs since midnight' : 'Unavailable'}
           />
           <StatCard
-            label="This week"
+            label={<T k="profile.thisWeek" />}
             loading={loading}
             value={!error && stats ? stats.week : '—'}
             hint={!error && stats ? 'Last 7 days' : 'Unavailable'}
           />
           <StatCard
-            label="Most used"
+            label={<T k="dash.mostUsed" />}
             loading={loading}
             small={!error && Boolean(topToolKey)}
             value={!error && topToolKey ? (TOOL_META[topToolKey]?.label ?? topToolKey) : '—'}
@@ -350,13 +362,13 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
       ) : (
         <Card className="px-5 py-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
           <p className="text-[13px] text-ink-700 font-medium">
-            All four writing tools are free to use without an account.
+            <T k="dash.freeNotice" />
           </p>
           <button
             onClick={() => navigate('/login', { state: { backgroundLocation: location } })}
             className="text-[13px] font-semibold text-brand-700 hover:underline cursor-pointer"
           >
-            Sign in to save your work →
+            <T k="dash.saveWork" /> →
           </button>
         </Card>
       )}
@@ -364,10 +376,10 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
       <div className="space-y-5">
           <section aria-label="Writing tools">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[15px] font-bold text-ink-900 tracking-tight">Writing tools</h2>
+              <h2 className="text-[15px] font-bold text-ink-900 tracking-tight"><T k="dash.writingTools" /></h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {TOOL_LIST.map(({ id, label, shortDesc, icon: Icon }) => (
+              {TOOL_LIST.map(({ id, icon: Icon }) => (
                 <Card
                   key={id}
                   hover
@@ -385,8 +397,8 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
                     </div>
                     <ArrowUpRight size={16} className="text-ink-300 transition-all duration-200 group-hover:text-brand-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </div>
-                  <h3 className="text-[14px] font-bold text-ink-900 mt-3.5">{label}</h3>
-                  <p className="text-[12px] text-ink-500 mt-1 leading-relaxed">{shortDesc}</p>
+                  <h3 className="text-[14px] font-bold text-ink-900 mt-3.5"><T k={`nav.${id}`} /></h3>
+                  <p className="text-[12px] text-ink-500 mt-1 leading-relaxed"><T k={`tool.${id}Desc`} /></p>
                   {/* Signed out there is no per-user count to show, and "Not
                       used yet" would be a claim about a user we cannot see. */}
                   {user && (
@@ -409,7 +421,7 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
               <div className="flex items-center justify-between px-5 py-3.5 border-b border-ink-100">
                 <div className="flex items-center gap-2">
                   <Activity size={14} className="text-brand-600" />
-                  <h2 className="text-[13px] font-bold text-ink-900">Recent activity</h2>
+                  <h2 className="text-[13px] font-bold text-ink-900"><T k="dash.recentActivity" /></h2>
                 </div>
                 {history.length > 0 && (
                   <button
@@ -429,8 +441,8 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
               {!user ? (
                 <EmptyState
                   icon={LogIn}
-                  title="Sign in to see your activity"
-                  description="Your runs are saved to your account. The writing tools work without one, but nothing is kept."
+                  title={tu('dash.signInActivity')}
+                  description={tu('dash.signInActivityDesc')}
                   action={
                     <ActionButton
                       size="sm"
@@ -459,7 +471,7 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
                 // that as emptiness tells the user their work is gone.
                 <EmptyState
                   icon={AlertTriangle}
-                  title="Couldn't load your activity"
+                  title={tu('dash.loadFailed')}
                   description={error}
                   action={
                     <ActionButton size="sm" variant="secondary" onClick={() => setReloadKey((k) => k + 1)}>
@@ -470,8 +482,8 @@ export default function Dashboard({ onSelectTool, onQuickStart }) {
               ) : recent.length === 0 ? (
                 <EmptyState
                   icon={HistoryIcon}
-                  title="No activity yet"
-                  description="Run any writing tool and your recent work will appear here."
+                  title={tu('dash.noActivity')}
+                  description={tu('dash.noActivityDesc')}
                   action={
                     <ActionButton size="sm" variant="secondary" onClick={() => onSelectTool('grammar')}>
                       Run your first check

@@ -5,6 +5,7 @@ import './index.css'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary'
 import { AuthProvider } from './auth/AuthProvider.jsx'
+import { LanguageProvider } from './i18n/LanguageProvider.jsx'
 
 /* The splash lives in index.html so it can paint before this bundle parses.
    Removed here rather than left for React: React only owns #root's children
@@ -17,7 +18,9 @@ createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          <LanguageProvider>
+            <App />
+          </LanguageProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

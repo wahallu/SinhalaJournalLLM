@@ -17,6 +17,8 @@ import { usePlatformMeta } from './hooks/usePlatformMeta';
 import { checkGrammar, generateHeadlines, hydrateHeadlineOutput, rewriteStyle, summarizeNews } from './services/api';
 import ProtectedRoute from './auth/ProtectedRoute';
 import { useAuth } from './auth/useAuth';
+import { useLanguage } from './i18n/useLanguage.js';
+import { T } from './i18n/T.jsx';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -43,6 +45,7 @@ const UserDetail         = lazy(() => import('./admin/pages/UserDetail'));
 const Chats              = lazy(() => import('./admin/pages/Chats'));
 const Categories         = lazy(() => import('./admin/pages/Categories'));
 const AdminPlans         = lazy(() => import('./admin/pages/Plans'));
+const AdminUpgrades      = lazy(() => import('./admin/pages/Upgrades'));
 const AdminSettings      = lazy(() => import('./admin/pages/Settings'));
 const GrammarSettings    = lazy(() => import('./admin/pages/settings/GrammarSettings'));
 const HeadlineSettings   = lazy(() => import('./admin/pages/settings/HeadlineSettings'));
@@ -75,33 +78,33 @@ const MODAL_PATHS = [
    apostrophe is the slot holding the full stop in that face. */
 const TOOL_CONFIG = {
   grammar: {
-    title: TOOL_META.grammar.label,
+    titleKey: 'nav.grammar',
+    actionKey: 'tool.correct',
     placeholder: "fuys Tnf.a isxy, jdlHh we;=<;a lrkak'''",
-    actionLabel: 'Correct',
     outputType: 'text',
     icon: TOOL_META.grammar.icon,
     helper: 'Paste or type Sinhala text to check grammar',
   },
   headlines: {
-    title: TOOL_META.headlines.label,
+    titleKey: 'nav.headlines',
+    actionKey: 'tool.generate',
     placeholder: "fuys m%jD;a;s ,smsh we;=<;a lrkak'''",
-    actionLabel: 'Generate',
     outputType: 'headlines',
     icon: TOOL_META.headlines.icon,
     helper: 'Paste the full article to generate headlines',
   },
   rewriter: {
-    title: TOOL_META.rewriter.label,
+    titleKey: 'nav.rewriter',
+    actionKey: 'tool.rewrite',
     placeholder: "kej; ,sùug wjYH ,smsh we;=<;a lrkak'''",
-    actionLabel: 'Rewrite',
     outputType: 'text',
     icon: TOOL_META.rewriter.icon,
     helper: 'Paste text to rewrite in a different tone',
   },
   summarizer: {
-    title: TOOL_META.summarizer.label,
+    titleKey: 'nav.summarizer',
+    actionKey: 'tool.summarize',
     placeholder: "idrdxY lsÍug wjYH ,smsh we;=<;a lrkak'''",
-    actionLabel: 'Summarize',
     outputType: 'text',
     icon: TOOL_META.summarizer.icon,
     helper: 'Paste the article to summarize',
@@ -182,6 +185,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { tu } = useLanguage();
   const config = TOOL_CONFIG[activeTool];
   const { input, setInput, output, loading, error, process, clear, restore } = useToolProcessor();
 
@@ -245,7 +249,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
   const resultText = output?.corrected ?? output?.rewritten ?? output?.summary ?? '';
   const canApply = Boolean(resultText) && activeTool !== 'headlines';
 
-  const resultsTitle = activeTool === 'headlines' ? 'Generated headlines' : 'Result';
+  const resultsTitle = tu(activeTool === 'headlines' ? 'tool.generatedHeadlines' : 'tool.result');
   const resultsControls = (
     <>
       {activeTool === 'summarizer' && output && (
@@ -265,7 +269,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
           onClick={() => setInput(resultText)}
           title="Replace the editor content with this result"
         >
-          Apply
+          <T k="tool.apply" />
         </ActionButton>
       )}
     </>
@@ -276,10 +280,10 @@ function ToolRunner({ activeTool, settings, setSettings }) {
       <div className="tw-editor flex flex-col">
           <Editor
             tool={activeTool}
-            title={config.title}
+            title={tu(config.titleKey)}
             icon={config.icon}
             placeholder={config.placeholder}
-            actionLabel={config.actionLabel}
+            actionLabel={tu(config.actionKey)}
             helper={config.helper}
             value={input}
             onChange={setInput}
@@ -320,13 +324,13 @@ function ToolRunner({ activeTool, settings, setSettings }) {
             <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-3
               rounded-xl bg-ink-50 border border-ink-200/70">
               <span className="text-[12.5px] text-ink-600">
-                Sign in to save this to your history.
+                <T k="tool.signInToSave" />
               </span>
               <button
                 onClick={() => navigate('/login', { state: { backgroundLocation: location } })}
                 className="text-[12.5px] font-semibold text-brand-700 hover:underline cursor-pointer"
               >
-                Sign in
+                <T k="nav.signIn" />
               </button>
             </div>
           )}
@@ -499,6 +503,7 @@ function App() {
           <Route path="chats" element={<Chats />} />
           <Route path="categories" element={<Categories />} />
           <Route path="plans" element={<AdminPlans />} />
+          <Route path="upgrades" element={<AdminUpgrades />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="settings/grammar" element={<GrammarSettings />} />
           <Route path="settings/headlines" element={<HeadlineSettings />} />
