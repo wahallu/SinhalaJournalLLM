@@ -29,3 +29,19 @@ async def update_profile(user_id: str, changes: dict[str, Any]) -> dict[str, Any
     client = await base.get_supabase()
     response = await client.table(TABLE).update(changes).eq("id", user_id).execute()
     return response.data[0] if response.data else None
+
+
+async def set_plan(user_id: str, plan_id: str | None) -> bool:
+    """
+    Move one account onto a plan. Returns whether a row was actually updated.
+
+    The caller needs that boolean: an approved upgrade whose plan move
+    silently did nothing is the one failure mode that leaves a user paying
+    for a tier they are not on. None clears the assignment, which resolves
+    to the default plan at request time.
+    """
+    client = await base.get_supabase()
+    response = await (
+        client.table(TABLE).update({"plan_id": plan_id}).eq("id", user_id).execute()
+    )
+    return bool(response.data)

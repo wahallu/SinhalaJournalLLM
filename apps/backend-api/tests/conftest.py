@@ -68,6 +68,9 @@ def _matches_all(row: dict, query) -> bool:
     for column, value in query._neq_filters:
         if str(row.get(column)) == str(value):
             return False
+    for column, values in query._in_filters:
+        if str(row.get(column)) not in {str(v) for v in values}:
+            return False
     for column, value in query._gte_filters:
         if not str(row.get(column) or "") >= str(value):
             return False
@@ -92,6 +95,7 @@ class _FakeQuery:
         self._filters: list[tuple[str, object]] = []
         self._gte_filters: list[tuple[str, object]] = []
         self._neq_filters: list[tuple[str, object]] = []
+        self._in_filters: list[tuple[str, list]] = []
         self._is_filters: list[tuple[str, object]] = []
         self._order_desc = True
         self._range: tuple[int, int] | None = None
@@ -159,6 +163,12 @@ class _FakeQuery:
         """PostgREST neq() — used by plan_repository.clear_default to demote
         every default EXCEPT the plan being promoted."""
         self._neq_filters.append((column, value))
+        return self
+
+    def in_(self, column: str, values):
+        """PostgREST in_() — used to resolve a page of rows' owners in one
+        round trip rather than one lookup per row."""
+        self._in_filters.append((column, list(values)))
         return self
 
     def is_(self, column: str, value):

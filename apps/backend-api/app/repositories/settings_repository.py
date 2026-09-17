@@ -41,3 +41,17 @@ async def upsert(key: str, value: Any, actor_id: str | None = None) -> None:
         },
         on_conflict="key",
     ).execute()
+
+
+async def get_value(key: str) -> Any | None:
+    """
+    One stored value, or None when the key was never set.
+
+    A single-key read rather than filtering load_all(): app_settings holds
+    blobs as well as scalars now (payments.bank_details), and pulling every
+    row to reach one of them gets worse as that grows.
+    """
+    client = await base.get_supabase()
+    response = await client.table(TABLE).select("value").eq("key", key).execute()
+    rows = response.data or []
+    return rows[0]["value"] if rows else None
