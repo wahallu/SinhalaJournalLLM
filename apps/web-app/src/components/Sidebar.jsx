@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, SpellCheck, Newspaper, PenLine, FileText,
-  History, Settings, ChevronLeft, ChevronRight, User, Zap, X,
-  LogIn, LogOut, Megaphone, ArrowUpRight,
+  History, ChevronLeft, ChevronRight, User, Zap, X,
+  LogIn, LogOut, Megaphone, ArrowUpRight, Sun, Moon,
 } from 'lucide-react';
 import DotField from './DotField';
 import { useAuth } from '../auth/useAuth';
@@ -16,7 +16,6 @@ const TOOL_PATHS = {
   rewriter: '/rewriter',
   summarizer: '/summarizer',
   history: '/history',
-  settings: '/settings',
   profile: '/profile',
   plans: '/plans',
 };
@@ -62,6 +61,42 @@ function bottomNavFor(user) {
 }
 
 const FEEDBACK_URL = 'https://forms.gle/uD3tXZ4nEL11k6uA6';
+
+/**
+ * A single icon that flips the theme.
+ *
+ * Replaces the "Appearance" section that used to live on the Settings page —
+ * two cards, a save button, a reset button, for a choice that should just
+ * take effect the moment it's made. Styled like the nav rows around it
+ * rather than boxed off on its own, since it is now exactly that weight: one
+ * more thing you can flip from the sidebar, not a page of its own.
+ *
+ * Icon shows the CURRENT theme (moon while dark is active, sun while light
+ * is active) and the click flips it — the state, not the destination, is
+ * what the icon names.
+ */
+function ThemeToggle({ theme, onThemeChange, collapsed }) {
+  const isDark = theme === 'dark';
+  const Icon = isDark ? Moon : Sun;
+  const label = isDark ? 'Dark mode — switch to light' : 'Light mode — switch to dark';
+
+  return (
+    <button
+      type="button"
+      onClick={() => onThemeChange(isDark ? 'light' : 'dark')}
+      title={collapsed ? label : undefined}
+      aria-label={label}
+      className={`
+        relative w-full flex items-center gap-3 rounded-lg cursor-pointer
+        ${collapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2'}
+        text-[13.5px] font-medium text-ink-900 hover:bg-ink-50 transition-colors duration-150
+      `}
+    >
+      <Icon size={17} strokeWidth={2} className="shrink-0 text-ink-500" />
+      {!collapsed && <span className="truncate">{isDark ? 'Dark mode' : 'Light mode'}</span>}
+    </button>
+  );
+}
 
 /**
  * Promo card for the feedback form.
@@ -121,7 +156,7 @@ function FeedbackPromo({ collapsed }) {
   );
 }
 
-export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpen, onToggle, collapsed, onCollapse }) {
+export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpen, onToggle, collapsed, onCollapse, theme, onThemeChange }) {
   const [profileOpen, setProfileOpen] = useState(false);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const location = useLocation();
@@ -326,6 +361,7 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
         <div className={`relative z-10 py-3 space-y-0.5 border-t border-ink-100 ${collapsed ? 'px-3' : 'px-3.5'}`}>
           <FeedbackPromo collapsed={collapsed} />
           {bottomNavFor(user).map(renderNavItem)}
+          <ThemeToggle theme={theme} onThemeChange={onThemeChange} collapsed={collapsed} />
         </div>
 
         {/* User — a signed-out visitor gets a real sign-in button rather than
@@ -369,7 +405,6 @@ export default function Sidebar({ features = {}, activeTool, onSelectTool, isOpe
                     {[
                       { id: 'profile-view-btn', label: 'View profile', icon: User, tool: 'profile' },
                       { id: 'profile-upgrade-btn', label: 'Plans', icon: Zap, tool: 'plans' },
-                      { id: 'profile-settings-btn', label: 'Settings', icon: Settings, tool: 'settings' },
                       { id: 'profile-signout-btn', label: 'Sign out', icon: LogOut, action: 'signout' },
                     ].map(({ id, label, icon: Icon, tool, action }) => (
                       <button

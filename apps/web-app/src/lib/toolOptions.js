@@ -1,9 +1,10 @@
 /**
  * Option lists for the writing tools' request parameters.
  *
- * Single source shared by the editor toolbar and the Settings page. Every
- * value here is accepted by the corresponding backend endpoint — headline
- * `style` is deliberately absent because services/api.js does not send it.
+ * Single source shared by the editor toolbar and Optimize's per-stage
+ * controls. Every value here is accepted by the corresponding backend
+ * endpoint — headline `style` is deliberately absent because
+ * services/api.js does not send it.
  */
 
 export const TONES = [
@@ -31,12 +32,6 @@ export const HEADLINE_LENGTHS_OPTIONS = [
   { id: 'short', label: 'Short', desc: '3–5 words' },
   { id: 'medium', label: 'Medium', desc: '6–7 words' },
   { id: 'long', label: 'Long', desc: '8–10 words' },
-];
-
-export const HEADLINE_COUNTS = [
-  { id: 3, label: '3 headlines' },
-  { id: 5, label: '5 headlines' },
-  { id: 7, label: '7 headlines' },
 ];
 
 // `id` is the exact adapter folder name the inference server discovers under

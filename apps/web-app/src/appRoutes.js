@@ -31,7 +31,6 @@ export const PAGE_ROUTES = [
   '/rewriter',
   '/summarizer',
   '/history',
-  '/settings',
   '/plans',
 ];
 

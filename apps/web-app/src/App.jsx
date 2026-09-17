@@ -54,7 +54,6 @@ const ModelComparison    = lazy(() => import('./admin/research/ModelComparison')
 
 const OptimizePage   = lazy(() => import('./components/optimize/OptimizePage'));
 const HistoryPage    = lazy(() => import('./components/HistoryPage'));
-const SettingsPage   = lazy(() => import('./components/SettingsPage'));
 const ProfilePage    = lazy(() => import('./components/ProfilePage'));
 const Plans          = lazy(() => import('./components/Plans'));
 const Onboarding     = lazy(() => import('./components/onboarding/Onboarding'));
@@ -116,7 +115,6 @@ const PATH_TO_TOOL = {
   '/rewriter': 'rewriter',
   '/summarizer': 'summarizer',
   '/history': 'history',
-  '/settings': 'settings',
   '/plans': 'plans',
   '/dashboard': 'dashboard',
 };
@@ -128,7 +126,6 @@ const TOOL_TO_PATH = {
   rewriter: '/rewriter',
   summarizer: '/summarizer',
   history: '/history',
-  settings: '/settings',
   profile: '/profile',
   plans: '/plans',
   dashboard: '/dashboard',
@@ -146,7 +143,6 @@ const MAX_WIDTHS = {
   rewriter: 'max-w-[1600px]',
   summarizer: 'max-w-[1600px]',
   history: 'max-w-4xl',
-  settings: 'max-w-3xl',
   profile: 'max-w-3xl',
   plans: 'max-w-6xl',
 };
@@ -175,8 +171,8 @@ function loadDefaultSettings() {
     headlineModel: DEFAULT_HEADLINE_MODEL,
     summaryView: 'paragraph',
     // Optimize's two opt-in stages. Session state rather than a stored
-    // preference — they are per-article decisions, and SettingsPage does not
-    // offer them.
+    // preference — they are per-article decisions with no settings surface
+    // of their own to live in.
     optimizeRestyle: false,
     optimizeSummarize: false,
   };
@@ -447,14 +443,6 @@ function App() {
     });
   }, [effectiveSettings]);
 
-  const handleDefaultsChange = useCallback((d) => {
-    setSettings((prev) => ({
-      ...prev,
-      tone: d.defaultTone ?? prev.tone,
-      length: d.defaultLength ?? prev.length,
-      count: d.headlineCount ?? prev.count,
-    }));
-  }, []);
 
   if (seoLandingPage) {
     return (
@@ -551,6 +539,8 @@ function App() {
         onToggle={() => setSidebarOpen((v) => !v)}
         collapsed={sidebarCollapsed}
         onCollapse={() => setSidebarCollapsed((v) => !v)}
+        theme={theme}
+        onThemeChange={handleThemeChange}
       />
 
       {/* No spacer div here any more. The sidebar is an in-flow flex child
@@ -597,7 +587,6 @@ function App() {
               {/* Personal routes need a session; the four tools above stay open
                   to anonymous visitors, who simply do not get results saved. */}
               <Route path="/history" element={<ProtectedRoute><HistoryPage onSelectTool={handleSelectTool} onRerun={handleQuickStart} onBack={() => navigate('/dashboard')} /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><SettingsPage onBack={() => navigate('/dashboard')} onDefaultsChange={handleDefaultsChange} theme={theme} onThemeChange={handleThemeChange} /></ProtectedRoute>} />
               {/* Public: a pricing page behind a login wall cannot do its
                   job, and the catalog is marketing copy rather than anyone's
                   data. Signed-in extras (current-tier badge, today's usage)

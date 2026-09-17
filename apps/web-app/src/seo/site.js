@@ -274,7 +274,6 @@ export const APP_META = {
 export const PRIVATE_PATH_PREFIXES = [
   '/admin',
   '/history',
-  '/settings',
   '/profile',
   '/plans',
   '/login',
