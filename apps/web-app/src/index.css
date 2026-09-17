@@ -109,6 +109,20 @@
   --color-ink-900: #1d1819;
   --color-ink-950: #161112;
 
+  /* Heatmap intensity scale for the Usage tab. A private ramp, not reused
+     Tailwind classes: brand-600 is deliberately pinned to the same hex in
+     both themes (see the .dark block below) so primary buttons never look
+     like a different brand at night, but that pin makes it read LIGHTER
+     than brand-500 in dark mode — reusing bg-brand-400/500/600/800 verbatim
+     breaks the light-to-dark monotonicity a sequential scale depends on.
+     Each mode gets its own four steps instead, each validated with
+     dataviz's validate_palette.js --ordinal against its own canvas. */
+  --heat-0: var(--color-ink-100);
+  --heat-1: #e97371;
+  --heat-2: #dc4341;
+  --heat-3: #cd191a;
+  --heat-4: #8d1213;
+
   --color-canvas: #f5f4f4;
 
   --shadow-card: 0 1px 2px rgb(22 17 18 / 0.04), 0 1px 3px rgb(22 17 18 / 0.05);
@@ -369,6 +383,12 @@ textarea { resize: vertical; }
   --color-brand-700: #f18b89;
   --color-brand-800: #f5aaa8;
   --color-brand-900: #f8cecd;
+
+  --heat-0: var(--color-ink-100);
+  --heat-1: #7e2d30;
+  --heat-2: #b94546;
+  --heat-3: #dc5b59;
+  --heat-4: #f18b89;
 
   --background: #161112;
   --foreground: #f8f7f7;

@@ -80,30 +80,6 @@ function PlanAction({ plan, isCurrentPlan, isFeatured, reserveSpace }) {
   );
 }
 
-function UsageBar({ quota }) {
-  if (!quota || quota.limit === null) return null;
-  const pct = Math.min(100, Math.round((quota.used / quota.limit) * 100));
-  const spent = quota.used >= quota.limit;
-  return (
-    <div className="w-full max-w-md mt-6 text-left">
-      <div className="flex items-baseline justify-between mb-1.5">
-        <span className="text-[12px] font-semibold text-ink-700">
-          {quota.used} of {quota.limit} requests today
-        </span>
-        <span className="text-[11.5px] text-ink-400">
-          Resets {new Date(quota.resets_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-        </span>
-      </div>
-      <div className="h-1.5 w-full rounded-full bg-ink-100 overflow-hidden">
-        <div
-          className={`h-full rounded-full ${spent ? 'bg-brand-600' : 'bg-ink-400'}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
 export default function Plans() {
   const { user } = useAuth();
   const [plans, setPlans] = useState(null);
@@ -159,9 +135,12 @@ export default function Plans() {
         <p className="text-[12.5px] text-ink-400 mt-3">
           Paid plans are not available yet — every tool is currently free to use.
         </p>
-        <div className="flex justify-center">
-          <UsageBar quota={mine} />
-        </div>
+        {/* Today's usage lives on the Profile page's Usage tab now, next to
+            the 90-day activity heatmap — a running-count-and-history pair is
+            account information, not marketing copy, and repeating a bare
+            progress bar here just to say "you have a quota" added noise
+            without adding anything the Usage tab does not already show
+            better. */}
       </div>
 
       {plans === null && (

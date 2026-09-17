@@ -523,3 +523,13 @@ export function getPlans() {
 export function getMyPlan() {
   return request('/plans/me', null, 'GET');
 }
+
+// ── Usage ──
+
+/**
+ * Today's count against the plan limit, plus a 90-day daily history.
+ * Powers the Profile page's Usage tab.
+ */
+export function getMyUsage() {
+  return request('/usage/me', null, 'GET');
+}

@@ -14,6 +14,7 @@ from app.api.v1.image_generation import router as image_generation_router
 from app.api.v1.meta import router as meta_router
 from app.api.v1.optimize import router as optimize_router
 from app.api.v1.plans import router as plans_router
+from app.api.v1.usage import router as usage_router
 from app.api.v1.sinllama import router as sinllama_router
 from app.api.v1.style import router as style_router
 from app.api.v1.summarizer import router as summarizer_router
@@ -35,6 +36,7 @@ router.include_router(meta_router)
 router.include_router(comparison_router)
 router.include_router(categories_router)
 router.include_router(plans_router)
+router.include_router(usage_router)
 # Research instrumentation: which suggestions journalists actually took.
 router.include_router(events_router)
 router.include_router(admin_router)

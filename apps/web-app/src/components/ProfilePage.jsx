@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
+  Activity,
   CheckCircle2,
   LockKeyhole,
   Save,
@@ -15,6 +16,7 @@ import { NEWSROOM_ROLES } from './onboarding/options';
 import ProfileNav from './profile/ProfileNav';
 import AccountPanel from './profile/AccountPanel';
 import PreferencesPanel from './profile/PreferencesPanel';
+import UsagePanel from './profile/UsagePanel';
 import SecurityPanel from './profile/SecurityPanel';
 
 /**
@@ -32,6 +34,7 @@ import SecurityPanel from './profile/SecurityPanel';
 const PROFILE_TABS = [
   { id: 'account', label: 'Account', icon: UserRound },
   { id: 'preferences', label: 'Preferences', icon: SlidersHorizontal },
+  { id: 'usage', label: 'Usage', icon: Activity },
   { id: 'security', label: 'Security', icon: LockKeyhole },
 ];
 
@@ -202,6 +205,16 @@ export default function ProfilePage({ onBack, variant = 'page' }) {
                   categoryId={categoryId}
                   onCategoryChange={(value) => { setCategoryId(value); setSaveState('idle'); }}
                 />
+              </>
+            )}
+
+            {activeTab === 'usage' && (
+              <>
+                <PanelHeading
+                  title="Usage"
+                  description="Today's requests against your plan, and your recent activity."
+                />
+                <UsagePanel />
               </>
             )}
 

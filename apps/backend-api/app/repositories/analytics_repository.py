@@ -34,17 +34,23 @@ def _day_range(days: int) -> list[date]:
     return [today - timedelta(days=offset) for offset in range(days - 1, -1, -1)]
 
 
-async def _rollup_rows(days: int) -> list[dict[str, Any]]:
+async def _rollup_rows(days: int, *, user_id: str | None = None) -> list[dict[str, Any]]:
     since = (datetime.now(timezone.utc).date() - timedelta(days=days - 1)).isoformat()
     client = await base.get_supabase()
-    response = await client.table(ROLLUP).select("*").gte("day", since).execute()
+    query = client.table(ROLLUP).select("*").gte("day", since)
+    if user_id:
+        query = query.eq("user_id", user_id)
+    response = await query.execute()
     return response.data or []
 
 
-async def _raw_rows(days: int) -> list[dict[str, Any]]:
+async def _raw_rows(days: int, *, user_id: str | None = None) -> list[dict[str, Any]]:
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     client = await base.get_supabase()
-    response = await client.table(RAW).select("*").gte("created_at", since).execute()
+    query = client.table(RAW).select("*").gte("created_at", since)
+    if user_id:
+        query = query.eq("user_id", user_id)
+    response = await query.execute()
     return response.data or []
 
 
@@ -141,3 +147,40 @@ async def top_users(days: int = 30, limit: int = 10) -> list[dict[str, Any]]:
 
     ranked = sorted(totals.items(), key=lambda kv: kv[1], reverse=True)[:limit]
     return [{"user_id": user_id, "requests": count} for user_id, count in ranked]
+
+async def user_daily_series(user_id: str, days: int = 90) -> list[dict[str, Any]]:
+    """
+    Per-day request counts for one account, most recent `days` days
+    including today. Powers the Usage tab's heatmap.
+
+    Same rollup-with-raw-fallback shape as usage_series (see its docstring),
+    scoped to one user by filtering on user_id rather than reading every
+    account's traffic.
+
+    Today is always read live from request_telemetry, regardless of which
+    source supplied the rest of the window. The nightly rollup writes a day
+    only once it has fully elapsed, so usage_daily never has a row for the
+    day still in progress — reading today from the rollup would show it as
+    empty seconds after a request actually landed.
+    """
+    days = _clamp(days)
+    today_key = datetime.now(timezone.utc).date().isoformat()
+
+    rolled = await _rollup_rows(days, user_id=user_id)
+    if rolled:
+        rows, source = rolled, "usage_daily"
+    else:
+        rows, source = await _raw_rows(days, user_id=user_id), "request_telemetry"
+
+    requests: dict[str, int] = defaultdict(int)
+    for row in rows:
+        requests[_day_of(row)] += _weight(row)
+
+    if source == "usage_daily":
+        todays_rows = await _raw_rows(1, user_id=user_id)
+        requests[today_key] = sum(_weight(row) for row in todays_rows)
+
+    return [
+        {"day": day.isoformat(), "requests": requests.get(day.isoformat(), 0)}
+        for day in _day_range(days)
+    ]
