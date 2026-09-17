@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Archive, Pencil, Plus, Star } from 'lucide-react';
 import { archivePlan, createPlan, listPlans, updatePlan } from '../adminApi';
 import ConfirmDialog from '../ConfirmDialog';
+import { formatPrice } from '../../lib/money.js';
 
 /**
  * Plan catalog management.
@@ -18,10 +19,17 @@ import ConfirmDialog from '../ConfirmDialog';
 const INPUT = `w-full px-3 py-2 text-[13px] rounded-md border bg-background text-foreground
   placeholder:text-muted-foreground focus:outline-none focus:ring-2`;
 
+const BILLING_PERIODS = [
+  { value: 'monthly', label: '/month' },
+  { value: 'yearly',  label: '/year' },
+  { value: 'one_off', label: 'one-off' },
+];
+
 const BLANK = {
   slug: '', name: '', description: '', badge: '',
   featuresText: '', requestsPerDay: '', sortOrder: 0, isVisible: true, isDefault: false,
   ctaLabel: '', ctaHref: '',
+  priceCents: '', annualPriceCents: '', currency: 'LKR', billingPeriod: 'monthly',
 };
 
 /** Mirrors the API's ^[a-z0-9-]{1,40}$ so the problem shows before submitting. */
@@ -42,6 +50,11 @@ function toForm(plan) {
     isDefault: Boolean(plan.is_default),
     ctaLabel: plan.cta_label ?? '',
     ctaHref: plan.cta_href ?? '',
+    // Empty string means "no price shown" — stored as null on the server.
+    priceCents: plan.price_cents != null ? String(plan.price_cents) : '',
+    annualPriceCents: plan.annual_price_cents != null ? String(plan.annual_price_cents) : '',
+    currency: plan.currency ?? 'LKR',
+    billingPeriod: plan.billing_period ?? 'monthly',
   };
 }
 
@@ -85,6 +98,11 @@ export default function Plans() {
         limits.requests_per_day = Number(form.requestsPerDay);
       }
 
+      // Empty price means "no price shown" (free / unpriced tier).
+      // The server stores null, which also suppresses the Upgrade button.
+      const priceCentsRaw = String(form.priceCents).trim();
+      const annualPriceCentsRaw = String(form.annualPriceCents).trim();
+
       const payload = {
         name: form.name,
         description: form.description,
@@ -98,6 +116,11 @@ export default function Plans() {
         // null, and both being null is what suppresses it.
         cta_label: form.ctaLabel.trim() || null,
         cta_href: form.ctaHref.trim() || null,
+        // Pricing — null hides the price block and disables the Upgrade button.
+        price_cents: priceCentsRaw !== '' ? Number(priceCentsRaw) : null,
+        annual_price_cents: annualPriceCentsRaw !== '' ? Number(annualPriceCentsRaw) : null,
+        currency: form.currency,
+        billing_period: form.billingPeriod,
       };
 
       if (form.id) {
@@ -250,6 +273,60 @@ export default function Plans() {
             </p>
           </div>
 
+          {/* ── Pricing ──────────────────────────────────────────────────── */}
+          <div className="sm:col-span-2">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3">
+              Pricing
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="plan-price" className="block text-[12px] font-semibold text-card-foreground mb-1.5">
+                  Monthly price (minor units)
+                </label>
+                <input
+                  id="plan-price" type="number" min={0} step={1} value={form.priceCents}
+                  onChange={(e) => setForm({ ...form, priceCents: e.target.value })}
+                  className={INPUT} style={{ borderColor: 'var(--input)' }}
+                  placeholder="e.g. 250000 = LKR 2,500"
+                />
+                <p className="text-[11.5px] mt-1 text-muted-foreground">
+                  Store in minor units (cents / සත). Leave empty for a free / unpriced tier —
+                  no price is shown and the Upgrade button is hidden.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="plan-annual-price" className="block text-[12px] font-semibold text-card-foreground mb-1.5">
+                  Annual price (minor units, optional)
+                </label>
+                <input
+                  id="plan-annual-price" type="number" min={0} step={1} value={form.annualPriceCents}
+                  onChange={(e) => setForm({ ...form, annualPriceCents: e.target.value })}
+                  className={INPUT} style={{ borderColor: 'var(--input)' }}
+                  placeholder="e.g. 2400000 = LKR 24,000/yr"
+                />
+                <p className="text-[11.5px] mt-1 text-muted-foreground">
+                  Must be ≤ 12 × monthly price. A saving % is shown on the card.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="plan-billing-period" className="block text-[12px] font-semibold text-card-foreground mb-1.5">
+                  Billing period
+                </label>
+                <select
+                  id="plan-billing-period" value={form.billingPeriod}
+                  onChange={(e) => setForm({ ...form, billingPeriod: e.target.value })}
+                  className={`${INPUT} cursor-pointer`} style={{ borderColor: 'var(--input)' }}
+                >
+                  {BILLING_PERIODS.map((p) => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
           <div>
             <label htmlFor="plan-cta-label" className="block text-[12px] font-semibold text-card-foreground mb-1.5">
               Button label
@@ -332,6 +409,7 @@ export default function Plans() {
           <thead>
             <tr className="text-left text-muted-foreground border-b" style={{ borderColor: 'var(--border)' }}>
               <th className="px-4 py-2.5 font-semibold">Plan</th>
+              <th className="px-4 py-2.5 font-semibold">Price</th>
               <th className="px-4 py-2.5 font-semibold">Daily limit</th>
               <th className="px-4 py-2.5 font-semibold">State</th>
               <th className="px-4 py-2.5 font-semibold text-right">Actions</th>
@@ -345,6 +423,11 @@ export default function Plans() {
                   <td className="px-4 py-3">
                     <span className="font-semibold text-card-foreground">{plan.name}</span>
                     <span className="text-muted-foreground ml-2">{plan.slug}</span>
+                  </td>
+                  <td className="px-4 py-3 text-card-foreground">
+                    {plan.price_cents != null
+                      ? formatPrice(plan.price_cents, plan.currency)
+                      : <span className="text-muted-foreground">Free</span>}
                   </td>
                   <td className="px-4 py-3 text-card-foreground">
                     {plan.limits?.requests_per_day
@@ -405,7 +488,7 @@ export default function Plans() {
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                   No plans yet. Run the 2026-09-16-plans migration, or create one above.
                 </td>
               </tr>
