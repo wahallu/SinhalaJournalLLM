@@ -23,6 +23,7 @@ from typing import Any
 import httpx
 
 from app.core.config import get_settings
+from app.core.http_client import get_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -93,10 +94,11 @@ async def sinllama_generate(
         payload["num_candidates"] = num_candidates
 
     try:
-        async with httpx.AsyncClient(timeout=settings.SINLLAMA_TIMEOUT_SECONDS) as client:
-            response = await client.post(url, json=payload)
-            response.raise_for_status()
-            data = response.json()
+        response = await get_http_client().post(
+            url, json=payload, timeout=settings.SINLLAMA_TIMEOUT_SECONDS
+        )
+        response.raise_for_status()
+        data = response.json()
     except httpx.HTTPStatusError as exc:
         # 422 = our bug (bad style value etc.) — surface it, don't mask as availability
         if exc.response.status_code == 422:
@@ -123,9 +125,10 @@ async def sinllama_health() -> bool:
     """True when the inference server responds to /health."""
     settings = get_settings()
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(f"{settings.SINLLAMA_API_URL}/health")
-            return response.status_code == 200
+        response = await get_http_client().get(
+            f"{settings.SINLLAMA_API_URL}/health", timeout=5.0
+        )
+        return response.status_code == 200
     except httpx.HTTPError:
         return False
 
@@ -135,10 +138,9 @@ async def sinllama_get_comparison_adapters() -> dict[str, Any]:
     settings = get_settings()
     url = f"{settings.SINLLAMA_COMPARISON_API_URL}/adapters"
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            response = await client.get(url)
-            response.raise_for_status()
-            return response.json()
+        response = await get_http_client().get(url, timeout=15.0)
+        response.raise_for_status()
+        return response.json()
     except httpx.HTTPError as exc:
         raise SinLlamaUnavailable(f"SinLlama comparison server unreachable: {exc}") from exc
     except Exception as exc:
@@ -150,10 +152,11 @@ async def sinllama_run_comparison(payload: dict[str, Any]) -> list[dict[str, Any
     settings = get_settings()
     url = f"{settings.SINLLAMA_COMPARISON_API_URL}/compare"
     try:
-        async with httpx.AsyncClient(timeout=settings.SINLLAMA_TIMEOUT_SECONDS) as client:
-            response = await client.post(url, json=payload)
-            response.raise_for_status()
-            return response.json()
+        response = await get_http_client().post(
+            url, json=payload, timeout=settings.SINLLAMA_TIMEOUT_SECONDS
+        )
+        response.raise_for_status()
+        return response.json()
     except httpx.HTTPError as exc:
         raise SinLlamaUnavailable(f"SinLlama comparison server error: {exc}") from exc
     except Exception as exc:

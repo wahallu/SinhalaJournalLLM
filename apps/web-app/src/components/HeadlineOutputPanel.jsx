@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import {
   ChevronDown, ChevronUp, Trophy, AlertTriangle, Sparkles,
   Camera, RefreshCw, ImageOff, Edit3, FileSearch,
@@ -259,6 +259,7 @@ function VisualPromptModule({
                     <img
                       src={referencePreview}
                       alt="Selected reference"
+                      decoding="async"
                       className="h-14 w-20 shrink-0 rounded-md border border-ink-200 object-cover"
                     />
                     <div className="min-w-0 flex-1">
@@ -366,6 +367,8 @@ function VisualPromptModule({
                       <img
                         src={imageData}
                         alt="AI-generated news image"
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover"
                         onLoad={() => setImageReady(true)}
                         onError={() => {
@@ -454,7 +457,7 @@ function VisualPromptModule({
 }
 
 /* ── Main export ────────────────────────────────────────────────── */
-export default function HeadlineOutputPanel({ output, loading, error, articleText, readOnly = false }) {
+function HeadlineOutputPanel({ output, loading, error, articleText, readOnly = false }) {
   if (loading) {
     return (
       <div id="headline-loading" className="space-y-3">
@@ -572,3 +575,7 @@ export default function HeadlineOutputPanel({ output, loading, error, articleTex
     </div>
   );
 }
+
+// Memoised: re-renders only when its own props change, not on every
+// keystroke in the editor beside it (see ToolRunner in App.jsx).
+export default memo(HeadlineOutputPanel);

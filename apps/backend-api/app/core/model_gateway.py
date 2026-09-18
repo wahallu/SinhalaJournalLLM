@@ -24,6 +24,7 @@ from typing import Any
 
 from app.core import mock_provider
 from app.core import runtime_settings
+from app.core.cache import TTLCache
 from app.core.config import get_settings
 from app.core.openrouter_client import OpenRouterUnavailable, openrouter_chat
 from app.core.prompts import (
@@ -395,12 +396,22 @@ def _via_mock(
 
 # ── Health ──
 
+# /meta is fetched on every app load, and each call used to probe the GPU
+# server's /health with a 5s timeout — so a down server made every page load
+# wait up to 5s for a badge. Availability does not change faster than this.
+_health_cache = TTLCache("sinllama_health", ttl_seconds=15.0, maxsize=1)
+
+
 async def gateway_status() -> dict[str, Any]:
     """Provider availability snapshot for /health and /api/v1/meta."""
-    from app.models.sinllama_loader import sinllama_health
+    from app.models import sinllama_loader
 
     settings = get_settings()
-    sinllama_ok = await sinllama_health()
+    # Looked up on the module at call time (not bound at import) so the test
+    # suite's patch of sinllama_loader.sinllama_health still takes effect.
+    sinllama_ok = await _health_cache.get_or_load(
+        "sinllama", lambda: sinllama_loader.sinllama_health()
+    )
     return {
         "primary": await runtime_settings.get("model.provider"),
         "fallback_enabled": await runtime_settings.get("model.fallback_enabled"),

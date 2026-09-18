@@ -14,6 +14,7 @@ import logging
 import httpx
 
 from app.core.config import get_settings
+from app.core.http_client import get_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -63,12 +64,12 @@ async def groq_chat(
     last_error: Exception | None = None
     for attempt in range(_MAX_RETRIES):
         try:
-            async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-                response = await client.post(
-                    f"{_GROQ_BASE}/chat/completions",
-                    headers=headers,
-                    json=payload,
-                )
+            response = await get_http_client().post(
+                f"{_GROQ_BASE}/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=_TIMEOUT,
+            )
 
             if response.status_code == 429:
                 wait = 2 ** attempt  # 1s, 2s, 4s

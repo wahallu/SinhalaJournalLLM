@@ -43,7 +43,7 @@ async def count_recent_by_ip(ip_hash: str, within_seconds: int) -> int:
     client = await base.get_supabase()
     response = await (
         client.table(TABLE)
-        .select("id", count="exact")
+        .select("id", count="exact", head=True)
         .eq("ip_hash", ip_hash)
         .gte("created_at", since)
         .execute()
@@ -65,7 +65,7 @@ async def count_recent_by_user(user_id: str, since_iso: str) -> int:
     client = await base.get_supabase()
     response = await (
         client.table(TABLE)
-        .select("id", count="exact")
+        .select("id", count="exact", head=True)
         .eq("user_id", user_id)
         .gte("created_at", since_iso)
         .execute()

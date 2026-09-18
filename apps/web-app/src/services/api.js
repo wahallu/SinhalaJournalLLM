@@ -87,6 +87,49 @@ async function request(endpoint, body = null, method = 'POST') {
 }
 
 /**
+ * GET with a short in-memory cache and in-flight de-duplication.
+ *
+ * Only for responses that are the same for every caller and change rarely
+ * (capabilities, the plan catalog, categories). /meta alone was fetched by
+ * the app shell on every mount, and two components asking for categories at
+ * once made two identical requests. Concurrent callers now share one
+ * promise, and later callers within `ttlMs` get the stored result.
+ *
+ * A failed request is not cached, so the next caller retries. Callers get a
+ * structured clone so mutating a result cannot corrupt the cached copy.
+ */
+const responseCache = new Map();
+
+function cachedGet(endpoint, ttlMs) {
+  const now = Date.now();
+  const hit = responseCache.get(endpoint);
+  if (hit && (hit.pending || now - hit.at < ttlMs)) {
+    return hit.promise.then((data) => structuredClone(data));
+  }
+
+  const promise = request(endpoint, null, 'GET');
+  const entry = { promise, at: now, pending: true };
+  responseCache.set(endpoint, entry);
+  promise.then(
+    () => {
+      entry.pending = false;
+      entry.at = Date.now();
+    },
+    () => {
+      if (responseCache.get(endpoint) === entry) responseCache.delete(endpoint);
+    }
+  );
+  return promise.then((data) => structuredClone(data));
+}
+
+/** Drop cached GETs — all of them, or those whose path starts with `prefix`. */
+export function invalidateApiCache(prefix = '') {
+  for (const key of responseCache.keys()) {
+    if (key.startsWith(prefix)) responseCache.delete(key);
+  }
+}
+
+/**
  * One API call whose body is a stream of NDJSON objects.
  *
  * Same auth and refresh behaviour as `request`, but the response is consumed
@@ -347,7 +390,7 @@ export function runComparison(inputOrPayload, adapters, task = 'grammar', style 
 // ── Categories ──
 // Active categories only — what a user may pick from on their profile.
 export function getCategories() {
-  return request('/categories', null, 'GET');
+  return cachedGet('/categories', 5 * 60_000);
 }
 
 // Set the signed-in user's own category. This used to be written straight
@@ -500,7 +543,7 @@ export function generateImage(prompt, historyId = null, referenceImage = null) {
 // ── Capabilities ──
 // Tasks, styles, lengths, provider status, feature flags and global defaults.
 export function getMeta() {
-  return request('/meta', null, 'GET');
+  return cachedGet('/meta', 30_000);
 }
 
 
@@ -510,7 +553,7 @@ export function getMeta() {
 
 /** Visible plan tiers, in display order. Readable signed out. */
 export function getPlans() {
-  return request('/plans', null, 'GET');
+  return cachedGet('/plans', 60_000);
 }
 
 /**
@@ -542,7 +585,7 @@ export function getMyUsage() {
 
 /** Where to send the transfer. Requires a session — not public info. */
 export function getPaymentDetails() {
-  return request('/plans/payment-details', null, 'GET');
+  return cachedGet('/plans/payment-details', 5 * 60_000);
 }
 
 export function getMyUpgradeRequests() {

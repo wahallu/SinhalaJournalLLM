@@ -2,6 +2,7 @@
 FastAPI application entrypoint.
 
 - CORS middleware
+- Response compression and HTTP caching (Cache-Control + ETag)
 - Router registration
 - Global health checks (basic + model gateway)
 - ModelGatewayError → 503 handler
@@ -9,13 +10,17 @@ FastAPI application entrypoint.
 """
 
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.v1 import router as v1_router
+from app.core.compression import CompressionMiddleware
 from app.core.config import get_settings
+from app.core.http_cache import HttpCacheMiddleware
+from app.core.http_client import close_http_client
 from app.core.model_gateway import ModelGatewayError, gateway_status
 from app.core.observability import (
     RequestIdMiddleware,
@@ -36,7 +41,18 @@ _IS_PRODUCTION = settings.APP_ENV.lower() == "production"
 # formatter everywhere else, where they are read by a person.
 configure_logging(json_logs=_IS_PRODUCTION)
 
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # Nothing to open: the pooled clients are created lazily on first use,
+    # since lifespan events do not fire under every runner (see
+    # core/database.py). Closing still belongs here, where it can happen.
+    yield
+    await close_http_client()
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="SinAI — Sinhala Journalism LLM API",
     description=(
         "Backend API for Sinhala grammar checking, headline generation, "
@@ -71,6 +87,12 @@ async def cors_safe_errors(request: Request, call_next):
             },
         )
 
+
+# ── Caching and compression ──
+# ETags are computed on the uncompressed body, so HttpCache has to sit inside
+# compression — i.e. be added first (Starlette builds the stack outermost-last).
+app.add_middleware(HttpCacheMiddleware)
+app.add_middleware(CompressionMiddleware, minimum_size=1000)
 
 # ── CORS ──
 app.add_middleware(

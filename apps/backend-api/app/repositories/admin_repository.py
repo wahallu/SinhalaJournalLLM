@@ -57,7 +57,8 @@ async def list_users(
 async def count_profiles(**filters: Any) -> int:
     """Exact count of profiles matching the given equality filters."""
     client = await base.get_supabase()
-    query = client.table(PROFILES).select("id", count="exact")
+    # head=True: the count without transferring the matching rows.
+    query = client.table(PROFILES).select("id", count="exact", head=True)
     for column, value in filters.items():
         query = query.eq(column, value)
     response = await query.execute()

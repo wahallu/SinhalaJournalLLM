@@ -164,7 +164,25 @@ export function Auralis({
   // WebGL program down and rebuild it on every single render.
   const colorKey = colors.join(',');
 
+  /* WebGL starts only once the browser is idle after load. Compiling the
+     shader and drawing the first frames is main-thread work, and done
+     during mount it landed in the middle of the dashboard's first paint --
+     Lighthouse measured seconds of blocking time on this page and none on
+     the tool pages. Until then the canvas is untouched (transparent), so the
+     caller's painted background shows, exactly as it does when WebGL is
+     unavailable. */
+  const [ready, setReady] = useState(false);
   useEffect(() => {
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(() => setReady(true), { timeout: 2000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = setTimeout(() => setReady(true), 300);
+    return () => clearTimeout(id);
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return undefined;
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return undefined;
@@ -301,7 +319,7 @@ export function Auralis({
       // log, and the component silently falls back forever. The context is
       // released with the canvas when React unmounts it.
     };
-  }, [colorKey, base, speed, grain]);
+  }, [ready, colorKey, base, speed, grain]);
 
   // Nothing is painted here on failure — the caller keeps whatever background
   // it already had, which for the dashboard hero is the flat brand red.

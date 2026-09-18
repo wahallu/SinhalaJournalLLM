@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useCallback, useDeferredValue, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, ArrowDownToLine } from 'lucide-react';
 import Sidebar from './components/Sidebar';
@@ -19,11 +19,6 @@ import ProtectedRoute from './auth/ProtectedRoute';
 import { useAuth } from './auth/useAuth';
 import { useLanguage } from './i18n/useLanguage.js';
 import { T } from './i18n/T.jsx';
-import Login from './pages/auth/Login';
-import Signup from './pages/auth/Signup';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
-import VerifyEmail from './pages/auth/VerifyEmail';
 import { SEO_PAGES } from './seo/site';
 import { usePageSeo } from './seo/usePageSeo';
 
@@ -54,6 +49,15 @@ const SummarizerSettings = lazy(() => import('./admin/pages/settings/SummarizerS
 const Activity           = lazy(() => import('./admin/pages/Activity'));
 const SinLLamaPage       = lazy(() => import('./admin/research/SinLLamaPage'));
 const ModelComparison    = lazy(() => import('./admin/research/ModelComparison'));
+
+/* The auth dialogs open over a page on demand, never as the first paint of
+   a visit, so they are split out too. Their routes already sit inside a
+   Suspense boundary. */
+const Login          = lazy(() => import('./pages/auth/Login'));
+const Signup         = lazy(() => import('./pages/auth/Signup'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
+const ResetPassword  = lazy(() => import('./pages/auth/ResetPassword'));
+const VerifyEmail    = lazy(() => import('./pages/auth/VerifyEmail'));
 
 const OptimizePage   = lazy(() => import('./components/optimize/OptimizePage'));
 const HistoryPage    = lazy(() => import('./components/HistoryPage'));
@@ -188,6 +192,11 @@ function ToolRunner({ activeTool, settings, setSettings }) {
   const { tu } = useLanguage();
   const config = TOOL_CONFIG[activeTool];
   const { input, setInput, output, loading, error, process, clear, restore } = useToolProcessor();
+  // The output panels read the editor text, so every keystroke re-rendered
+  // them — the grammar diff and the headline panel are the heaviest trees on
+  // the page. They get a deferred copy instead: typing commits first, and
+  // the (memoised) panels catch up at low priority once the input settles.
+  const deferredInput = useDeferredValue(input);
 
   useEffect(() => {
     const historyRun = location.state?.historyRun;
@@ -303,7 +312,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
               output={output}
               loading={loading}
               error={error}
-              articleText={input}
+              articleText={deferredInput}
             />
           ) : (
             <OutputPanel
@@ -312,7 +321,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
               error={error}
               type={config.outputType}
               activeTool={activeTool}
-              input={input}
+              input={deferredInput}
               summaryView={settings.summaryView}
               showCorrections={activeTool === 'grammar'}
             />

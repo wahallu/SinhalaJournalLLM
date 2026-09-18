@@ -13,6 +13,7 @@ import logging
 import httpx
 
 from app.core.config import get_settings
+from app.core.http_client import get_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -58,12 +59,12 @@ async def openrouter_chat(
     last_error: Exception | None = None
     for attempt in range(_MAX_RETRIES):
         try:
-            async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-                response = await client.post(
-                    f"{_OPENROUTER_BASE}/chat/completions",
-                    headers=headers,
-                    json=payload,
-                )
+            response = await get_http_client().post(
+                f"{_OPENROUTER_BASE}/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=_TIMEOUT,
+            )
 
             if response.status_code in (429, 402):
                 wait = 2 ** attempt  # 1s, 2s, 4s

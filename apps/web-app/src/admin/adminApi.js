@@ -7,6 +7,7 @@
  */
 
 import { getAccessToken, getApiBase, refreshAccessToken } from '../auth/authClient';
+import { invalidateApiCache } from '../services/api';
 
 async function request(endpoint, { method = 'GET', body = null } = {}) {
   const send = (token) =>
@@ -33,6 +34,10 @@ async function request(endpoint, { method = 'GET', body = null } = {}) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.detail || err.message || `Request failed (${response.status})`);
   }
+
+  // An admin write can change what the user-facing cached GETs return
+  // (categories, plans, feature flags), so drop them all.
+  if (method !== 'GET') invalidateApiCache();
 
   // 204 No Content has no body to parse.
   return response.status === 204 ? null : response.json();

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Clock, ArrowLeft, Search, ArrowUpRight, History as HistoryIcon, CornerDownRight, LogIn } from 'lucide-react';
 import PageHeader from './ui/PageHeader';
@@ -10,6 +10,13 @@ import { Skeleton, SkeletonLines } from './ui/Skeleton';
 import { TOOL_META } from '../lib/toolMeta';
 import { useAuth } from '../auth/useAuth';
 import { getHistoryRun, getUnifiedHistory } from '../services/api';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+
+/* Entries rendered per page. The feed holds up to HISTORY_LIMIT runs (the
+   API's ceiling); rendering them all at once put 100 cards and their
+   hover controls into the DOM for a page most people only glance at. */
+const PAGE_SIZE = 20;
+const HISTORY_LIMIT = 100;
 
 function formatTime(iso) {
   const d = new Date(iso);
@@ -38,6 +45,10 @@ export default function HistoryPage({ onRerun, onBack }) {
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  // Filtering runs over every loaded entry, so it follows the debounced
+  // term; the input stays bound to `search` and never lags behind typing.
+  const debouncedSearch = useDebouncedValue(search, 200);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [openingId, setOpeningId] = useState(null);
   const [openError, setOpenError] = useState(null);
 
@@ -71,7 +82,7 @@ export default function HistoryPage({ onRerun, onBack }) {
   useEffect(() => {
     if (!userId) return undefined;
     let active = true;
-    getUnifiedHistory()
+    getUnifiedHistory(HISTORY_LIMIT)
       .then((data) => {
         if (!active) return;
         // Server shape → the fields this page renders.
@@ -97,22 +108,37 @@ export default function HistoryPage({ onRerun, onBack }) {
     };
   }, [userId]);
 
-  const filtered = history
-    .filter((h) => filter === 'all' || h.tool === filter)
-    .filter((h) => {
-      if (!search) return true;
-      const q = search.toLowerCase();
-      return h.input.toLowerCase().includes(q) || (h.result || '').toLowerCase().includes(q);
-    });
+  // Memoised so hover and "opening" state changes do not refilter and
+  // regroup the whole feed on every render.
+  const filtered = useMemo(() => {
+    const q = debouncedSearch.toLowerCase();
+    return history
+      .filter((h) => filter === 'all' || h.tool === filter)
+      .filter((h) => !q
+        || h.input.toLowerCase().includes(q)
+        || (h.result || '').toLowerCase().includes(q));
+  }, [history, filter, debouncedSearch]);
+
+  // A new search or filter starts again from the first page.
+  const [pageKey, setPageKey] = useState(`${filter}|${debouncedSearch}`);
+  if (pageKey !== `${filter}|${debouncedSearch}`) {
+    setPageKey(`${filter}|${debouncedSearch}`);
+    setVisibleCount(PAGE_SIZE);
+  }
+
+  const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
 
   // Group entries by day, preserving order
-  const groups = [];
-  filtered.forEach((item) => {
-    const g = dayGroup(item.timestamp);
-    const last = groups[groups.length - 1];
-    if (last && last.label === g) last.items.push(item);
-    else groups.push({ label: g, items: [item] });
-  });
+  const groups = useMemo(() => {
+    const out = [];
+    visible.forEach((item) => {
+      const g = dayGroup(item.timestamp);
+      const last = out[out.length - 1];
+      if (last && last.label === g) last.items.push(item);
+      else out.push({ label: g, items: [item] });
+    });
+    return out;
+  }, [visible]);
 
   const allFilters = [
     { id: 'all', label: 'All' },
@@ -215,9 +241,9 @@ export default function HistoryPage({ onRerun, onBack }) {
         <div className="rounded-2xl border border-dashed border-ink-300/70">
           <EmptyState
             icon={Clock}
-            title={search || filter !== 'all' ? 'No matching entries' : 'No history yet'}
+            title={debouncedSearch || filter !== 'all' ? 'No matching entries' : 'No history yet'}
             description={
-              search
+              debouncedSearch
                 ? 'Try a different search term or clear the filters.'
                 : 'Run any writing tool while signed in and your work is saved here automatically.'
             }
@@ -280,6 +306,17 @@ export default function HistoryPage({ onRerun, onBack }) {
               </div>
             </section>
           ))}
+          {filtered.length > visible.length && (
+            <div className="flex justify-center">
+              <ActionButton
+                size="sm"
+                variant="secondary"
+                onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
+              >
+                Show more ({filtered.length - visible.length} left)
+              </ActionButton>
+            </div>
+          )}
         </div>
       )}
     </div>

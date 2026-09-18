@@ -29,8 +29,19 @@
     <link rel="preload" as="image" href="/logored.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+    <!-- Satoshi is the UI face, so its CSS stays render-blocking: loading it
+         async was measured to cause a 0.12 layout shift when it swapped in
+         and re-wrapped the dashboard cards, with no gain in first paint.
+         Noto Sans Sinhala only backs the Sinhala glyphs Satoshi lacks, so it
+         loads without blocking: media="print" fetches it at low priority
+         without applying it, and onload swaps it in. -->
     <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    </noscript>
     <style>
       /* Inline so the splash paints on the first frame — an external file
          would be one more round trip, which is the problem being solved.

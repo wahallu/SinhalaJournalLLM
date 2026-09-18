@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, FileSearch, ArrowRight } from 'lucide-react';
 import { Card } from './ui/Card';
 import CopyButton from './ui/CopyButton';
@@ -48,7 +48,7 @@ function TextCard({ children, muted = false, className = '' }) {
   );
 }
 
-export default function OutputPanel({
+function OutputPanel({
   output,
   loading,
   error,
@@ -317,3 +317,7 @@ export default function OutputPanel({
     </div>
   );
 }
+
+// Memoised: re-renders only when its own props change, not on every
+// keystroke in the editor beside it (see ToolRunner in App.jsx).
+export default memo(OutputPanel);

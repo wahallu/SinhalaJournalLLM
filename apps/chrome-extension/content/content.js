@@ -598,8 +598,24 @@
       e.preventDefault();
     });
 
+    // Coalesced to one position update per animation frame. mousemove fires
+    // far more often than the screen repaints, and each update below reads
+    // layout (getComputedStyle, offsetWidth) and then writes it -- a forced
+    // reflow of the host page per event while dragging.
+    let pendingEvent = null;
+    let frame = 0;
+
     document.addEventListener("mousemove", (e) => {
       if (!dragging) return;
+      pendingEvent = e;
+      if (!frame) frame = requestAnimationFrame(applyDrag);
+    }, { passive: true });
+
+    function applyDrag() {
+      frame = 0;
+      const e = pendingEvent;
+      pendingEvent = null;
+      if (!dragging || !e) return;
       const dx = e.clientX - startClientX;
       const dy = e.clientY - startClientY;
       if (!moved && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) moved = true;
@@ -616,9 +632,14 @@
       target.style.left = `${isFixed ? newLeft : newLeft + window.scrollX}px`;
       target.style.top = `${isFixed ? newTop : newTop + window.scrollY}px`;
       target.style.position = isFixed ? "fixed" : "absolute";
-    });
+    }
 
     document.addEventListener("mouseup", () => {
+      // Land exactly where the pointer was released, not one frame short.
+      if (frame) {
+        cancelAnimationFrame(frame);
+        applyDrag();
+      }
       dragging = false;
     });
 

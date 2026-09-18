@@ -36,7 +36,7 @@
 /* ── Legacy Sinhala Newsroom Font (UBIN16S) ── */
 @font-face {
   font-family: 'UBIN16S';
-  src: url('/fonts/ubin16s.ttf') format('truetype');
+  src: url('/fonts/ubin16s.woff2') format('woff2'), url('/fonts/ubin16s.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: block;

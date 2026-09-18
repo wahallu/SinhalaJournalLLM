@@ -19,18 +19,21 @@ router = APIRouter(prefix="/admin/activity", tags=["Admin"])
 TELEMETRY = "request_telemetry"
 
 
-async def _emails_by_id() -> dict[str, str]:
+async def _emails_by_id(user_ids: set[str]) -> dict[str, str]:
     """
-    user_id → email for attributing runs.
+    user_id → email for the accounts on this page only.
 
-    Fetches the profile list rather than filtering by the ids on the page:
-    an admin console's user table is small, and one unfiltered read is
-    cheaper than an `in_` filter that the repositories layer does not
-    currently expose.
+    This used to read the entire profiles table on every Chats load, so the
+    cost grew with the user base rather than with the page. One `in` query
+    over the ids actually shown is bounded by the page size.
     """
+    if not user_ids:
+        return {}
     client = await base.get_supabase()
-    response = await client.table("profiles").select("id,email").execute()
-    return {row["id"]: row.get("email") for row in (response.data or [])}
+    response = await (
+        client.table("profiles").select("id,email").in_("id", sorted(user_ids)).execute()
+    )
+    return {str(row["id"]): row.get("email") for row in (response.data or [])}
 
 
 def _total_tokens(item: dict[str, Any]) -> int | None:
@@ -93,10 +96,13 @@ async def chats(
     device id. The id groups activity without claiming to identify a person.
     """
     items = await history_repository.list_all_recent(limit)
-    emails = await _emails_by_id()
+    emails = await _emails_by_id(
+        {str(item["user_id"]) for item in items if item.get("user_id")}
+    )
 
     for item in items:
-        item["user_email"] = emails.get(item.get("user_id"))
+        user_id = item.get("user_id")
+        item["user_email"] = emails.get(str(user_id)) if user_id else None
         item["total_tokens"] = _total_tokens(item)
 
     reported = [item["total_tokens"] for item in items if item["total_tokens"] is not None]

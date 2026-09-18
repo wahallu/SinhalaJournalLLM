@@ -12,9 +12,20 @@ See audit_repository's module docstring for why the client is reached as
 from datetime import datetime, timezone
 from typing import Any
 
+from app.core.cache import TTLCache
 from app.repositories import base
 
 TABLE = "plans"
+
+# enforce_plan_quota resolves the caller's plan on EVERY tool request — one or
+# two reads of a table that changes a few times a year. Cached briefly and
+# invalidated on every write below; the TTL bounds staleness on the other
+# instances.
+_cache = TTLCache("plans", ttl_seconds=60.0, maxsize=256)
+
+
+def invalidate_cache() -> None:
+    _cache.invalidate()
 
 
 async def list_all(
@@ -35,7 +46,7 @@ async def list_all(
 
 async def get(plan_id: str) -> dict[str, Any] | None:
     """One plan by id, or None when absent."""
-    return await base.fetch_by_id(TABLE, plan_id)
+    return await _cache.get_or_load(("id", plan_id), lambda: base.fetch_by_id(TABLE, plan_id))
 
 
 async def get_default() -> dict[str, Any] | None:
@@ -45,10 +56,14 @@ async def get_default() -> dict[str, Any] | None:
     A partial unique index guarantees at most one row has is_default, so the
     first result is the only result.
     """
-    client = await base.get_supabase()
-    response = await client.table(TABLE).select("*").eq("is_default", True).execute()
-    rows = response.data or []
-    return rows[0] if rows else None
+
+    async def load() -> dict[str, Any] | None:
+        client = await base.get_supabase()
+        response = await client.table(TABLE).select("*").eq("is_default", True).execute()
+        rows = response.data or []
+        return rows[0] if rows else None
+
+    return await _cache.get_or_load("default", load)
 
 
 async def get_by_slug(slug: str) -> dict[str, Any] | None:
@@ -60,7 +75,9 @@ async def get_by_slug(slug: str) -> dict[str, Any] | None:
 
 async def create(data: dict[str, Any]) -> dict[str, Any]:
     """Insert a plan and return it with its generated id."""
-    return await base.insert_record(TABLE, data)
+    row = await base.insert_record(TABLE, data)
+    invalidate_cache()
+    return row
 
 
 async def update(plan_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
@@ -68,6 +85,7 @@ async def update(plan_id: str, data: dict[str, Any]) -> dict[str, Any] | None:
     client = await base.get_supabase()
     payload = {**data, "updated_at": datetime.now(timezone.utc).isoformat()}
     response = await client.table(TABLE).update(payload).eq("id", plan_id).execute()
+    invalidate_cache()
     return response.data[0] if response.data else None
 
 
@@ -84,6 +102,7 @@ async def clear_default(except_id: str | None = None) -> None:
     if except_id:
         query = query.neq("id", except_id)
     await query.execute()
+    invalidate_cache()
 
 
 async def archive(plan_id: str) -> dict[str, Any] | None:

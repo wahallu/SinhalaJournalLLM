@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import fs from 'node:fs'
+import zlib from 'node:zlib'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import {
@@ -184,6 +185,18 @@ function seoPrerenderPlugin() {
               source,
               destination: '/index.html',
             })),
+            // Same policy as nginx.conf and vercel.json: hashed assets are
+            // immutable, everything else revalidates.
+            headers: [
+              {
+                source: 'assets/**',
+                headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+              },
+              {
+                source: '**/*.@(woff2|ttf|png|jpg|jpeg|webp|svg|ico)',
+                headers: [{ key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' }],
+              },
+            ],
           }, null, 2)
         )
       } catch (err) {
@@ -193,12 +206,76 @@ function seoPrerenderPlugin() {
   }
 }
 
+/* Writes .gz and .br siblings next to every compressible file in dist, so
+   nginx (gzip_static / brotli_static) and CDNs that honour precompressed
+   assets serve them without compressing on each request -- and at maximum
+   level, which no server can afford to do per request. closeBundle rather
+   than writeBundle: it runs after the prerender plugin has written its pages,
+   so those get compressed too. */
+const COMPRESSIBLE = /\.(js|mjs|css|html|svg|json|txt|xml|webmanifest)$/
+
+function precompressPlugin() {
+  let outDir
+  return {
+    name: 'sinai-precompress',
+    apply: 'build',
+    configResolved(config) {
+      outDir = path.resolve(config.root, config.build.outDir)
+    },
+    closeBundle() {
+      const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const full = path.join(dir, entry.name)
+        return entry.isDirectory() ? walk(full) : [full]
+      })
+      for (const file of walk(outDir)) {
+        if (!COMPRESSIBLE.test(file)) continue
+        const source = fs.readFileSync(file)
+        if (source.length < 1024) continue
+        fs.writeFileSync(`${file}.gz`, zlib.gzipSync(source, { level: 9 }))
+        fs.writeFileSync(`${file}.br`, zlib.brotliCompressSync(source, {
+          params: {
+            [zlib.constants.BROTLI_PARAM_QUALITY]: 11,
+            [zlib.constants.BROTLI_PARAM_SIZE_HINT]: source.length,
+          },
+        }))
+      }
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), seoPrerenderPlugin()],
+  plugins: [react(), tailwindcss(), seoPrerenderPlugin(), precompressPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  build: {
+    // Both are Vite's defaults, stated so a future edit cannot quietly turn
+    // minification off: oxc for JS, lightningcss for CSS.
+    minify: 'oxc',
+    cssMinify: 'lightningcss',
+    // Evergreen targets: no down-levelling of syntax every supported browser
+    // already runs, which is dead weight in the bundle.
+    target: 'es2022',
+    rolldownOptions: {
+      output: {
+        /* Vendor code in its own long-lived chunks. App code changes on
+           nearly every deploy; React, the router and Radix change a few times
+           a year. Split out, a deploy only invalidates the app chunk and
+           returning visitors keep the rest from cache. recharts is left to
+           the automatic splitter -- it is only reached from the lazy admin
+           Overview route, and pinning it into a group would risk pulling it
+           onto the entry path. */
+        codeSplitting: {
+          groups: [
+            { name: 'react-vendor', test: /node_modules[\\/](react|react-dom|scheduler|react-router|react-router-dom)[\\/]/, priority: 20 },
+            { name: 'radix-vendor', test: /node_modules[\\/](radix-ui|@radix-ui|@floating-ui)[\\/]/, priority: 15 },
+            { name: 'icons-vendor', test: /node_modules[\\/]lucide-react[\\/]/, priority: 10 },
+          ],
+        },
+      },
     },
   },
 })

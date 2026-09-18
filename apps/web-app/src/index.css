@@ -37,7 +37,9 @@
    without a rebuild. */
 @font-face {
   font-family: 'UBIN16S';
-  src: url('/ubin16s.ttf') format('truetype');
+  /* WOFF2 first: 31 KB against the TTF's 80 KB. The TTF stays as the
+     fallback for any browser without WOFF2. */
+  src: url('/ubin16s.woff2') format('woff2'), url('/ubin16s.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: block;

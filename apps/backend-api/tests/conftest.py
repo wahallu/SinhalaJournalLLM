@@ -23,6 +23,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from app.core import cache as app_cache
 from app.core import runtime_settings
 from app.core.config import get_settings
 from app.models.sinllama_loader import SinLlamaUnavailable
@@ -312,6 +313,11 @@ def fake_supabase(monkeypatch):
     # A test that exercises a persistence failure trips the circuit breaker;
     # reset it so later tests still reach the fake store.
     monkeypatch.setattr("app.repositories.base._circuit_open_until", 0.0)
+
+    # Every test gets a fresh store, so a TTL cache still holding the
+    # previous test's rows (plans, categories, analytics) would be reading
+    # from a database that no longer exists.
+    app_cache.clear_all()
     return fake
 
 

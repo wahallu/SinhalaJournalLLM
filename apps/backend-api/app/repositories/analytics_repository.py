@@ -15,10 +15,23 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
+from app.core.cache import TTLCache
 from app.repositories import base
 
 ROLLUP = "usage_daily"
 RAW = "request_telemetry"
+
+# Only the columns the aggregations below read. request_telemetry rows carry
+# far more than this, and a 365-day raw scan was transferring all of it.
+_ROLLUP_COLUMNS = "day,user_id,tool,provider,request_count,error_count"
+_RAW_COLUMNS = "created_at,user_id,tool,provider,status_code"
+
+# The admin analytics page asks for the series, tool, provider and user
+# breakdowns of the SAME window — four identical scans per page load before
+# this. One cached read serves all four, and a dashboard refresh within the
+# TTL costs nothing. Admin-only and aggregate, so a minute of staleness is
+# invisible.
+_rows_cache = TTLCache("analytics_rows", ttl_seconds=60.0, maxsize=16)
 
 # A range wider than this would scan an unbounded amount of raw telemetry on
 # a fresh install where the rollup is still empty.
@@ -37,7 +50,7 @@ def _day_range(days: int) -> list[date]:
 async def _rollup_rows(days: int, *, user_id: str | None = None) -> list[dict[str, Any]]:
     since = (datetime.now(timezone.utc).date() - timedelta(days=days - 1)).isoformat()
     client = await base.get_supabase()
-    query = client.table(ROLLUP).select("*").gte("day", since)
+    query = client.table(ROLLUP).select(_ROLLUP_COLUMNS).gte("day", since)
     if user_id:
         query = query.eq("user_id", user_id)
     response = await query.execute()
@@ -47,7 +60,7 @@ async def _rollup_rows(days: int, *, user_id: str | None = None) -> list[dict[st
 async def _raw_rows(days: int, *, user_id: str | None = None) -> list[dict[str, Any]]:
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     client = await base.get_supabase()
-    query = client.table(RAW).select("*").gte("created_at", since)
+    query = client.table(RAW).select(_RAW_COLUMNS).gte("created_at", since)
     if user_id:
         query = query.eq("user_id", user_id)
     response = await query.execute()
@@ -68,10 +81,14 @@ async def _rows(days: int) -> tuple[list[dict[str, Any]], str]:
     The source is reported so the API can tell the dashboard whether it is
     looking at rolled-up totals or a live scan.
     """
-    rolled = await _rollup_rows(days)
-    if rolled:
-        return rolled, "usage_daily"
-    return await _raw_rows(days), "request_telemetry"
+
+    async def load() -> tuple[list[dict[str, Any]], str]:
+        rolled = await _rollup_rows(days)
+        if rolled:
+            return rolled, "usage_daily"
+        return await _raw_rows(days), "request_telemetry"
+
+    return await _rows_cache.get_or_load(days, load)
 
 
 def _weight(row: dict[str, Any]) -> int:
