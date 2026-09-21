@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 # SinAi (Sinhala Journal LLM) — Master Project Plan & AI Agent Blueprint
 
-**Last Updated:** August 2026  
+**Last Updated:** September 2026  
 **Product Brand:** SinAi  
 **Research Project:** Sinhala Journal LLM  
 **Live Portfolio Origin:** `https://sin-ai.app`  
@@ -22,7 +22,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 > **Identity & Research Attribution Rule**:
 > - Our product is **SinAi**.
 > - Our underlying research is **Sinhala Journal LLM**.
-> - **DO NOT mention or bring in SinLlama**, as SinLlama is a completely separate and unrelated external research project.
+> - The base model is **SinLlama** (Aravinda et al., MERCon 2025). **Name it, with credit and a link to the paper**, wherever the base model is described. This replaces an earlier rule that said never to mention it; the project owner decided in September 2026 that the site should match the research paper, which states that the system adapts SinLlama.
 
 ---
 
@@ -35,7 +35,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Sri Lankan newsrooms face stringent deadline pressures across print, broadcast, and digital formats while working with a mixture of standard Unicode text and legacy ASCII typography (FM/UBIN font encoding).
 
 ### The SinAi Solution
-SinAi delivers a fine-tuned foundation model (**Sinhala Journal LLM Base**) paired with specialized **Low-Rank Adaptation (LoRA)** task adapters, served across 3 unified client surfaces:
+SinAi delivers the **SinLlama** base model paired with specialized **Low-Rank Adaptation (LoRA)** task adapters, served across 3 unified client surfaces:
 1. **SinAi Web App** (`apps/web-app`): The flagship writing studio and live workspace available at `https://chat.sin-ai.app`.
 2. **SinAi Chrome Extension** (`apps/chrome-extension`): Manifest V3 browser writing assistant for CMS and web publishing.
 3. **SinAi Google Docs Add-on** (`apps/docs-addon`): Google Apps Script sidebar for newsroom editorial collaboration.
@@ -55,31 +55,23 @@ SinhalaJournalLLM/
 │   └── superpowers/specs/              # Historical architectural design specifications
 │
 ├── apps/
-│   ├── portfolio/                      # [THIS APP] Next.js 16 + React 19 Editorial Portfolio (https://sin-ai.app)
+│   ├── portfolio/                      # [THIS APP] Next.js 16 + React 19: product site + research case study (https://sin-ai.app)
 │   │   ├── app/
-│   │   │   ├── layout.tsx              # SEO metadata (sin-ai.app), typography preconnects & root layout
-│   │   │   ├── globals.css             # Tailwind v4 theme tokens, Gwen font faces & glass styles
-│   │   │   ├── page.tsx                # Master landing page assembling all 12 sections
-│   │   │   ├── privacy/page.tsx        # Google Workspace Marketplace compliant Privacy Policy
-│   │   │   ├── terms/page.tsx          # Terms of Service & AI output review disclaimer
-│   │   │   └── support/page.tsx        # Support center, Google Docs setup guide & issue reporting
-│   │   ├── components/                 # Rich modular portfolio components
-│   │   │   ├── Navbar.tsx              # Floating pill TopAppBar with backdrop blur & "Try SinAi" CTA
-│   │   │   ├── Hero.tsx                # Architectural headline & live 2-pane workspace preview
-│   │   │   ├── TrustStrip.tsx          # Dual-direction ticker of model stats & newsroom adoption
-│   │   │   ├── VisualCollage.tsx       # Floating glass cards for syntax, tone, and legacy fonts
-│   │   │   ├── Manifesto.tsx           # Celestial geometric vector rings & editorial philosophy
-│   │   │   ├── ResearchShowcase.tsx    # Sinhala Journal LLM base model & security architecture
-│   │   │   ├── InteractivePlayground.tsx # In-browser live Sinhala AI inference simulator
-│   │   │   ├── EcosystemTabs.tsx       # Tabbed showcase of Web App, Extension, and Docs Add-on
-│   │   │   ├── Benchmarks.tsx          # ROUGE-L, accuracy comparisons & LoRA adapter changelog
-│   │   │   ├── Testimonials.tsx        # Editorial quotes from chief editors & linguists
-│   │   │   ├── Updates.tsx             # Research whitepapers & release logs
-│   │   │   ├── CtaSection.tsx          # High-impact CTA leading to chat.sin-ai.app and GitHub
-│   │   │   └── Footer.tsx              # Obsidian black footer with legal links & attribution
+│   │   │   ├── layout.tsx              # Marketplace-verified metadata (title, JSON-LD), fonts, root layout
+│   │   │   ├── globals.css             # Tailwind v4 tokens, Gwen font faces (ligatures off, see 4.2), reduced-motion
+│   │   │   ├── page.tsx                # Homepage: the plain-language product story (10 sections)
+│   │   │   ├── research/page.tsx       # Research & engineering case study (data, architecture, results, evaluation...)
+│   │   │   ├── research/<tool>/page.tsx  # Four tool deep dives, all rendered by components/research/ToolDeepDive.tsx
+│   │   │   └── privacy/ terms/ support/ docs-addon/   # Google Workspace Marketplace pages. Do not edit casually.
+│   │   ├── content/                    # Typed data. ALL copy and every published number lives here, with sources
+│   │   │   ├── site.ts  tools.ts  demo.ts  research.ts  evaluation.ts
+│   │   │   └── testimonials.ts  team.ts  timeline.ts  stack.ts  toolPages.ts
+│   │   ├── components/                 # Navbar, Footer, Hero, WhatIsIt, ToolCards, ExampleDemo, Surfaces, HowItWorks,
+│   │   │   │                           # Feedback, ResearchTeaser, Team, CtaSection, ui.tsx, RatingBar, DiffText
+│   │   │   └── research/               # DataSection, ArchitectureDiagram, EngineChallenges, Evidence, Build, ToolDeepDive
 │   │   ├── public/
 │   │   │   ├── fonts/                  # Gwen WOFF2 font files + UBIN16S legacy Sinhala ttf
-│   │   │   └── brand/                  # SinAi logos, SVGs, and visual graphics
+│   │   │   └── brand/                  # SinAi logos and graphics
 │   │   └── AGENTS.md                   # This master blueprint file
 │   │
 │   ├── web-app/                        # [WORKSPACE] React 19 + Vite Two-Pane Writing Workspace (chat.sin-ai.app)
@@ -109,18 +101,16 @@ SinhalaJournalLLM/
 
 ## 3. Core Research & Model Specifications
 
-### 3.1 Base Foundation Model
-- **Model Path**: `SinhalaJournal-Base` / `Sinhala Journal LLM`
-- **Architecture**: Domain-adapted foundation model with customized Sinhala Byte-Pair Encoding (BPE) tokenizer to minimize morpheme splitting.
-- **Context Length**: Up to 10,000 characters per inference pass.
+Model and dataset facts live in `content/research.ts`, sourced from the paper (`Research/paper.tex`). **Do not copy numbers into this file**; they go stale.
 
-### 3.2 Specialized LoRA Adapters
-| Task | Adapter Identifier | LoRA Rank | Purpose & Dataset Focus |
-|---|---|---|---|
-| **Grammar Checking** | `grammar_v13` | $r=32$ | Syntactic agreement, Subject-Verb honorific harmony, inflectional correction, legacy spelling fixes. |
-| **Headline Generation** | `headline_v17` | $r=32$ | Journalistic click-worthy headlines, breaking news tickers, formal front-page angles, question hooks. |
-| **5-Tone Style Rewriter** | `style_v07` | $r=16$ | Register transformation across 5 styles: Formal (සාම්ප්‍රදායික), Casual (සරල), Sensational (ආකර්ෂණීය), Analytical (විශ්ලේෂණාත්මක), Neutral (මධ්‍යස්ථ). |
-| **News Summarization** | `summarization_v04` | $r=32$ | Length-conditioned abstractive summaries, multi-document synthesis, and 3-bullet executive briefs. |
+### 3.1 Base model
+SinAi adapts **SinLlama**: Llama 3 8B extended with Sinhala vocabulary and continual pretraining (Aravinda et al., MERCon 2025, DOI 10.1109/MERCon67903.2025.11217094). We did not repeat its tokenizer extension or pretraining. The merged checkpoint is loaded in 4-bit NF4 with BF16 compute.
+
+### 3.2 Task adapters
+One LoRA adapter per tool: grammar, headline, summary, style. The versions evaluated in the paper are grammar v27, headline v19, summary v06/v07 and style v13. **They are not necessarily what is deployed**: `docs/serve_sinai.py` picks adapters from disk. The site therefore labels results "evaluated adapter" and never claims a version is live.
+
+### 3.3 The five styles
+`formal`, `sports`, `youth`, `editorial`, `feature`. Source: `apps/backend-api/app/core/prompts.py`. Earlier versions of this file and of the site listed "Formal, Casual, Sensational, Analytical, Neutral"; that was wrong.
 
 ---
 
@@ -145,7 +135,8 @@ The portfolio website adapts the **"Quiet Luxury" and Editorial Minimalism** des
 ### 4.2 Typography Hierarchy
 - **Display Serif**: **Gwen** (WOFF2) for the SinAi wordmark, heroic headlines, and architectural section titles.
 - **Sans-Serif UI & Body**: **Plus Jakarta Sans / Inter** for metadata, button labels, and body text.
-- **Sinhala Typography**: **Noto Sans Sinhala / Inter Variable** for authentic Unicode Sinhala rendering.
+- **Sinhala Typography**: **Noto Sans Sinhala** (loaded in `layout.tsx`) with system Sinhala fonts as fallback. Wrap Sinhala text in `<Sinhala>` from `components/ui.tsx` so it gets `lang="si"`.
+- **Gwen caveats** (verified in the browser): the trial font's standard `liga` feature draws "fi", "fl" and "ff" as a broken "|" glyph, so `.font-display` turns ligatures off in `globals.css`. Only `.wordmark` (the product name, which contains none of those pairs) keeps them. Gwen's decimal point is a diamond, so **data figures use the sans font** with `tabular-nums`.
 - **Legacy Typography**: **UBIN16S** (TTF) for decoding legacy ASCII newsroom print font codepoints.
 
 ---
@@ -184,3 +175,27 @@ The portfolio website adapts the **"Quiet Luxury" and Editorial Minimalism** des
    source .venv/bin/activate
    uvicorn app.main:app --reload --port 8001
    ```
+
+---
+
+## 7. Content & Honesty Rules
+
+These exist because the previous version of the site contained invented content. Keep them.
+
+1. **Every number comes from `content/research.ts` or `content/evaluation.ts`, with a `source`.** No source, no number.
+2. **No invented testimonials, benchmarks, latency, or adoption claims.** Testimonials are verbatim comments from real respondents (`content/testimonials.ts`), attributed by role and never by name.
+3. **Demo examples are illustrative.** They are hand-written and labelled "Illustrative example — not a live result". Have a native Sinhala speaker review the Sinhala text before publishing.
+4. **The user evaluation** (13 respondents, 27-31 August 2026) always states its sample size and that it is a small, self-selected pilot. The counts in `content/evaluation.ts` must match the team's spreadsheet.
+5. **Google Workspace Marketplace items. Do not change without re-checking verification:**
+   - the homepage `<h1>` and `<title>` read exactly "SinAI Document Assistant";
+   - the visible "Application purpose and overview" statement (`SITE.purposeRest` in `content/site.ts`);
+   - links to `/docs-addon`, `/docs-addon/privacy` and `/docs-addon/terms` on the first screen;
+   - the product name and the privacy / terms / support links in the Navbar and Footer, which every legal page shares.
+6. **Name SinLlama with credit** wherever the base model is described (see the identity rule at the top).
+7. **Team credits** live in `content/team.ts`, with names verbatim as supplied by the team.
+
+### Previewing
+`npm run build`, then use the `portfolio-out` preview entry (serves `out/` on port 4174 with plain `serve`, never `serve -s`). The preview tool reads `Research/.claude/launch.json`, the outer directory. Browsers cache the HTML across rebuilds, so hard-reload before judging a change.
+
+### Known stale documentation
+Authentication has been self-hosted (bcrypt + signed JWTs; Supabase is only the database) since 2026-08-03, but the root `README.md` and `docs/auth-setup.md` still describe Supabase Auth. Follow the code (`apps/backend-api/app/core/security.py`), not those docs.

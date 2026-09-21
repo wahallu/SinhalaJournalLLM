@@ -1,195 +1,149 @@
-"use client";
-
-import React from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { Sparkles, BookOpen } from "lucide-react";
+import Link from "next/link";
+import { SITE } from "@/content/site";
+import { TOOLS } from "@/content/tools";
+
+/**
+ * Site footer. Shared by every page, including the legal pages, so it keeps
+ * the exact product name and the privacy / terms / support links that the
+ * Google Workspace Marketplace review looks for.
+ */
+
+const linkClass =
+  "text-white/70 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white rounded";
 
 export default function Footer() {
   return (
-    <footer className="bg-[#121212] text-white pt-14 sm:pt-20 pb-8 sm:pb-12 px-4 sm:px-6 lg:px-12 rounded-t-[32px] sm:rounded-t-[64px] relative z-20 border-t border-white/10">
-      <div className="max-w-[1560px] mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 sm:gap-12 mb-12 sm:mb-16">
-          {/* Brand Column (2 cols wide on lg) */}
-          <div className="sm:col-span-2 flex flex-col gap-4 sm:gap-6">
-            <div className="flex items-center gap-2.5 sm:gap-3">
+    <footer className="bg-[#121212] text-white">
+      <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
+        <div className="grid gap-12 md:grid-cols-12">
+          <div className="md:col-span-5">
+            <Link href="/" className="inline-flex items-center gap-3">
               <Image
                 src="/brand/web-app-manifest-192x192.png"
-                alt="SinAI Document Assistant Logo"
-                width={36}
-                height={36}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl shadow-md object-cover"
+                alt={`${SITE.name} logo`}
+                width={40}
+                height={40}
+                className="h-10 w-10 rounded-xl object-cover"
               />
-              <span className="font-display text-xl sm:text-2xl font-bold tracking-tight text-white">
-                SinAI Document Assistant
+              <span className="wordmark font-display text-xl font-bold">
+                {SITE.name}
               </span>
-            </div>
-
-            <p className="text-xs sm:text-sm text-white/60 max-w-sm leading-relaxed">
-              SinAI Document Assistant is the domain-adapted AI writing &amp; journalistic intelligence ecosystem for the Sinhala language. Powered by specialized LoRA adapters for Google Docs, Web, and newsrooms.
+            </Link>
+            <p className="mt-5 max-w-sm text-base leading-relaxed text-white/70">
+              Writing tools for Sinhala news: grammar, headlines, style and
+              summaries, built by the {SITE.researchTitle} research team.
             </p>
-
-            <div className="flex gap-2.5 sm:gap-3 pt-1 sm:pt-2">
+            <p className="mt-4 text-base text-white/70">
+              Questions?{" "}
               <a
-                href="https://github.com/wahallu/SinhalaJournalLLM"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/15 flex items-center justify-center hover:bg-white/10 transition-colors text-white/80 hover:text-white"
-                aria-label="GitHub Repository"
+                href={`mailto:${SITE.supportEmail}`}
+                className="font-semibold text-white underline decoration-white/30 underline-offset-4 hover:decoration-white"
               >
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-currentColor" viewBox="0 0 24 24">
-                  <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
-                </svg>
+                {SITE.supportEmail}
               </a>
-              <a
-                href="https://chat.sin-ai.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/15 flex items-center justify-center hover:bg-[#cd191a] hover:border-[#cd191a] transition-all text-white/80 hover:text-white"
-                aria-label="Try SinAi Workspace"
-              >
-                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </a>
-              <a
-                href="https://github.com/wahallu/SinhalaJournalLLM/tree/main/docs"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-white/15 flex items-center justify-center hover:bg-white/10 transition-colors text-white/80 hover:text-white"
-                aria-label="Documentation"
-              >
-                <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </a>
-            </div>
+            </p>
           </div>
 
-          {/* Column 2: Client Applications */}
-          <div>
-            <h4 className="text-[11px] sm:text-xs font-bold text-white uppercase tracking-widest mb-3 sm:mb-5">
-              Client Apps
-            </h4>
-            <ul className="space-y-2 sm:space-y-3 text-[11px] sm:text-xs text-white/60">
+          <nav aria-label="Product" className="md:col-span-2">
+            <h2 className="text-sm font-semibold text-white">Use it</h2>
+            <ul className="mt-4 space-y-3 text-base">
               <li>
                 <a
-                  href="https://chat.sin-ai.app"
+                  href={SITE.appUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-white transition-colors"
+                  className={linkClass}
                 >
-                  SinAi Workspace
+                  Web app
                 </a>
               </li>
               <li>
                 <a
-                  href="https://github.com/wahallu/SinhalaJournalLLM/tree/main/apps/chrome-extension"
+                  href={SITE.extensionUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-white transition-colors"
+                  className={linkClass}
                 >
-                  Chrome Extension (MV3)
+                  Chrome extension
                 </a>
               </li>
               <li>
-                <Link
-                  href="/docs-addon"
-                  className="hover:text-white transition-colors"
+                <Link href="/docs-addon" className={linkClass}>
+                  Google Docs add-on
+                </Link>
+              </li>
+            </ul>
+          </nav>
+
+          <nav aria-label="Research" className="md:col-span-2">
+            <h2 className="text-sm font-semibold text-white">Research</h2>
+            <ul className="mt-4 space-y-3 text-base">
+              <li>
+                <Link href="/research" className={linkClass}>
+                  Overview
+                </Link>
+              </li>
+              {TOOLS.map((t) => (
+                <li key={t.id}>
+                  <Link href={t.href} className={linkClass}>
+                    {t.name}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <a
+                  href={SITE.repoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClass}
                 >
-                  SinAI Document Assistant (Docs)
-                </Link>
+                  Source code
+                </a>
               </li>
             </ul>
-          </div>
+          </nav>
 
-          {/* Column 3: Research & Adapters */}
-          <div>
-            <h4 className="text-[11px] sm:text-xs font-bold text-white uppercase tracking-widest mb-3 sm:mb-5">
-              Research &amp; Models
-            </h4>
-            <ul className="space-y-2 sm:space-y-3 text-[11px] sm:text-xs text-white/60">
+          <nav aria-label="Support and legal" className="md:col-span-3">
+            <h2 className="text-sm font-semibold text-white">Support and legal</h2>
+            <ul className="mt-4 space-y-3 text-base">
               <li>
-                <Link href="/research/grammar-checker" className="hover:text-white transition-colors">
-                  Grammar Checker (v22)
-                </Link>
-              </li>
-              <li>
-                <Link href="/research/headline-generator" className="hover:text-white transition-colors">
-                  Headline Generator (v19)
-                </Link>
-              </li>
-              <li>
-                <Link href="/research/style-rewriter" className="hover:text-white transition-colors">
-                  Style Rewriter (v07)
-                </Link>
-              </li>
-              <li>
-                <Link href="/research/news-summarizer" className="hover:text-white transition-colors">
-                  News Summarizer (v06)
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 4: Documentation & Support */}
-          <div>
-            <h4 className="text-[11px] sm:text-xs font-bold text-white uppercase tracking-widest mb-3 sm:mb-5">
-              Support &amp; Legal
-            </h4>
-            <ul className="space-y-2 sm:space-y-3 text-[11px] sm:text-xs text-white/60">
-              <li>
-                <Link href="/privacy" className="hover:text-white transition-colors">
+                <Link href="/privacy" className={linkClass}>
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="hover:text-white transition-colors">
+                <Link href="/terms" className={linkClass}>
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="/support" className="hover:text-white transition-colors">
-                  Support &amp; Setup Guide
+                <Link href="/support" className={linkClass}>
+                  Support and setup guide
                 </Link>
               </li>
               <li>
-                <Link href="/support#report-issue" className="hover:text-white transition-colors">
-                  Report an Issue
+                <Link href="/support#report-issue" className={linkClass}>
+                  Report an issue
                 </Link>
-              </li>
-              <li>
-                <a
-                  href="https://github.com/wahallu/SinhalaJournalLLM"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-white transition-colors"
-                >
-                  GitHub Repository
-                </a>
               </li>
             </ul>
-          </div>
+          </nav>
         </div>
 
-        {/* Bottom Copyright Bar */}
-        <div className="pt-6 sm:pt-8 border-t border-white/10 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 text-[10px] sm:text-xs text-white/40 text-center sm:text-left">
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-4">
-            <p>© 2026 SinAi Research &amp; Engineering Group.</p>
-            <span>•</span>
-            <Link href="/privacy" className="hover:text-white transition-colors">
+        <div className="mt-14 flex flex-col gap-3 border-t border-white/10 pt-6 text-sm text-white/60 sm:flex-row sm:items-center sm:justify-between">
+          <p>© 2026 {SITE.organisation}.</p>
+          <p className="flex gap-5">
+            <Link href="/privacy" className={linkClass}>
               Privacy
             </Link>
-            <span>•</span>
-            <Link href="/terms" className="hover:text-white transition-colors">
+            <Link href="/terms" className={linkClass}>
               Terms
             </Link>
-            <span>•</span>
-            <Link href="/support" className="hover:text-white transition-colors">
+            <Link href="/support" className={linkClass}>
               Support
             </Link>
-          </div>
-          <div className="flex items-center gap-3 sm:gap-6">
-            <span>Built for Sri Lankan Journalism</span>
-            <span>•</span>
-            <span className="text-[#cd191a] font-bold">SinAi Beta</span>
-          </div>
+          </p>
         </div>
       </div>
     </footer>

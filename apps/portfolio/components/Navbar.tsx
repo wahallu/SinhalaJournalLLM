@@ -1,154 +1,135 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowUpRight, Sparkles, Menu, X, BookOpen, Layers, Cpu } from "lucide-react";
+import { ArrowUpRight, Menu, X } from "lucide-react";
+import { SITE } from "@/content/site";
+
+// Hash links start with "/" so they also work from /privacy, /research, etc.
+const LINKS = [
+  { href: "/#tools", label: "Tools" },
+  { href: "/#demo", label: "Demo" },
+  { href: "/#where", label: "Where to use it" },
+  { href: "/#feedback", label: "Feedback" },
+  { href: "/research", label: "Research" },
+  { href: "/#team", label: "Team" },
+];
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
+  // Close the mobile menu with Escape.
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   return (
-    <header className="fixed top-3 sm:top-5 left-0 right-0 z-50 flex items-center justify-center px-3 sm:px-6 w-full pointer-events-none transition-all duration-300">
-      <div
-        className={`pointer-events-auto w-full max-w-[960px] flex items-center justify-between bg-[#151515]/90 backdrop-blur-xl rounded-full px-2.5 sm:px-4 py-1.5 sm:py-2 shadow-2xl border border-white/12 transition-all duration-300 ${
-          scrolled ? "py-1.5 sm:py-2 bg-[#121212]/95 border-white/20 shadow-[0_12px_40px_rgba(0,0,0,0.35)]" : ""
-        }`}
-      >
-        {/* Left: Brand Identity */}
-        <Link href="/" className="flex items-center gap-1.5 sm:gap-2.5 pl-1 group">
-          <Image
-            src="/brand/web-app-manifest-192x192.png"
-            alt="SinAI Document Assistant Logo"
-            width={32}
-            height={32}
-            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full shadow-md group-hover:scale-105 transition-transform duration-300 shrink-0 object-cover"
-          />
-          <div className="flex items-center gap-1 sm:gap-1.5">
-            <span className="text-white font-display text-xs sm:text-sm md:text-base font-bold tracking-tight">
-              SinAI Document Assistant
+    <header className="pointer-events-none fixed inset-x-0 top-3 z-50 flex justify-center px-3 sm:top-5 sm:px-6">
+      <div className="pointer-events-auto relative w-full max-w-[1120px]">
+        <div className="flex items-center justify-between gap-3 rounded-full border border-white/15 bg-[#151515]/92 py-2 pl-3 pr-2 shadow-[0_12px_40px_rgba(0,0,0,0.3)] backdrop-blur-xl sm:pl-4">
+          <Link
+            href="/"
+            className="group flex min-w-0 items-center gap-2.5 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            <Image
+              src="/brand/web-app-manifest-192x192.png"
+              alt={`${SITE.name} logo`}
+              width={32}
+              height={32}
+              className="h-8 w-8 shrink-0 rounded-full object-cover"
+            />
+            <span className="wordmark truncate font-display text-[15px] font-bold tracking-tight text-white sm:text-base">
+              {SITE.name}
             </span>
-            <span className="hidden xs:inline text-[8px] sm:text-[9px] uppercase tracking-widest px-1 sm:px-1.5 py-0.5 rounded bg-white/10 text-white/70 font-semibold border border-white/10">
+            <span className="hidden rounded-md border border-white/15 bg-white/10 px-1.5 py-0.5 text-xs font-medium text-white/75 sm:inline">
               Beta
             </span>
-          </div>
-        </Link>
+          </Link>
 
-        {/* Center: Nav Links */}
-        <nav className="hidden md:flex items-center gap-1 lg:gap-2 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
-          <Link
-            href="/#research"
-            className="text-[11px] lg:text-xs uppercase tracking-wider font-semibold text-white/70 hover:text-white hover:bg-white/10 px-2.5 lg:px-3 py-1 rounded-full transition-all duration-200"
+          <nav
+            aria-label="Main"
+            className="hidden items-center gap-0.5 lg:flex"
           >
-            Research
-          </Link>
-          <Link
-            href="/#capabilities"
-            className="text-[11px] lg:text-xs uppercase tracking-wider font-semibold text-white/70 hover:text-white hover:bg-white/10 px-2.5 lg:px-3 py-1 rounded-full transition-all duration-200"
-          >
-            Capabilities
-          </Link>
-          <Link
-            href="/#ecosystem"
-            className="text-[11px] lg:text-xs uppercase tracking-wider font-semibold text-white/70 hover:text-white hover:bg-white/10 px-2.5 lg:px-3 py-1 rounded-full transition-all duration-200"
-          >
-            Apps
-          </Link>
-          <Link
-            href="/#benchmarks"
-            className="text-[11px] lg:text-xs uppercase tracking-wider font-semibold text-white/70 hover:text-white hover:bg-white/10 px-2.5 lg:px-3 py-1 rounded-full transition-all duration-200"
-          >
-            Benchmarks
-          </Link>
-          <Link
-            href="/#playground-simulator"
-            className="text-[11px] lg:text-xs uppercase tracking-wider font-semibold text-[#fca5a5] hover:text-white hover:bg-[#cd191a]/30 px-2.5 lg:px-3 py-1 rounded-full transition-all duration-200 flex items-center gap-1"
-          >
-            <Sparkles className="w-3 h-3 text-[#f87171]" />
-            Try SinAi
-          </Link>
-        </nav>
+            {LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="rounded-full px-3 py-1.5 text-sm font-medium text-white/75 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <a
-            href="https://chat.sin-ai.app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group relative inline-flex items-center gap-1 sm:gap-1.5 bg-gradient-to-r from-[#cd191a] to-[#dc4341] hover:from-[#b01e1f] hover:to-[#cd191a] text-white px-3 sm:px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider shadow-lg shadow-[#cd191a]/25 hover:shadow-[#cd191a]/45 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shrink-0"
-          >
-            <span>Try SinAi</span>
-            <ArrowUpRight className="w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </a>
-
-          {/* Mobile menu toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-1.5 text-white/80 hover:text-white rounded-full hover:bg-white/10 transition-colors"
-            aria-label="Toggle Menu"
-          >
-            {mobileMenuOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5" />}
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="pointer-events-auto absolute top-14 sm:top-20 left-3 right-3 sm:left-4 sm:right-4 bg-[#151515]/98 backdrop-blur-2xl border border-white/15 rounded-2xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col gap-3 md:hidden z-50">
-          <Link
-            href="/#research"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 text-xs sm:text-sm font-semibold text-white/80 hover:text-white py-2 border-b border-white/10"
-          >
-            <Cpu className="w-4 h-4 text-[#cd191a]" />
-            Sinhala Journal LLM Research
-          </Link>
-          <Link
-            href="/#capabilities"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 text-xs sm:text-sm font-semibold text-white/80 hover:text-white py-2 border-b border-white/10"
-          >
-            <Layers className="w-4 h-4 text-[#cd191a]" />
-            Linguistic Capabilities
-          </Link>
-          <Link
-            href="/#ecosystem"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 text-xs sm:text-sm font-semibold text-white/80 hover:text-white py-2 border-b border-white/10"
-          >
-            <BookOpen className="w-4 h-4 text-[#cd191a]" />
-            Client Applications
-          </Link>
-          <Link
-            href="/#playground-simulator"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 text-xs sm:text-sm font-semibold text-[#f87171] hover:text-white py-2 border-b border-white/10"
-          >
-            <Sparkles className="w-4 h-4 text-[#f87171]" />
-            Interactive Workspace
-          </Link>
-          <div className="pt-2 flex flex-col gap-2">
+          <div className="flex items-center gap-1.5">
             <a
-              href="https://chat.sin-ai.app"
+              href={SITE.appUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-[#cd191a] text-white py-2.5 sm:py-3 rounded-full text-xs font-bold uppercase tracking-wider text-center shadow-lg"
+              className="group hidden items-center gap-1.5 whitespace-nowrap rounded-full bg-crimson px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-crimson-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:inline-flex"
             >
-              <span>Try SinAi Workspace</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
+              Try SinAi
+              <ArrowUpRight
+                aria-hidden="true"
+                className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+              />
             </a>
+            <button
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-controls="mobile-menu"
+              aria-label={open ? "Close menu" : "Open menu"}
+              className="rounded-full p-2 text-white/85 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white lg:hidden"
+            >
+              {open ? (
+                <X aria-hidden="true" className="h-5 w-5" />
+              ) : (
+                <Menu aria-hidden="true" className="h-5 w-5" />
+              )}
+            </button>
           </div>
         </div>
-      )}
+
+        {open && (
+          <nav
+            id="mobile-menu"
+            aria-label="Mobile"
+            className="absolute inset-x-0 top-full mt-2 rounded-3xl border border-white/15 bg-[#151515]/98 p-3 shadow-2xl backdrop-blur-2xl lg:hidden"
+          >
+            <ul className="flex flex-col">
+              {LINKS.map((l) => (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    onClick={() => setOpen(false)}
+                    className="block rounded-2xl px-4 py-3 text-base font-medium text-white/85 transition-colors hover:bg-white/10 hover:text-white"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+              <li className="mt-2 border-t border-white/10 pt-3">
+                <a
+                  href={SITE.appUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 rounded-full bg-crimson px-4 py-3 text-base font-semibold text-white transition-colors hover:bg-crimson-dark"
+                >
+                  Try SinAi Workspace
+                  <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
+                </a>
+              </li>
+            </ul>
+          </nav>
+        )}
+      </div>
     </header>
   );
 }
