@@ -41,7 +41,7 @@ export function DataSection() {
       <SectionHeader
         eyebrow="The data"
         title="Over a million articles, filtered down to what is worth learning from."
-        lede="Plain version: we collected Sinhala news, threw out the unusable third, and built four separate training sets, one per tool."
+        lede="Plain version: we collected Sinhala news, removed duplicates and records that failed the quality rules, and built four separate training sets, one per tool."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

@@ -1,4 +1,4 @@
-import { TEAM } from "@/content/team";
+import { SUPERVISORS, TEAM } from "@/content/team";
 import { SITE } from "@/content/site";
 import { TOOL_ICONS } from "@/components/toolIcons";
 import { Section, SectionHeader, TextLink } from "@/components/ui";
@@ -12,9 +12,19 @@ export default function Team() {
     <Section id="team">
       <SectionHeader
         eyebrow="The team"
-        title="The team behind SinAi."
-        lede={`SinAi is the ${SITE.researchTitle} research project (${SITE.projectCode}).${TEAM.length > 0 ? " Each team member built and evaluated one of the tools." : ""}`}
+        title="The people behind SinAI."
+        lede={`SinAI is the portfolio and product identity of the ${SITE.researchTitle} project (${SITE.projectCode}). Each team member built and evaluated one of the four research components.`}
       />
+
+      <div className="mb-10 grid gap-5 sm:grid-cols-2">
+        {SUPERVISORS.map((person) => (
+          <article key={person.name} className="rounded-3xl border border-line bg-panel-bg p-7">
+            <p className="text-sm font-semibold text-crimson">{person.role}</p>
+            <h3 className="mt-2 font-display text-2xl font-bold text-black-main">{person.name}</h3>
+            <p className="mt-2 text-base text-[#5f5c56]">Sri Lanka Institute of Information Technology</p>
+          </article>
+        ))}
+      </div>
 
       {TEAM.length > 0 ? (
         <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">

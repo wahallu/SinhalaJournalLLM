@@ -1,21 +1,18 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-import WhatIsIt from "@/components/WhatIsIt";
-import ToolCards from "@/components/ToolCards";
-import ExampleDemo from "@/components/ExampleDemo";
 import Surfaces from "@/components/Surfaces";
-import HowItWorks from "@/components/HowItWorks";
-import Feedback from "@/components/Feedback";
-import ResearchTeaser from "@/components/ResearchTeaser";
 import Team from "@/components/Team";
-import CtaSection from "@/components/CtaSection";
 import Footer from "@/components/Footer";
+import ProjectScope from "@/components/ProjectScope";
+import PortfolioMilestones from "@/components/PortfolioMilestones";
+import DocumentLibrary from "@/components/DocumentLibrary";
+import ResearchHighlights from "@/components/ResearchHighlights";
+import ContactSection from "@/components/ContactSection";
 
 /**
- * Homepage: the plain-language product story. Technical depth lives on
- * /research so this page stays quick to read. Section order follows how a
- * first-time visitor's questions arise: what is it, what does it do, show me,
- * where can I use it, how does it work, does it actually help, who made it.
+ * One-page research portfolio structure: overview, scope, objectives,
+ * methodology, milestones, document library, outputs, team, and contact.
+ * The deeper technical evidence remains available under /research.
  */
 export default function Home() {
   return (
@@ -23,15 +20,13 @@ export default function Home() {
       <Navbar />
       <main className="flex-1">
         <Hero />
-        <WhatIsIt />
-        <ToolCards />
-        <ExampleDemo />
+        <ProjectScope />
         <Surfaces />
-        <HowItWorks />
-        <Feedback />
-        <ResearchTeaser />
+        <PortfolioMilestones />
+        <DocumentLibrary />
+        <ResearchHighlights />
         <Team />
-        <CtaSection />
+        <ContactSection />
       </main>
       <Footer />
     </div>

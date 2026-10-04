@@ -16,7 +16,7 @@ export const TIMELINE: Milestone[] = [
     when: "Up to March 2026",
     title: "Building the news corpus",
     detail:
-      "Crawled 1,031,456 Sinhala news articles (the latest dated 4 March 2026) and filtered them down to the corpus the models learn from.",
+      "Collected 884,193 Sinhala news articles (the latest dated 4 March 2026) and filtered them down to the 665,887-article corpus used for the task datasets.",
     source: "Paper",
   },
   {

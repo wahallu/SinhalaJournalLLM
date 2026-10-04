@@ -9,15 +9,19 @@
 import { getAccessToken, getApiBase, refreshAccessToken } from '../auth/authClient';
 import { invalidateApiCache } from '../services/api';
 
-async function request(endpoint, { method = 'GET', body = null } = {}) {
+async function request(endpoint, { method = 'GET', body = null, formData = null } = {}) {
   const send = (token) =>
     fetch(`${getApiBase()}${endpoint}`, {
       method,
       headers: {
-        'Content-Type': 'application/json',
+        ...(formData === null ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      ...(body !== null ? { body: JSON.stringify(body) } : {}),
+      ...(formData !== null
+        ? { body: formData }
+        : body !== null
+          ? { body: JSON.stringify(body) }
+          : {}),
     });
 
   const token = getAccessToken();
@@ -84,6 +88,23 @@ export function updateCategory(categoryId, category) {
 
 export function deleteCategory(categoryId) {
   return request(`/admin/categories/${categoryId}`, { method: 'DELETE' });
+}
+
+// ── Portfolio documents ──
+export function listPortfolioDocuments() {
+  return request('/admin/portfolio-documents');
+}
+
+export function uploadPortfolioDocument(formData) {
+  return request('/admin/portfolio-documents', { method: 'POST', formData });
+}
+
+export function updatePortfolioDocument(documentId, changes) {
+  return request(`/admin/portfolio-documents/${documentId}`, { method: 'PATCH', body: changes });
+}
+
+export function deletePortfolioDocument(documentId) {
+  return request(`/admin/portfolio-documents/${documentId}`, { method: 'DELETE' });
 }
 
 // ── Settings ──

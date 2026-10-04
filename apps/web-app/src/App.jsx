@@ -39,6 +39,7 @@ const AdminUsers         = lazy(() => import('./admin/pages/Users'));
 const UserDetail         = lazy(() => import('./admin/pages/UserDetail'));
 const Chats              = lazy(() => import('./admin/pages/Chats'));
 const Categories         = lazy(() => import('./admin/pages/Categories'));
+const PortfolioDocuments = lazy(() => import('./admin/pages/PortfolioDocuments'));
 const AdminPlans         = lazy(() => import('./admin/pages/Plans'));
 const AdminUpgrades      = lazy(() => import('./admin/pages/Upgrades'));
 const AdminSettings      = lazy(() => import('./admin/pages/Settings'));
@@ -511,6 +512,7 @@ function App() {
           <Route path="users/:userId" element={<UserDetail />} />
           <Route path="chats" element={<Chats />} />
           <Route path="categories" element={<Categories />} />
+          <Route path="portfolio-documents" element={<PortfolioDocuments />} />
           <Route path="plans" element={<AdminPlans />} />
           <Route path="upgrades" element={<AdminUpgrades />} />
           <Route path="settings" element={<AdminSettings />} />

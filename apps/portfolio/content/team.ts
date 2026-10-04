@@ -15,6 +15,16 @@ export interface TeamMember {
   profileUrl?: string;
 }
 
+export interface Supervisor {
+  name: string;
+  role: "Supervisor" | "Co-supervisor";
+}
+
+export const SUPERVISORS: Supervisor[] = [
+  { name: "Prof. Nuwan Kodagoda", role: "Supervisor" },
+  { name: "Ms. Poojani Gunathilake", role: "Co-supervisor" },
+];
+
 export const TEAM: TeamMember[] = [
   { name: "Fonseka G N V S", component: "Grammar checker", toolId: "grammar" },
   { name: "Jayasinghe I A S A", component: "Headline generator", toolId: "headlines" },

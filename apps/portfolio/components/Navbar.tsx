@@ -8,12 +8,13 @@ import { SITE } from "@/content/site";
 
 // Hash links start with "/" so they also work from /privacy, /research, etc.
 const LINKS = [
-  { href: "/#tools", label: "Tools" },
-  { href: "/#demo", label: "Demo" },
-  { href: "/#where", label: "Where to use it" },
-  { href: "/#feedback", label: "Feedback" },
-  { href: "/research", label: "Research" },
+  { href: "/#project-scope", label: "Scope" },
+  { href: "/#milestones", label: "Milestones" },
+  { href: "/#documents", label: "Documents" },
+  { href: "/#presentations", label: "Presentations" },
+  { href: "/#achievements", label: "Outputs" },
   { href: "/#team", label: "Team" },
+  { href: "/#contact", label: "Contact" },
 ];
 
 export default function Navbar() {
@@ -45,7 +46,7 @@ export default function Navbar() {
               className="h-8 w-8 shrink-0 rounded-full object-cover"
             />
             <span className="wordmark truncate font-display text-[15px] font-bold tracking-tight text-white sm:text-base">
-              {SITE.name}
+              SinAI
             </span>
             <span className="hidden rounded-md border border-white/15 bg-white/10 px-1.5 py-0.5 text-xs font-medium text-white/75 sm:inline">
               Beta
