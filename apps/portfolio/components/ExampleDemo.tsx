@@ -36,7 +36,7 @@ export default function ExampleDemo() {
       <SectionHeader
         eyebrow="See it in action"
         title="Pick a tool and see what comes back."
-        lede="These examples show the kind of result each tool gives. To run it on your own text, open the app."
+        lede="Interactive examples demonstrating the output and quality of each writing tool."
       />
 
       <div className="rounded-[2rem] border border-line bg-white p-5 shadow-[0_24px_60px_-28px_rgba(27,27,27,0.25)] sm:p-8">
@@ -84,7 +84,7 @@ export default function ExampleDemo() {
 
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
           <div className="rounded-2xl border border-line bg-page-bg p-5 sm:p-6">
-            <h3 className="text-base font-semibold text-[#5f5c56]">
+            <h3 className="text-base font-bold text-[#5f5c56]">
               Input (Sinhala)
             </h3>
             <p className="mt-3 text-lg leading-loose text-black-main">
@@ -100,7 +100,7 @@ export default function ExampleDemo() {
           </div>
 
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50/40 p-5 sm:p-6">
-            <h3 className="text-base font-semibold text-emerald-900">
+            <h3 className="text-base font-bold text-emerald-900">
               {tool.outputLabel}
             </h3>
             <ol

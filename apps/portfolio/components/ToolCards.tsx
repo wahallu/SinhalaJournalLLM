@@ -9,7 +9,7 @@ export default function ToolCards() {
       <SectionHeader
         eyebrow="The tools"
         title="Four tools, each built for one job."
-        lede="Every tool has its own model trained for that task, so a grammar fix and a headline are not the same guesswork."
+        lede="Each tool is fine-tuned for a specific editorial task, delivering reliable and accurate outputs."
       />
       <div className="grid gap-6 md:grid-cols-2">
         {TOOLS.map((tool) => {

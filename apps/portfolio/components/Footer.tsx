@@ -46,7 +46,7 @@ export default function Footer() {
           </div>
 
           <nav aria-label="Product" className="md:col-span-2">
-            <h2 className="text-sm font-semibold text-white">Use it</h2>
+            <h2 className="text-sm font-bold text-white">Use it</h2>
             <ul className="mt-4 space-y-3 text-base">
               <li>
                 <a
@@ -77,7 +77,7 @@ export default function Footer() {
           </nav>
 
           <nav aria-label="Research" className="md:col-span-2">
-            <h2 className="text-sm font-semibold text-white">Research</h2>
+            <h2 className="text-sm font-bold text-white">Research</h2>
             <ul className="mt-4 space-y-3 text-base">
               <li>
                 <Link href="/research" className={linkClass}>
@@ -105,7 +105,7 @@ export default function Footer() {
           </nav>
 
           <nav aria-label="Support and legal" className="md:col-span-3">
-            <h2 className="text-sm font-semibold text-white">Support and legal</h2>
+            <h2 className="text-sm font-bold text-white">Support and legal</h2>
             <ul className="mt-4 space-y-3 text-base">
               <li>
                 <Link href="/privacy" className={linkClass}>

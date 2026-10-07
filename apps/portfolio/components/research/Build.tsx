@@ -11,13 +11,13 @@ export function SecuritySection() {
       <SectionHeader
         eyebrow="Security and reliability"
         title="Built to be trusted with a newsroom’s drafts."
-        lede="Plain version: your account is protected, your history is only yours, and a failure in one part does not take the whole service down."
+        lede="Built with secure authentication, row-level data privacy, and resilient fallback systems."
       />
       <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
         {SECURITY.map((s) => (
           <li key={s.title} className="rounded-3xl border border-line bg-white p-6">
             <ShieldCheck aria-hidden="true" className="h-6 w-6 text-crimson" />
-            <h3 className="mt-4 text-lg font-semibold text-black-main">{s.title}</h3>
+            <h3 className="mt-4 text-lg font-bold text-black-main">{s.title}</h3>
             <p className="mt-2 text-base leading-relaxed text-[#5f5c56]">{s.detail}</p>
           </li>
         ))}
@@ -32,7 +32,7 @@ export function StackSection() {
       <SectionHeader
         eyebrow="Technology"
         title="The stack, in groups."
-        lede="Grouped by the job each piece does rather than dumped in one long list."
+        lede="Core technologies grouped by architectural role across client, API, model, and data layers."
       />
       <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
         {STACK.map((g) => (
@@ -61,7 +61,7 @@ export function TimelineSection() {
       <SectionHeader
         eyebrow="Timeline"
         title="How it came together."
-        lede="Dates come from the project’s git history and the paper. Work before July 2026 is described by what the paper records, not by date."
+        lede="Key development milestones tracked across research, implementation, and deployment phases."
       />
       <ol className="relative ml-3 space-y-8 border-l-2 border-line pl-8">
         {TIMELINE.map((m) => (
@@ -88,7 +88,7 @@ export function ResourcesSection() {
         invert
         eyebrow="Explore further"
         title="Check our work."
-        lede="The code, history and documentation are public, so the claims on this site can be verified."
+        lede="Explore our open-source codebase, technical documentation, and live demo environments."
       />
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <ButtonLink href={SITE.repoUrl} variant="accent">

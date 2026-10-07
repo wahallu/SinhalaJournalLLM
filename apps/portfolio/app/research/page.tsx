@@ -59,10 +59,7 @@ export default function ResearchPage() {
               How SinAi was built, and what the evidence says.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[#5f5c56]">
-              This is the technical side of {SITE.name}, the{" "}
-              {SITE.researchTitle} research project. Each section starts with a
-              plain-language summary, then goes into detail. It includes the
-              mistakes we caught along the way.
+              Explore the technical foundation of {SITE.name}—including data pipelines, model architecture, empirical benchmarks, and newsroom field evaluations.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href={SITE.repoUrl} variant="primary">

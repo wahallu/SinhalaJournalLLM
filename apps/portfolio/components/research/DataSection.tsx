@@ -41,7 +41,7 @@ export function DataSection() {
       <SectionHeader
         eyebrow="The data"
         title="Over a million articles, filtered down to what is worth learning from."
-        lede="Plain version: we collected Sinhala news, removed duplicates and records that failed the quality rules, and built four separate training sets, one per tool."
+        lede="We collected public Sinhala news articles, removed noise and duplicates, and built targeted training sets for each writing tool."
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -59,7 +59,7 @@ export function DataSection() {
           <p className="mt-5 text-base text-[#5f5c56]">
             {fmt(CORPUS.removed)} articles ({CORPUS.removedPct}%) were removed.
           </p>
-          <h4 className="mt-7 text-base font-semibold text-black-main">
+          <h4 className="mt-7 text-base font-bold text-black-main">
             An article had to pass all of these
           </h4>
           <ul className="mt-3 space-y-2 text-base text-[#3d3b37]">

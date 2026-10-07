@@ -63,7 +63,7 @@ export default function DocumentLibrary() {
       <SectionHeader
         eyebrow="Research library"
         title="Project documents, presentations, and published research."
-        lede="The starting collection comes from the supplied Research Docs. New files published by a SinAI administrator appear here automatically without rebuilding the portfolio."
+        lede="Access research papers, milestone presentations, and project documentation from across our development phases."
       />
 
       {notice && (

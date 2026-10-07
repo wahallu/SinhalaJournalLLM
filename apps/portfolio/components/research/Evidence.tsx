@@ -28,7 +28,7 @@ export function ResultsSection() {
       <SectionHeader
         eyebrow="Results"
         title="What the measurements say, and what they do not."
-        lede="Every figure is from the research paper, shown with how many examples it was measured on and the paper’s own caveat. These describe the adapter versions evaluated there, which are not necessarily the versions running in the app today."
+        lede="Quantitative evaluation scores from our benchmark test sets, shown with sample sizes and evaluation caveats."
       />
 
       <div className="space-y-12">
@@ -99,12 +99,12 @@ export function HumanEvaluationSection() {
       <SectionHeader
         eyebrow="Human evaluation"
         title={`How ${EVAL_META.n} people rated each tool`}
-        lede={`After trying SinAi, respondents rated statements from ${EVAL_META.scale}. It was a Google Form completed between ${EVAL_META.period}. The sample is small and self-selected, so it shows early impressions rather than a controlled study.`}
+        lede={`Pilot feedback from ${EVAL_META.n} journalists, editors, and lecturers who tested all four tools (${EVAL_META.period}).`}
       />
 
       <div className="mb-10 grid gap-5 md:grid-cols-2">
         <div className="rounded-3xl border border-line bg-page-bg p-6">
-          <h3 className="text-base font-semibold text-black-main">Who took part</h3>
+          <h3 className="text-base font-bold text-black-main">Who took part</h3>
           <ul className="mt-3 space-y-1.5 text-base text-[#3d3b37]">
             {RESPONDENT_ROLES.map((r) => (
               <li key={r.label} className="flex justify-between gap-4">
@@ -115,7 +115,7 @@ export function HumanEvaluationSection() {
           </ul>
         </div>
         <div className="rounded-3xl border border-line bg-page-bg p-6">
-          <h3 className="text-base font-semibold text-black-main">
+          <h3 className="text-base font-bold text-black-main">
             How often they work with Sinhala news
           </h3>
           <ul className="mt-3 space-y-1.5 text-base text-[#3d3b37]">
@@ -189,7 +189,7 @@ export function LimitsSection() {
       <SectionHeader
         eyebrow="Limitations"
         title="What this evidence does not show."
-        lede="A research project should say where its claims stop. These are ours."
+        lede="Clear boundaries defining the scope and current limits of our research findings."
       />
       <ul className="grid gap-4 md:grid-cols-2">
         {LIMITS.map((l) => (

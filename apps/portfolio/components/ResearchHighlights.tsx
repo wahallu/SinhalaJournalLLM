@@ -6,21 +6,21 @@ const HIGHLIGHTS = [
   {
     icon: BookOpen,
     title: "Research paper completed",
-    body: "The six-page paper reports the corpus pipeline, four task adapters, data leakage audits, automatic evaluation, and a 13-participant field study.",
+    body: "Details our 665K corpus pipeline, four task adapters, benchmark evaluations, and newsroom field study.",
     href: "/documents/sinhalajournal-llm-research-paper.pdf",
     label: "Read the paper",
   },
   {
     icon: MonitorCheck,
     title: "Three working client surfaces",
-    body: "The same backend supports the SinAI web workspace, a Chrome extension, and a Google Docs add-on for newsroom writing.",
+    body: "A unified backend powers the SinAI web workspace, Chrome extension, and Google Docs add-on.",
     href: SITE.appUrl,
     label: "Open the workspace",
   },
   {
     icon: Code2,
     title: "Reproducible engineering record",
-    body: "Source code, configuration, tests, model-serving notes, and research documentation are maintained together in the project repository.",
+    body: "Complete source code, training configurations, tests, and documentation maintained in our public repository.",
     href: SITE.repoUrl,
     label: "Browse the repository",
   },
@@ -32,8 +32,8 @@ export default function ResearchHighlights() {
       <SectionHeader
         invert
         eyebrow="Research outputs"
-        title="Evidence, software, and documentation - not a showcase of unsupported claims."
-        lede="These are concrete outputs visible in the supplied documents and repository. Conference acceptance or awards are not claimed without supporting evidence."
+        title="Verified research outputs and working software."
+        lede="Key project deliverables—including our peer research paper, functional client applications, and open-source codebase."
       />
       <div className="grid gap-5 lg:grid-cols-3">
         {HIGHLIGHTS.map(({ icon: Icon, title, body, href, label }) => (

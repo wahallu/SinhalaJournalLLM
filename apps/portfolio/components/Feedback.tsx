@@ -48,7 +48,7 @@ export default function Feedback() {
       <SectionHeader
         eyebrow="Early feedback"
         title={`What ${n} testers told us`}
-        lede={`Editors, journalism students and teachers tried SinAi in ${EVAL_META.period} and rated it from 1 to 5. It is a small pilot, so read it as early impressions, not proof.`}
+        lede={`Early pilot feedback from ${n} editors, journalists, and educators who tested SinAi (${EVAL_META.period}).`}
       />
 
       <div className="grid gap-6 lg:grid-cols-12">

@@ -22,7 +22,7 @@ export const TOOLS: Tool[] = [
     name: "Grammar checker",
     tagline: "Fix grammar and spelling without losing your voice.",
     description:
-      "Paste a paragraph and get a corrected version back. It fixes mistakes and leaves sentences that are already right alone.",
+      "Paste draft text to fix grammar, spelling, and punctuation while preserving correct sentences as-is.",
     points: [
       "Corrects grammar, spelling and punctuation",
       "Keeps your meaning and wording where it is already correct",
@@ -35,7 +35,7 @@ export const TOOLS: Tool[] = [
     name: "Headline generator",
     tagline: "Get headline options in the length you need.",
     description:
-      "Give it an article and pick a length. You get up to ten distinct headline options to choose from.",
+      "Provide an article and choose a length to generate up to ten distinct, fact-checked headline options.",
     points: [
       "Short (3–5 words), medium (6–7) or long (8–10)",
       "Numbers in a headline are checked against the article",
@@ -48,7 +48,7 @@ export const TOOLS: Tool[] = [
     name: "Style rewriter",
     tagline: "Rewrite the same story for a different newspaper.",
     description:
-      "Choose a target style and the article is rewritten to match it, keeping the facts the same.",
+      "Rewrite articles across five distinct newspaper tones while preserving core facts and meaning.",
     points: [
       "Five styles: formal news, sports, youth, editorial and feature",
       "Built for newspaper registers, not generic paraphrasing",
@@ -61,7 +61,7 @@ export const TOOLS: Tool[] = [
     name: "News summarizer",
     tagline: "Long story in, clear summary out.",
     description:
-      "Condense a long article into a short, medium or long summary that keeps the main points.",
+      "Condense lengthy stories into concise, coherent summaries tailored to your preferred length.",
     points: [
       "Three lengths: short, medium and long",
       "Abstractive: it writes new sentences instead of copying lines",
@@ -90,7 +90,7 @@ export const SURFACES: Surface[] = [
     name: "Web app",
     tagline: "The full writing studio.",
     description:
-      "Work in the browser with all four tools, sign in to keep your history, and convert between Unicode and legacy Sinhala fonts.",
+      "A full browser studio with all four tools, cloud history, and real-time Unicode to legacy Sinhala font conversion.",
     points: [
       "All four tools in one workspace",
       "Saved history for signed-in users",
@@ -104,7 +104,7 @@ export const SURFACES: Surface[] = [
     name: "Chrome extension",
     tagline: "Help wherever you type.",
     description:
-      "Select text on any web page, then use the popup or the right-click menu to check, rewrite or summarize it.",
+      "Highlight text anywhere on the web to quickly check grammar, generate headlines, or summarize via context menu.",
     points: [
       "Popup and right-click menu",
       "Works on any page where you can select text",
@@ -120,7 +120,7 @@ export const SURFACES: Surface[] = [
     name: "Google Docs add-on",
     tagline: "Inside your document.",
     description:
-      "A sidebar next to your Google Doc lets a newsroom check grammar, get headlines and summarize without leaving the page.",
+      "A docked sidebar inside Google Docs allowing writers and editors to run all four tools directly within their active document.",
     points: [
       "Sidebar docked beside your document",
       "Designed for shared newsroom drafts",

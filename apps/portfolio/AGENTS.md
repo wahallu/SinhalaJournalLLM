@@ -133,10 +133,8 @@ The portfolio website adapts the **"Quiet Luxury" and Editorial Minimalism** des
   - Tints: `#fdf3f2`, `#fce5e4`
 
 ### 4.2 Typography Hierarchy
-- **Display Serif**: **Gwen** (WOFF2) for the SinAi wordmark, heroic headlines, and architectural section titles.
-- **Sans-Serif UI & Body**: **Plus Jakarta Sans / Inter** for metadata, button labels, and body text.
+- **Unified Font (Headings & Body)**: **Plus Jakarta Sans / Inter** for the entire website, including all headings (bold weight), wordmarks, metadata, button labels, and body text.
 - **Sinhala Typography**: **Noto Sans Sinhala** (loaded in `layout.tsx`) with system Sinhala fonts as fallback. Wrap Sinhala text in `<Sinhala>` from `components/ui.tsx` so it gets `lang="si"`.
-- **Gwen caveats** (verified in the browser): the trial font's standard `liga` feature draws "fi", "fl" and "ff" as a broken "|" glyph, so `.font-display` turns ligatures off in `globals.css`. Only `.wordmark` (the product name, which contains none of those pairs) keeps them. Gwen's decimal point is a diamond, so **data figures use the sans font** with `tabular-nums`.
 - **Legacy Typography**: **UBIN16S** (TTF) for decoding legacy ASCII newsroom print font codepoints.
 
 ---

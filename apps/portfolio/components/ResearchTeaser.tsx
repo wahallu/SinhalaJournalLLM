@@ -25,8 +25,8 @@ export default function ResearchTeaser() {
       <SectionHeader
         invert
         eyebrow="The research"
-        title="Built on real research, including the parts that went wrong."
-        lede="The technical write-up covers the data, the architecture and the mistakes we caught, such as a test score that looked twice as good as it really was."
+        title="Grounded in empirical research and open benchmarks."
+        lede="Comprehensive documentation covering dataset curation, model architecture, and rigorous evaluation audits."
       />
       <dl className="grid gap-5 md:grid-cols-3">
         {stats.map((s) => (

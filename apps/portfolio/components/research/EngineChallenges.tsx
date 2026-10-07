@@ -8,7 +8,7 @@ export function EngineSection() {
       <SectionHeader
         eyebrow="The AI engine"
         title="More than a chatbot wrapper: specialists, fallbacks and fact checks."
-        lede="Plain version: small task-specific models, a gateway that keeps working when parts fail, and rule-based checks that catch what a language model gets wrong."
+        lede="Task-specific adapters, high-availability model routing, and automated rule-based fact checks."
       />
 
       <div className="mb-8 rounded-3xl border border-line bg-white p-7 sm:p-9">
@@ -16,11 +16,7 @@ export function EngineSection() {
           The base model
         </h3>
         <p className="mt-3 max-w-3xl text-base leading-relaxed text-[#3d3b37]">
-          SinAi adapts <strong>{SINLLAMA.name}</strong>, a Llama 3 8B model
-          extended for Sinhala by Aravinda et al. We did not repeat its
-          tokenizer extension or continual pretraining. Our contribution is the
-          news corpus, four task datasets, the task adapters, the evaluation and
-          the serving system around them.
+          SinAi builds on <strong>{SINLLAMA.name}</strong>, adapting it with task-specific LoRA weights, curated Sinhala news datasets, automated fact checks, and a production inference gateway.
         </p>
         <p className="mt-3 text-sm text-[#5f5c56]">
           {SINLLAMA.citation}{" "}
@@ -48,7 +44,7 @@ export function ChallengesSection() {
         invert
         eyebrow="Engineering challenges"
         title="What went wrong, and what we did about it."
-        lede="Most of the value in this project came from finding flaws in our own data and tests. These are the five that mattered most."
+        lede="Five critical data, modeling, and evaluation hurdles solved during project development."
       />
       <ol className="space-y-6">
         {CHALLENGES.map((c, i) => (

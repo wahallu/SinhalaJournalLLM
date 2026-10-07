@@ -1,38 +1,5 @@
 @import "tailwindcss";
 
-/* ── Gwen Editorial Serif Font Faces ── */
-@font-face {
-  font-family: 'Gwen';
-  src: url('/fonts/Gwen-Trial-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Gwen';
-  src: url('/fonts/Gwen-Trial-SemiBold.woff2') format('woff2');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Gwen';
-  src: url('/fonts/Gwen-Trial-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Gwen';
-  src: url('/fonts/Gwen-Trial-Light.woff2') format('woff2');
-  font-weight: 300;
-  font-style: normal;
-  font-display: swap;
-}
-
 /* ── Legacy Sinhala Newsroom Font (UBIN16S) ── */
 @font-face {
   font-family: 'UBIN16S';
@@ -43,7 +10,7 @@
 }
 
 @theme {
-  --font-display: 'Gwen', Georgia, serif;
+  --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   --font-sinhala: 'Noto Sans Sinhala', 'Iskoola Pota', 'Nirmala UI', 'Sinhala Sangam MN', 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-legacy-sinhala: 'UBIN16S', sans-serif;
@@ -114,25 +81,22 @@ body {
   overflow-x: hidden;
 }
 
-.font-display {
-  font-family: var(--font-display);
-  /*
-   * The Gwen trial font's standard ligature for "fi" (and "fl", "ff") is a
-   * broken glyph that renders as "|", so "first" reads "|rst". Verified in the
-   * browser: only turning off `liga` fixes it. Ligatures are therefore off by
-   * default for the display font.
-   */
-  font-variant-ligatures: none;
-  font-feature-settings: "liga" 0, "clig" 0;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-sans);
+  font-weight: 700;
 }
 
-/*
- * The brand wordmark keeps the font's decorative ligatures. That is safe
- * because "SinAI Document Assistant" contains no "fi", "fl" or "ff" pair.
- */
+.font-display {
+  font-family: var(--font-sans);
+}
+
 .font-display.wordmark {
-  font-variant-ligatures: normal;
-  font-feature-settings: normal;
+  font-family: var(--font-sans);
 }
 
 .font-sinhala {

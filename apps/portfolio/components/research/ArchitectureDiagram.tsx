@@ -42,7 +42,7 @@ export function ArchitectureSection() {
       <SectionHeader
         eyebrow="How it fits together"
         title="Three apps, one backend, and a model gateway that does not fall over."
-        lede="Plain version: every app sends text to the same backend, which picks the right model and never leaves you without an answer."
+        lede="All three applications connect to a unified backend that routes requests to specialized models with reliable fallback protection."
       />
 
       <figure>

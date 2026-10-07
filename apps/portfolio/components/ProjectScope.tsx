@@ -10,22 +10,22 @@ const METHOD = [
   {
     icon: Database,
     title: "Collect and clean",
-    body: `${fmt(CORPUS.collected)} public Sinhala news articles were collected. Exact duplicates and records that failed the documented quality filters were removed, leaving ${fmt(CORPUS.kept)} articles.`,
+    body: `Collected ${fmt(CORPUS.collected)} public news articles, removing noise and duplicates to yield ${fmt(CORPUS.kept)} high-quality training stories.`,
   },
   {
     icon: Layers3,
     title: "Adapt one shared base",
-    body: "A separate LoRA adapter teaches each newsroom task while the same Sinhala language foundation is shared across the system.",
+    body: "Fine-tuned dedicated LoRA adapters for each task, sharing a single robust Sinhala foundation model.",
   },
   {
     icon: FlaskConical,
     title: "Evaluate by task",
-    body: "Grammar, headlines, summaries, and style rewriting use task-specific automatic checks, leakage audits, and human feedback.",
+    body: "Benchmarked every tool with automated metrics, data leakage audits, and direct newsroom feedback.",
   },
   {
     icon: ShieldCheck,
     title: "Keep editorial control",
-    body: "Safety checks protect names, numbers, dates, and quotations. Generated text remains a suggestion for a journalist to review.",
+    body: "Built-in fact guards protect key dates, names, and quotes—keeping journalists in full editorial control.",
   },
 ];
 
@@ -36,7 +36,7 @@ export default function ProjectScope() {
         <SectionHeader
           eyebrow="Project scope"
           title="A Sinhala newsroom assistant built around four everyday writing tasks."
-          lede="Sinhala journalists have fewer domain-specific AI tools than high-resource newsrooms. SinAI studies whether one shared Sinhala base model can support a practical editorial workflow without hiding the limits of the evidence."
+          lede="Sinhala journalists lack domain-specific AI writing tools. SinAI uses a shared language model to power a fast, practical editorial workflow."
         />
 
         <div className="grid gap-5 lg:grid-cols-3">
@@ -44,19 +44,19 @@ export default function ProjectScope() {
             {
               label: "Research problem",
               title: "Newsroom work is still heavily manual.",
-              body: "Grammar correction, headline writing, summarization, and style adaptation take time, while general multilingual systems often miss Sinhala morphology and journalistic context.",
+              body: "Routine editorial tasks take hours, while generic AI models struggle with Sinhala grammar, idioms, and news tone.",
             },
             {
               label: "Research gap",
               title: "The four tasks are rarely studied as one reliable workflow.",
-              body: "Existing Sinhala work covers individual NLP tasks, but controlled newsroom generation still needs better data quality, task-specific adaptation, and evaluation that checks leakage and factual preservation.",
+              body: "Most existing tools address isolated tasks. Newsrooms need an integrated workflow with clean training data, accurate facts, and reliable output.",
             },
             {
               label: "Proposed solution",
               title: "One foundation, four specialist adapters.",
               body: (
                 <>
-                  SinAI adapts{" "}
+                  SinAI fine-tunes{" "}
                   <a
                     href={SINLLAMA.url}
                     target="_blank"
@@ -65,7 +65,7 @@ export default function ProjectScope() {
                   >
                     {SINLLAMA.name}
                   </a>{" "}
-                  with separate LoRA adapters, then exposes them through a web workspace, Chrome extension, and Google Docs add-on.
+                  into four dedicated writing tools, accessible in a web studio, Chrome extension, and Google Docs.
                 </>
               ),
             },
@@ -85,7 +85,7 @@ export default function ProjectScope() {
         <SectionHeader
           eyebrow="Research objectives"
           title="Four components, each owned and evaluated as its own research task."
-          lede="Together they form the writing workflow; separately they keep datasets, prompts, adapters, and evaluation evidence traceable."
+          lede="Four specialized tools that unite into a single writing workflow, each backed by its own clean dataset and rigorous tests."
         />
         <ol className="grid gap-5 sm:grid-cols-2">
           {TOOLS.map((tool, index) => (
@@ -108,7 +108,7 @@ export default function ProjectScope() {
           invert
           eyebrow="Methodology"
           title="From public news data to evaluated newsroom tools."
-          lede="The project follows a data-centric adaptation process: improve the corpus and targets, train a lightweight specialist, then check whether the measured gain is real."
+          lede="A disciplined, data-first approach: clean large-scale news text, fine-tune lightweight model adapters, and verify with working journalists."
         />
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {METHOD.map(({ icon: Icon, title, body }, index) => (

@@ -8,8 +8,8 @@ export default function ContactSection() {
       <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
         <SectionHeader
           eyebrow="Contact"
-          title="Questions about the research or the SinAI product?"
-          lede="Use the support address for product help, or the public repository for technical discussion and reproducible project details."
+          title="Get in touch with the team."
+          lede="Reach out for product support, research inquiries, or technical discussion."
           className="mb-0 lg:col-span-7"
         />
         <div className="grid gap-3 lg:col-span-5">

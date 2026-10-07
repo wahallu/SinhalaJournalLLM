@@ -14,7 +14,7 @@ export default function Surfaces() {
       <SectionHeader
         eyebrow="Where to use it"
         title="Use SinAi where you already write."
-        lede="The same four tools are available in three places, so you do not have to change how you work."
+        lede="Access all four tools across three environments without disrupting your existing workflow."
       />
       <div className="grid gap-6 lg:grid-cols-3">
         {SURFACES.map((s) => {
