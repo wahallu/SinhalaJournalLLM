@@ -44,6 +44,7 @@ export function Section({
   return (
     <section
       id={id}
+      data-nav-theme={tone === "dark" ? "dark" : undefined}
       className={`scroll-mt-24 py-20 sm:py-28 ${TONES[tone]} ${className}`}
     >
       <Container>{children}</Container>

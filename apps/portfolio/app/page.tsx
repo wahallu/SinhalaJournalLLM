@@ -3,15 +3,17 @@ import Hero from "@/components/Hero";
 import Surfaces from "@/components/Surfaces";
 import Team from "@/components/Team";
 import Footer from "@/components/Footer";
-import ProjectScope from "@/components/ProjectScope";
+import AboutSinAi from "@/components/AboutSinAi";
+import Technologies from "@/components/Technologies";
 import PortfolioMilestones from "@/components/PortfolioMilestones";
+import AiExpo from "@/components/AiExpo";
 import DocumentLibrary from "@/components/DocumentLibrary";
 import ResearchHighlights from "@/components/ResearchHighlights";
 import ContactSection from "@/components/ContactSection";
 
 /**
- * One-page research portfolio structure: overview, scope, objectives,
- * methodology, milestones, document library, outputs, team, and contact.
+ * One-page research portfolio structure: hero, what SinAi is, products,
+ * technologies, milestones, hackathon recognition, document library, outputs, team, and contact.
  * The deeper technical evidence remains available under /research.
  */
 export default function Home() {
@@ -20,9 +22,11 @@ export default function Home() {
       <Navbar />
       <main className="flex-1">
         <Hero />
-        <ProjectScope />
+        <AboutSinAi />
         <Surfaces />
+        <Technologies />
         <PortfolioMilestones />
+        <AiExpo />
         <DocumentLibrary />
         <ResearchHighlights />
         <Team />

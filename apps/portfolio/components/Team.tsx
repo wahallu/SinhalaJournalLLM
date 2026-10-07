@@ -21,11 +21,7 @@ const TOOL_LINKS: Record<string, string> = {
 export default function Team() {
   return (
     <Section id="team">
-      <SectionHeader
-        eyebrow="The team"
-        title="The people behind SinAI."
-        lede={`Developed and evaluated by four undergraduate researchers under faculty guidance at SLIIT (${SITE.projectCode}).`}
-      />
+      <SectionHeader title="The team" />
 
       {/* Supervisors Section */}
       <div className="mb-14">

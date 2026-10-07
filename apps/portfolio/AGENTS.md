@@ -60,6 +60,7 @@ SinhalaJournalLLM/
 │   │   │   ├── layout.tsx              # Marketplace-verified metadata (title, JSON-LD), fonts, root layout
 │   │   │   ├── globals.css             # Tailwind v4 tokens, Gwen font faces (ligatures off, see 4.2), reduced-motion
 │   │   │   ├── page.tsx                # Homepage: the plain-language product story (10 sections)
+│   │   │   ├── project-scope/page.tsx  # Literature survey, gap, problem & solution, objectives, methodology (content/projectScope.ts)
 │   │   │   ├── research/page.tsx       # Research & engineering case study (data, architecture, results, evaluation...)
 │   │   │   ├── research/<tool>/page.tsx  # Four tool deep dives, all rendered by components/research/ToolDeepDive.tsx
 │   │   │   └── privacy/ terms/ support/ docs-addon/   # Google Workspace Marketplace pages. Do not edit casually.
@@ -133,7 +134,9 @@ The portfolio website adapts the **"Quiet Luxury" and Editorial Minimalism** des
   - Tints: `#fdf3f2`, `#fce5e4`
 
 ### 4.2 Typography Hierarchy
-- **Unified Font (Headings & Body)**: **Plus Jakarta Sans / Inter** for the entire website, including all headings (bold weight), wordmarks, metadata, button labels, and body text.
+- **Unified Font (Headings & Body)**: **Plus Jakarta Sans / Inter** for the website, including section headings (bold weight), metadata, button labels, and body text.
+- **Gwen** (`font-gwen`, Light 300 / Regular 400, `public/fonts`) is used only for the "SinAi" header wordmark. The hero title uses the sans face at light weight.
+- **Section headings are heading only**: no eyebrow label above and no lede paragraph below, and the heading is short (e.g. "Methodology").
 - **Sinhala Typography**: **Noto Sans Sinhala** (loaded in `layout.tsx`) with system Sinhala fonts as fallback. Wrap Sinhala text in `<Sinhala>` from `components/ui.tsx` so it gets `lang="si"`.
 - **Legacy Typography**: **UBIN16S** (TTF) for decoding legacy ASCII newsroom print font codepoints.
 
@@ -185,10 +188,10 @@ These exist because the previous version of the site contained invented content.
 3. **Demo examples are illustrative.** They are hand-written and labelled "Illustrative example — not a live result". Have a native Sinhala speaker review the Sinhala text before publishing.
 4. **The user evaluation** (13 respondents, 27-31 August 2026) always states its sample size and that it is a small, self-selected pilot. The counts in `content/evaluation.ts` must match the team's spreadsheet.
 5. **Google Workspace Marketplace items. Do not change without re-checking verification:**
-   - the homepage `<h1>` and `<title>` read exactly "SinAI Document Assistant";
-   - the visible "Application purpose and overview" statement (`SITE.purposeRest` in `content/site.ts`);
-   - links to `/docs-addon`, `/docs-addon/privacy` and `/docs-addon/terms` on the first screen;
-   - the product name and the privacy / terms / support links in the Navbar and Footer, which every legal page shares.
+   - the `<title>` reads exactly "SinAI Document Assistant";
+   - the product name and the privacy / terms / support links in the Footer, which every legal page shares.
+
+   In October 2026 the project owner replaced the homepage hero with a new design and chose, knowing the risk, to drop the earlier first-screen items: the `<h1>` "SinAI Document Assistant", the "Application purpose and overview" statement and the `/docs-addon`, `/docs-addon/privacy` and `/docs-addon/terms` links. The hero `<h1>` is now "AI Writing Assistant for Sinhala Journalism". Do not restore the old items without asking; if Marketplace verification fails, raise it with the owner.
 6. **Name SinLlama with credit** wherever the base model is described (see the identity rule at the top).
 7. **Team credits** live in `content/team.ts`, with names verbatim as supplied by the team.
 

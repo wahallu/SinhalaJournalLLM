@@ -30,7 +30,6 @@ function formatDate(value: string | null) {
 
 export default function DocumentLibrary() {
   const [uploaded, setUploaded] = useState<PortfolioDocument[]>([]);
-  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -42,11 +41,8 @@ export default function DocumentLibrary() {
       .then((data) => {
         if (Array.isArray(data)) setUploaded(data);
       })
-      .catch((error) => {
-        if (error.name !== "AbortError") {
-          setNotice("Showing the documents bundled with this portfolio. Live uploads are temporarily unavailable.");
-        }
-      });
+      // Offline or unreachable: the bundled documents are shown on their own.
+      .catch(() => {});
     return () => controller.abort();
   }, []);
 
@@ -60,17 +56,7 @@ export default function DocumentLibrary() {
 
   return (
     <Section id="library">
-      <SectionHeader
-        eyebrow="Research library"
-        title="Project documents, presentations, and published research."
-        lede="Access research papers, milestone presentations, and project documentation from across our development phases."
-      />
-
-      {notice && (
-        <p role="status" className="mb-8 rounded-2xl border border-line bg-panel-bg px-5 py-4 text-sm text-[#5f5c56]">
-          {notice}
-        </p>
-      )}
+      <SectionHeader title="Research library" />
 
       <div className="space-y-16">
         {GROUPS.map(({ category, id, label, icon: Icon }) => {

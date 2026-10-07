@@ -11,11 +11,7 @@ const ICONS: Record<Surface["id"], LucideIcon> = {
 export default function Surfaces() {
   return (
     <Section id="where">
-      <SectionHeader
-        eyebrow="Where to use it"
-        title="Use SinAi where you already write."
-        lede="Access all four tools across three environments without disrupting your existing workflow."
-      />
+      <SectionHeader title="Products launched" />
       <div className="grid gap-6 lg:grid-cols-3">
         {SURFACES.map((s) => {
           const Icon = ICONS[s.id];

@@ -6,12 +6,7 @@ export default function ContactSection() {
   return (
     <Section id="contact" tone="panel">
       <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
-        <SectionHeader
-          eyebrow="Contact"
-          title="Get in touch with the team."
-          lede="Reach out for product support, research inquiries, or technical discussion."
-          className="mb-0 lg:col-span-7"
-        />
+        <SectionHeader title="Contact" className="mb-0 lg:col-span-7" />
         <div className="grid gap-3 lg:col-span-5">
           <a
             href={`mailto:${SITE.supportEmail}`}

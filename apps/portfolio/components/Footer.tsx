@@ -14,7 +14,7 @@ const linkClass =
 
 export default function Footer() {
   return (
-    <footer className="bg-[#121212] text-white">
+    <footer data-nav-theme="dark" className="bg-[#121212] text-white">
       <div className="mx-auto w-full max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
         <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-5">

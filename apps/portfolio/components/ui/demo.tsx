@@ -31,14 +31,10 @@ export default function TimelineDemo(props: Partial<typeof settings>) {
 
       {/* Realistic usage: custom copy, a branded accent, tuned reveal speed. */}
       <Timeline
-        title="Research Milestones"
-        periodLabel="March — Sept 2026"
         backgroundColor={s.backgroundColor}
         textColor={s.textColor}
         mutedTextColor={s.mutedTextColor}
         activeColor={s.activeColor}
-        imageUrl="https://images.unsplash.com/photo-1585829365295-ab7cd400c167?q=80&w=1200&auto=format&fit=crop"
-        imageAlt="Sinhala journalistic research and archive"
         duration={s.duration}
       />
 
