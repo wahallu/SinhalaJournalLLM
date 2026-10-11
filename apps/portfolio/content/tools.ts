@@ -124,8 +124,11 @@ export const SURFACES: Surface[] = [
     points: [
       "Sidebar docked beside your document",
       "Designed for shared newsroom drafts",
-      "Privacy policy and terms published for Google Workspace",
+      "Covered by the SinAi privacy policy and terms",
     ],
-    cta: { label: "About the add-on", href: "/docs-addon" },
+    cta: {
+      label: "View the add-on",
+      href: "https://github.com/wahallu/SinhalaJournalLLM/tree/main/apps/docs-addon",
+    },
   },
 ];

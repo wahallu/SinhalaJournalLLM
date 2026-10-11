@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { SITE } from "@/content/site";
 import {
   LifeBuoy,
   ArrowLeft,
@@ -60,13 +61,15 @@ export default function SupportCenter() {
                 <FileSpreadsheet className="w-5 h-5" />
                 <span>Google Docs Add-on: Step-by-Step Setup Guide</span>
               </div>
-              <Link
-                href="/docs-addon"
+              <a
+                href={SITE.docsAddonUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-xs font-bold text-[#181818] hover:text-[#cd191a] inline-flex items-center gap-1 normal-case tracking-normal"
               >
-                <span>View Full Add-on Landing Page</span>
+                <span>View the add-on source</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
-              </Link>
+              </a>
             </div>
             <p className="text-xs sm:text-sm text-[#615e58]">
               Once you have installed <strong>SinAI Document Assistant</strong> from the Google Workspace Marketplace, follow these steps to start editing:

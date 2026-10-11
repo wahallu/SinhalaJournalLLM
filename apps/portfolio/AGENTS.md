@@ -57,13 +57,13 @@ SinhalaJournalLLM/
 ├── apps/
 │   ├── portfolio/                      # [THIS APP] Next.js 16 + React 19: product site + research case study (https://sin-ai.app)
 │   │   ├── app/
-│   │   │   ├── layout.tsx              # Marketplace-verified metadata (title, JSON-LD), fonts, root layout
+│   │   │   ├── layout.tsx              # Site metadata (title, JSON-LD), fonts, root layout
 │   │   │   ├── globals.css             # Tailwind v4 tokens, Gwen font faces (ligatures off, see 4.2), reduced-motion
 │   │   │   ├── page.tsx                # Homepage: the plain-language product story (10 sections)
 │   │   │   ├── project-scope/page.tsx  # Literature survey, gap, problem & solution, objectives, methodology (content/projectScope.ts)
 │   │   │   ├── research/page.tsx       # Research & engineering case study (data, architecture, results, evaluation...)
 │   │   │   ├── research/<tool>/page.tsx  # Four tool deep dives, all rendered by components/research/ToolDeepDive.tsx
-│   │   │   └── privacy/ terms/ support/ docs-addon/   # Google Workspace Marketplace pages. Do not edit casually.
+│   │   │   └── privacy/ terms/ support/   # Legal and support pages linked from the footer
 │   │   ├── content/                    # Typed data. ALL copy and every published number lives here, with sources
 │   │   │   ├── site.ts  tools.ts  demo.ts  research.ts  evaluation.ts
 │   │   │   └── testimonials.ts  team.ts  timeline.ts  stack.ts  toolPages.ts
@@ -187,11 +187,7 @@ These exist because the previous version of the site contained invented content.
 2. **No invented testimonials, benchmarks, latency, or adoption claims.** Testimonials are verbatim comments from real respondents (`content/testimonials.ts`), attributed by role and never by name.
 3. **Demo examples are illustrative.** They are hand-written and labelled "Illustrative example — not a live result". Have a native Sinhala speaker review the Sinhala text before publishing.
 4. **The user evaluation** (13 respondents, 27-31 August 2026) always states its sample size and that it is a small, self-selected pilot. The counts in `content/evaluation.ts` must match the team's spreadsheet.
-5. **Google Workspace Marketplace items. Do not change without re-checking verification:**
-   - the `<title>` reads exactly "SinAI Document Assistant";
-   - the product name and the privacy / terms / support links in the Footer, which every legal page shares.
-
-   In October 2026 the project owner replaced the homepage hero with a new design and chose, knowing the risk, to drop the earlier first-screen items: the `<h1>` "SinAI Document Assistant", the "Application purpose and overview" statement and the `/docs-addon`, `/docs-addon/privacy` and `/docs-addon/terms` links. The hero `<h1>` is now "AI Writing Assistant for Sinhala Journalism". Do not restore the old items without asking; if Marketplace verification fails, raise it with the owner.
+5. **Product name and add-on links.** The site, its `<title>` and the footer call the product **SinAi**. Google Workspace Marketplace verification is not a constraint (dropped October 2026): the `/docs-addon*` pages were removed and the add-on is linked to its source folder through `SITE.docsAddonUrl`. The privacy, terms and support pages remain because the web app has accounts.
 6. **Name SinLlama with credit** wherever the base model is described (see the identity rule at the top).
 7. **Team credits** live in `content/team.ts`, with names verbatim as supplied by the team.
 

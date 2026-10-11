@@ -4,9 +4,8 @@ import { SITE } from "@/content/site";
 import { TOOLS } from "@/content/tools";
 
 /**
- * Site footer. Shared by every page, including the legal pages, so it keeps
- * the exact product name and the privacy / terms / support links that the
- * Google Workspace Marketplace review looks for.
+ * Site footer. Shared by every page, including the legal pages, so the
+ * privacy / terms / support links are always one click away.
  */
 
 const linkClass =
@@ -69,9 +68,14 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <Link href="/docs-addon" className={linkClass}>
+                <a
+                  href={SITE.docsAddonUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={linkClass}
+                >
                   Google Docs add-on
-                </Link>
+                </a>
               </li>
             </ul>
           </nav>

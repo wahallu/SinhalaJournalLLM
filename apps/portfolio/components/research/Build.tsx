@@ -100,7 +100,7 @@ export function ResourcesSection() {
         <ButtonLink href={SITE.appUrl} variant="onDark">
           Live web app
         </ButtonLink>
-        <ButtonLink href="/docs-addon" variant="onDark">
+        <ButtonLink href={SITE.docsAddonUrl} variant="onDark">
           Google Docs add-on
         </ButtonLink>
       </div>
