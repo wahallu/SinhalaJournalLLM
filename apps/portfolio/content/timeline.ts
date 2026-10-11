@@ -57,9 +57,12 @@ export const TIMELINE: Milestone[] = [
 ];
 
 /**
- * Homepage storyline, December 2025 to September 2026, in date order. The
- * December entry is from the team; the March, May and September documents
- * carry their dates in `content/documents.ts`; the rest match TIMELINE above.
+ * Homepage storyline, October 2025 to December 2026, in date order. Initiation,
+ * implementation stage, final presentation and publication are from the
+ * project owner; the proposal, PP1, PP2 and paper entries use the dates the
+ * team recorded for those submissions; the Top 10 finalist entry is
+ * documented in `components/AiExpo.tsx`. PP2's exact day is not recorded, so
+ * it is ordered by month only.
  */
 export interface StoryItem {
   id: string;
@@ -68,76 +71,67 @@ export interface StoryItem {
   content: string;
 }
 
-export const STORYLINE_PERIOD = "December 2025 — Sept 2026";
+export const STORYLINE_PERIOD = "October 2025 — December 2026";
 
 export const STORYLINE: StoryItem[] = [
   {
-    id: "2025-12-topic",
-    when: "December 2025",
-    title: "Topic approval",
+    id: "2025-10-initiation",
+    when: "October 2025",
+    title: "Initiation",
     content:
-      "Research topic assessed and approved, and the initial project scope for R26-SE-037 set out.",
+      "The research project is initiated and its initial scope for R26-SE-037 set out.",
   },
   {
-    id: "2026-03-corpus",
-    when: "Up to March 2026",
-    title: "News corpus",
+    id: "2026-03-proposal",
+    when: "March 2026",
+    title: "Proposal",
     content:
-      "Collected 1,031,456 Sinhala news articles and filtered them down to the 665,887-article corpus used for the task datasets.",
+      "Four individual proposal reports (12–13 March) and the proposal presentation (16 March).",
   },
   {
-    id: "2026-03-proposals",
-    when: "12–16 March 2026",
-    title: "Proposals",
+    id: "2026-04-implementation",
+    when: "April 2026",
+    title: "Implementation stage",
     content:
-      "Four individual proposal reports submitted, one per tool, and the proposal presented.",
+      "Building the four task components: grammar checker, headline generator, news summarizer and style rewriter.",
   },
   {
-    id: "2026-05-progress",
-    when: "11 May 2026",
-    title: "First progress review",
+    id: "2026-05-pp1",
+    when: "May 2026",
+    title: "Progress Presentation 1 (PP1)",
     content:
-      "Progress presentation 1: component status, architecture and the evaluation plan.",
+      "Component status, architecture and the evaluation plan (11 May).",
   },
   {
-    id: "2026-07-clients",
-    when: "1–2 July 2026",
-    title: "Architecture and clients",
+    id: "2026-09-pp2",
+    when: "September 2026",
+    title: "Progress Presentation 2 (PP2)",
     content:
-      "Loosely coupled backend and database, then the Chrome extension and the Google Docs add-on.",
-  },
-  {
-    id: "2026-07-gateway",
-    when: "18 July 2026",
-    title: "Model gateway",
-    content:
-      "Three-tier fallback keeps the tools working while the GPU server is down, plus a unified history feed.",
-  },
-  {
-    id: "2026-08-accounts",
-    when: "1–3 August 2026",
-    title: "Accounts and admin",
-    content:
-      "Sign-in, per-user history under row-level security, the admin dashboard and self-hosted authentication.",
-  },
-  {
-    id: "2026-08-evaluation",
-    when: "27–31 August 2026",
-    title: "User evaluation",
-    content:
-      "Thirteen editors, journalism students and teachers tried the four tools and rated them.",
+      "Updated datasets, four task adapters and product progress.",
   },
   {
     id: "2026-09-paper",
     when: "3 September 2026",
-    title: "Research paper",
+    title: "Research paper completed",
     content: "The SinhalaJournal-LLM research paper completed.",
   },
   {
-    id: "2026-09-polish",
-    when: "16–17 September 2026",
-    title: "Interface polish",
+    id: "2026-09-top10",
+    when: "25 September 2026",
+    title: "Top 10 finalist",
     content:
-      "Plan tiers with usage tracking and a Sinhala/English interface toggle.",
+      "Reached the top 10 in the University AI Innovation category at the CodeBlast Hackathon Challenge 2026 (National AI Expo, Sri Lanka AI Week), SLT Auditorium, and received certificates.",
+  },
+  {
+    id: "2026-10-final",
+    when: "October 2026",
+    title: "Final presentation",
+    content: "Final project presentation.",
+  },
+  {
+    id: "2026-12-publication",
+    when: "December 2026",
+    title: "Research publication",
+    content: "Planned publication of the research.",
   },
 ];
