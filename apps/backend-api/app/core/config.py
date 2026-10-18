@@ -101,6 +101,8 @@ class Settings(BaseSettings):
     GRAMMAR_PROTECT_QUOTES: bool = True
     GRAMMAR_AGREEMENT_VALIDATION: bool = True
     GRAMMAR_CONTEXTUAL_RULES: bool = True
+    # Deterministic grammar rules (journal_rules.py) applied after validation.
+    GRAMMAR_JOURNAL_RULES_ENABLED: bool = True
 
     @field_validator("SINLLAMA_API_URL", "SINLLAMA_COMPARISON_API_URL")
     @classmethod

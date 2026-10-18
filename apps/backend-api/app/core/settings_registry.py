@@ -169,6 +169,14 @@ def build_registry() -> dict[str, SettingSpec]:
             group="Grammar Advanced",
             description="Keep deixis, honorific, register, and related context-dependent changes advisory.",
         ),
+        "grammar.journal_rules_enabled": SettingSpec(
+            kind="bool", default=_env_default("GRAMMAR_JOURNAL_RULES_ENABLED", True),
+            group="Grammar Advanced",
+            description=(
+                "Apply curated rules for formal news Sinhala after the model: case marking, "
+                "subject-verb agreement, voice with විසින්, tense with time words, reported clauses."
+            ),
+        ),
 
         # ── Image Generation ──
         # Grouped separately from "Headline Generator" so it renders as its
