@@ -57,12 +57,13 @@ SinhalaJournalLLM/
 ├── apps/
 │   ├── portfolio/                      # [THIS APP] Next.js 16 + React 19: product site + research case study (https://sin-ai.app)
 │   │   ├── app/
-│   │   │   ├── layout.tsx              # Marketplace-verified metadata (title, JSON-LD), fonts, root layout
+│   │   │   ├── layout.tsx              # Site metadata (title, JSON-LD), fonts, root layout
 │   │   │   ├── globals.css             # Tailwind v4 tokens, Gwen font faces (ligatures off, see 4.2), reduced-motion
 │   │   │   ├── page.tsx                # Homepage: the plain-language product story (10 sections)
+│   │   │   ├── project-scope/page.tsx  # Literature survey, gap, problem & solution, objectives, methodology (content/projectScope.ts)
 │   │   │   ├── research/page.tsx       # Research & engineering case study (data, architecture, results, evaluation...)
 │   │   │   ├── research/<tool>/page.tsx  # Four tool deep dives, all rendered by components/research/ToolDeepDive.tsx
-│   │   │   └── privacy/ terms/ support/ docs-addon/   # Google Workspace Marketplace pages. Do not edit casually.
+│   │   │   └── privacy/ terms/ support/   # Legal and support pages linked from the footer
 │   │   ├── content/                    # Typed data. ALL copy and every published number lives here, with sources
 │   │   │   ├── site.ts  tools.ts  demo.ts  research.ts  evaluation.ts
 │   │   │   └── testimonials.ts  team.ts  timeline.ts  stack.ts  toolPages.ts
@@ -133,7 +134,9 @@ The portfolio website adapts the **"Quiet Luxury" and Editorial Minimalism** des
   - Tints: `#fdf3f2`, `#fce5e4`
 
 ### 4.2 Typography Hierarchy
-- **Unified Font (Headings & Body)**: **Plus Jakarta Sans / Inter** for the entire website, including all headings (bold weight), wordmarks, metadata, button labels, and body text.
+- **Unified Font (Headings & Body)**: **Plus Jakarta Sans / Inter** for the website, including section headings (bold weight), metadata, button labels, and body text.
+- **Gwen** (`font-gwen`, Light 300 / Regular 400, `public/fonts`) is used only for the "SinAi" header wordmark. The hero title uses the sans face at light weight.
+- **Section headings are heading only**: no eyebrow label above and no lede paragraph below, and the heading is short (e.g. "Methodology").
 - **Sinhala Typography**: **Noto Sans Sinhala** (loaded in `layout.tsx`) with system Sinhala fonts as fallback. Wrap Sinhala text in `<Sinhala>` from `components/ui.tsx` so it gets `lang="si"`.
 - **Legacy Typography**: **UBIN16S** (TTF) for decoding legacy ASCII newsroom print font codepoints.
 
@@ -184,11 +187,7 @@ These exist because the previous version of the site contained invented content.
 2. **No invented testimonials, benchmarks, latency, or adoption claims.** Testimonials are verbatim comments from real respondents (`content/testimonials.ts`), attributed by role and never by name.
 3. **Demo examples are illustrative.** They are hand-written and labelled "Illustrative example — not a live result". Have a native Sinhala speaker review the Sinhala text before publishing.
 4. **The user evaluation** (13 respondents, 27-31 August 2026) always states its sample size and that it is a small, self-selected pilot. The counts in `content/evaluation.ts` must match the team's spreadsheet.
-5. **Google Workspace Marketplace items. Do not change without re-checking verification:**
-   - the homepage `<h1>` and `<title>` read exactly "SinAI Document Assistant";
-   - the visible "Application purpose and overview" statement (`SITE.purposeRest` in `content/site.ts`);
-   - links to `/docs-addon`, `/docs-addon/privacy` and `/docs-addon/terms` on the first screen;
-   - the product name and the privacy / terms / support links in the Navbar and Footer, which every legal page shares.
+5. **Product name and add-on links.** The site, its `<title>` and the footer call the product **SinAi**. Google Workspace Marketplace verification is not a constraint (dropped October 2026): the `/docs-addon*` pages were removed and the add-on is linked to its source folder through `SITE.docsAddonUrl`. The privacy, terms and support pages remain because the web app has accounts.
 6. **Name SinLlama with credit** wherever the base model is described (see the identity rule at the top).
 7. **Team credits** live in `content/team.ts`, with names verbatim as supplied by the team.
 

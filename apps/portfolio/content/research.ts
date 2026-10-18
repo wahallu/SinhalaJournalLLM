@@ -12,10 +12,10 @@ import type { ToolId } from "./tools";
 // ── The data ────────────────────────────────────────────────────────────────
 
 export const CORPUS = {
-  collected: 884_193,
+  collected: 1_031_456,
   kept: 665_887,
-  removed: 218_306,
-  removedPct: 24.7,
+  removed: 365_569,
+  removedPct: 35.4,
   span: "13 March 2008 – 4 March 2026",
   filters: [
     "Exact duplicate articles removed",

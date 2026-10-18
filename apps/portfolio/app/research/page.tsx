@@ -24,9 +24,9 @@ import {
 } from "@/components/research/Build";
 
 export const metadata: Metadata = {
-  title: "Research and engineering | SinAI Document Assistant",
+  title: "Research and engineering | SinAi",
   description:
-    "How SinAI Document Assistant was built: the Sinhala news corpus, the architecture, the engineering problems we found and fixed, measured results and a 13-person user evaluation.",
+    "How SinAi was built: the Sinhala news corpus, the architecture, the engineering problems we found and fixed, measured results and a 13-person user evaluation.",
 };
 
 const JUMP = [

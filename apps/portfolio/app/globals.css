@@ -9,7 +9,25 @@
   font-display: block;
 }
 
+/* ── Gwen — display face for the SinAi wordmark and hero title ── */
+@font-face {
+  font-family: 'Gwen';
+  src: url('/fonts/Gwen-Trial-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Gwen';
+  src: url('/fonts/Gwen-Trial-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
+  --font-gwen: 'Gwen', Georgia, serif;
   --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   --font-sans: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
   --font-sinhala: 'Noto Sans Sinhala', 'Iskoola Pota', 'Nirmala UI', 'Sinhala Sangam MN', 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -81,14 +99,17 @@ body {
   overflow-x: hidden;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: var(--font-sans);
-  font-weight: 700;
+/* In the base layer so utilities such as font-gwen and font-light win. */
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+  }
 }
 
 .font-display {
@@ -146,6 +167,33 @@ h6 {
 
 .glow-card {
   box-shadow: 0 16px 48px -12px rgba(205, 25, 26, 0.12), 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Hero entrance: each block fades up, staggered ── */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-slide-in-1,
+.animate-fade-slide-in-2,
+.animate-fade-slide-in-3,
+.animate-fade-slide-in-4 {
+  animation: fadeSlideIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-fade-slide-in-2 { animation-delay: 0.15s; }
+.animate-fade-slide-in-3 { animation-delay: 0.3s; }
+.animate-fade-slide-in-4 { animation-delay: 0.45s; }
+
+/* ── Dashed connector flow (AboutSinAi illustration) ── */
+@keyframes dash {
+  to { stroke-dashoffset: -12; }
 }
 
 /* ── Marquee Animation ── */

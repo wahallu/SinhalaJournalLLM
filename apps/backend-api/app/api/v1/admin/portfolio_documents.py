@@ -11,6 +11,7 @@ from app.schemas.auth import AuthUser
 from app.schemas.portfolio_document import (
     DocumentCategory,
     PortfolioDocument,
+    PortfolioDocumentLinkCreate,
     PortfolioDocumentUpdate,
 )
 from app.services import document_storage
@@ -88,6 +89,42 @@ async def upload_document(
     return PortfolioDocument(**created)
 
 
+@router.post("/link", response_model=PortfolioDocument, status_code=status.HTTP_201_CREATED)
+async def create_link_document(
+    payload: PortfolioDocumentLinkCreate,
+    request: Request,
+    admin: AuthUser = Depends(require_admin),
+) -> PortfolioDocument:
+    """Add a document that is hosted elsewhere, or a placeholder with no link yet."""
+    row = {
+        "title": payload.title,
+        "category": payload.category,
+        "document_type": payload.document_type,
+        "submitted_at": payload.submitted_at.isoformat() if payload.submitted_at else None,
+        "description": payload.description.strip() if payload.description else None,
+        "file_name": None,
+        "file_path": None,
+        "file_url": payload.file_url,
+        "mime_type": None,
+        "size_bytes": None,
+        "is_published": payload.is_published,
+        "sort_order": payload.sort_order,
+        "created_by": admin.id,
+    }
+
+    created = await portfolio_document_repository.create(row)
+
+    await audit_repository.record(
+        admin,
+        "portfolio_document.create",
+        target_type="portfolio_document",
+        target_id=created["id"],
+        after=row,
+        ip_hash=hash_ip(client_ip(request)),
+    )
+    return PortfolioDocument(**created)
+
+
 @router.patch("/{document_id}", response_model=PortfolioDocument)
 async def update_document(
     document_id: str,
@@ -129,13 +166,15 @@ async def delete_document(
     if before is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
 
-    try:
-        await document_storage.delete_public_document(before["file_path"])
-    except Exception as exc:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="The stored file could not be deleted. Nothing was changed.",
-        ) from exc
+    # Link-only and pending rows have no stored object to remove.
+    if before.get("file_path"):
+        try:
+            await document_storage.delete_public_document(before["file_path"])
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="The stored file could not be deleted. Nothing was changed.",
+            ) from exc
 
     await portfolio_document_repository.delete(document_id)
     await audit_repository.record(

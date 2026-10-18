@@ -99,6 +99,10 @@ export function uploadPortfolioDocument(formData) {
   return request('/admin/portfolio-documents', { method: 'POST', formData });
 }
 
+export function createPortfolioDocumentLink(body) {
+  return request('/admin/portfolio-documents/link', { method: 'POST', body });
+}
+
 export function updatePortfolioDocument(documentId, changes) {
   return request(`/admin/portfolio-documents/${documentId}`, { method: 'PATCH', body: changes });
 }

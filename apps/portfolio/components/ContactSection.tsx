@@ -1,4 +1,4 @@
-import { GitBranch, Mail, MessageSquareText } from "lucide-react";
+import { GitBranch, Mail, MessageSquareText, Phone } from "lucide-react";
 import { Section, SectionHeader } from "@/components/ui";
 import { SITE } from "@/content/site";
 
@@ -6,12 +6,7 @@ export default function ContactSection() {
   return (
     <Section id="contact" tone="panel">
       <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
-        <SectionHeader
-          eyebrow="Contact"
-          title="Get in touch with the team."
-          lede="Reach out for product support, research inquiries, or technical discussion."
-          className="mb-0 lg:col-span-7"
-        />
+        <SectionHeader title="Contact" className="mb-0 lg:col-span-7" />
         <div className="grid gap-3 lg:col-span-5">
           <a
             href={`mailto:${SITE.supportEmail}`}
@@ -25,6 +20,18 @@ export default function ContactSection() {
               </span>
             </span>
             <MessageSquareText aria-hidden="true" className="h-5 w-5 text-text-muted group-hover:text-crimson" />
+          </a>
+          <a
+            href={SITE.contactPhoneHref}
+            className="group flex items-center justify-between rounded-2xl border border-line bg-white p-5 transition-colors hover:border-crimson"
+          >
+            <span className="flex items-center gap-3">
+              <Phone aria-hidden="true" className="h-5 w-5 text-crimson" />
+              <span>
+                <span className="block text-sm font-semibold text-black-main">Call us</span>
+                <span className="block text-sm text-[#5f5c56]">{SITE.contactPhone}</span>
+              </span>
+            </span>
           </a>
           <a
             href={SITE.repoUrl}

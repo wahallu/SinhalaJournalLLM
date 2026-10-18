@@ -1,156 +1,100 @@
+"use client";
+
+import { useLayoutEffect, useRef } from "react";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { SITE } from "@/content/site";
-import { DEMO_TOOLS } from "@/content/demo";
-import { ButtonLink, IllustrativeBadge, Sinhala } from "@/components/ui";
-import { DiffText } from "@/components/DiffText";
+
+// Background artwork from the hero design (21st.dev responsive hero banner),
+// self-hosted so the hero does not depend on their CDN.
+const BACKGROUND = "/assets/hero-bg.jpg";
 
 /**
- * Homepage hero.
+ * Full-screen homepage hero: two-line title, description and two actions.
+ * Marked dark so the fixed header switches to its light-on-dark colours
+ * while it sits over it.
  *
- * Marketplace verification depends on four things staying exactly as they are:
- *   1. the <h1> reads "SinAI Document Assistant"
- *   2. the visible "Application purpose" statement (SITE.purposeLead)
- *   3. a link to /docs-addon
- *   4. visible links to /docs-addon/privacy and /docs-addon/terms
+ * Parallax: as the page scrolls, the artwork drifts down at a fraction of
+ * the scroll speed while the text rises and fades, so the two layers seem
+ * to sit at different depths.
  */
 export default function Hero() {
-  const example = DEMO_TOOLS[0].examples[0];
+  const sectionRef = useRef<HTMLElement>(null);
+  const bgRef = useRef<HTMLImageElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    gsap.registerPlugin(ScrollTrigger);
+    const ctx = gsap.context(() => {
+      const scrub = {
+        trigger: sectionRef.current,
+        start: "top top",
+        end: "bottom top",
+        scrub: true,
+      };
+      gsap.to(bgRef.current, { yPercent: 30, ease: "none", scrollTrigger: scrub });
+      gsap.to(contentRef.current, {
+        yPercent: -40,
+        opacity: 0,
+        ease: "none",
+        scrollTrigger: { ...scrub, end: "80% top" },
+      });
+    }, sectionRef);
+    return () => ctx.revert();
+  }, []);
 
   return (
     <section
+      ref={sectionRef}
       id="hero"
-      className="relative overflow-hidden pb-20 pt-32 sm:pb-28 sm:pt-40"
+      data-nav-theme="dark"
+      className="relative isolate flex min-h-screen w-full items-center overflow-hidden bg-black text-white"
     >
-      <div
+      <img
+        ref={bgRef}
+        src={BACKGROUND}
+        alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[520px] w-[820px] -translate-x-1/2 rounded-full bg-gradient-to-br from-[#cd191a]/10 via-[#ff4b2b]/5 to-transparent blur-3xl"
+        className="absolute inset-0 -z-10 h-full w-full object-cover will-change-transform"
       />
+      <div className="pointer-events-none absolute inset-0 ring-1 ring-black/30" />
 
-      <div className="mx-auto grid w-full max-w-6xl items-center gap-14 px-5 sm:px-8 lg:grid-cols-12">
-        <div className="lg:col-span-6">
-          <Link
-            href="/docs-addon"
-            className="group inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-1.5 text-sm font-medium text-[#3d3b37] shadow-sm transition-colors hover:border-crimson focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-crimson"
-          >
-            <span
-              aria-hidden="true"
-              className="h-2 w-2 rounded-full bg-crimson"
-            />
-            SinAI Document Assistant for Google Docs
-            <ArrowUpRight
-              aria-hidden="true"
-              className="h-4 w-4 text-crimson transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-            />
-          </Link>
-
-          <h1 className="wordmark mt-6 font-display text-5xl font-bold leading-[1.05] tracking-tight text-black-main text-balance sm:text-6xl">
-            SinAI Document Assistant
+      {/* Sits a little below centre: the extra top padding pushes it down. */}
+      <div
+        ref={contentRef}
+        className="mx-auto w-full max-w-7xl px-6 pb-12 pt-[28vh] sm:pt-[30vh]"
+      >
+        <div className="mx-auto max-w-3xl text-center">
+          <h1 className="animate-fade-slide-in-1 font-sans text-4xl font-semibold leading-tight tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
+            <span className="sm:block">AI Writing Assistant</span>{" "}
+            <span className="sm:block">for Sinhala Journalism</span>
           </h1>
-          <p className="mt-4 font-display text-2xl font-normal leading-snug text-[#3d3b37] sm:text-3xl">
-            Write clearer Sinhala news, faster.
+
+          <p className="animate-fade-slide-in-2 mx-auto mt-6 max-w-2xl text-base text-white/80 sm:text-lg">
+            First unified Sinhala journalism focused AI system that helps
+            journalists prepare news content faster and better.
           </p>
 
-          <div className="mt-8 rounded-2xl border border-line bg-white p-5 shadow-sm">
-            <p className="text-sm font-semibold text-crimson">
-              Application purpose and overview
-            </p>
-            <p className="mt-2 text-base leading-relaxed text-[#3d3b37]">
-              <strong className="font-semibold text-black-main">
-                SinAI Document Assistant
-              </strong>{" "}
-              {SITE.purposeRest} {SITE.purposeDetail}
-            </p>
-          </div>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <ButtonLink href={SITE.appUrl} variant="accent">
-              Try SinAi Workspace
-            </ButtonLink>
-            <ButtonLink href="/docs-addon" variant="secondary">
-              Google Docs add-on
-            </ButtonLink>
-          </div>
-
-          <p className="mt-5 flex flex-wrap gap-x-5 gap-y-1 text-base text-[#5f5c56]">
-            <Link
-              href="/docs-addon/privacy"
-              className="font-medium underline decoration-line underline-offset-4 hover:text-crimson hover:decoration-crimson"
+          <div className="animate-fade-slide-in-3 mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+            <a
+              href={SITE.appUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-3 text-sm font-medium text-white ring-1 ring-white/15 transition-colors hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
-              Privacy Policy
-            </Link>
+              Try now
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </a>
             <Link
-              href="/docs-addon/terms"
-              className="font-medium underline decoration-line underline-offset-4 hover:text-crimson hover:decoration-crimson"
+              href="/research"
+              className="inline-flex items-center gap-2 rounded-full bg-transparent px-5 py-3 text-sm font-medium text-white/90 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
-              Terms of Service
+              Explore the research
+              <ArrowUpRight aria-hidden="true" className="h-4 w-4" />
             </Link>
-          </p>
-
-          <dl className="mt-10 grid grid-cols-3 gap-4 border-t border-line pt-8">
-            {[
-              ["4", "writing tools"],
-              ["3", "places to use them"],
-              ["5", "newspaper styles"],
-            ].map(([n, label]) => (
-              <div key={label}>
-                <dt className="sr-only">{label}</dt>
-                <dd>
-                  <span className="block font-display text-4xl font-bold text-black-main">
-                    {n}
-                  </span>
-                  <span className="mt-1 block text-base text-[#5f5c56]">
-                    {label}
-                  </span>
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-
-        {/* Example card */}
-        <div className="lg:col-span-6">
-          <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-[0_24px_60px_-20px_rgba(27,27,27,0.25)]">
-            <div className="flex items-center gap-2 border-b border-line bg-panel-bg px-4 py-3">
-              <span aria-hidden="true" className="h-3 w-3 rounded-full bg-[#e97371]" />
-              <span aria-hidden="true" className="h-3 w-3 rounded-full bg-[#dcb46a]" />
-              <span aria-hidden="true" className="h-3 w-3 rounded-full bg-[#7fb88a]" />
-              <span className="ml-2 text-sm font-medium text-[#5f5c56]">
-                Grammar checker
-              </span>
-            </div>
-
-            <div className="space-y-6 p-5 sm:p-7">
-              <IllustrativeBadge />
-
-              <div>
-                <p className="mb-2 text-sm font-semibold text-[#5f5c56]">
-                  Your draft
-                </p>
-                <p className="text-lg leading-loose text-black-main">
-                  <Sinhala>
-                    <DiffText runs={example.input} side="input" />
-                  </Sinhala>
-                </p>
-                <p className="mt-2 text-sm text-[#5f5c56]">
-                  English: {example.inputGloss}
-                </p>
-              </div>
-
-              <div className="border-t border-dashed border-line pt-6">
-                <p className="mb-2 text-sm font-semibold text-emerald-800">
-                  Corrected
-                </p>
-                <p className="text-lg leading-loose text-black-main">
-                  <Sinhala>
-                    <DiffText runs={example.outputs[0].runs} side="output" />
-                  </Sinhala>
-                </p>
-                <p className="mt-3 rounded-xl bg-panel-bg px-4 py-3 text-base text-[#3d3b37]">
-                  {example.note}
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

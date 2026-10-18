@@ -29,12 +29,7 @@ const HIGHLIGHTS = [
 export default function ResearchHighlights() {
   return (
     <Section id="achievements" tone="dark">
-      <SectionHeader
-        invert
-        eyebrow="Research outputs"
-        title="Verified research outputs and working software."
-        lede="Key project deliverables—including our peer research paper, functional client applications, and open-source codebase."
-      />
+      <SectionHeader invert title="Research outputs" />
       <div className="grid gap-5 lg:grid-cols-3">
         {HIGHLIGHTS.map(({ icon: Icon, title, body, href, label }) => (
           <article key={title} className="flex flex-col rounded-3xl border border-white/10 bg-white/5 p-7">

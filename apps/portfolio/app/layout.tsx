@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import "lenis/dist/lenis.css";
 import "./globals.css";
+import SmoothScroll from "@/components/SmoothScroll";
 
 const jakartaSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -9,16 +11,18 @@ const jakartaSans = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+const TITLE = "SinAi: AI Writing Assistant for Sinhala Journalism";
+const DESCRIPTION =
+  "SinAi is an AI writing assistant for Sinhala journalism. It checks grammar, suggests headlines, rewrites articles in five newspaper styles and summarizes long stories, built by the Sinhala Journal LLM research team (R26-SE-037).";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://sin-ai.app"),
-  title: "SinAI Document Assistant",
-  applicationName: "SinAI Document Assistant",
-  description:
-    "SinAI Document Assistant is an AI-powered Sinhala writing and editorial intelligence platform for Google Docs and newsrooms. Features real-time grammar checking, headline generation, 5-tone style rewriting, and article summarization.",
+  title: TITLE,
+  applicationName: "SinAi",
+  description: DESCRIPTION,
   keywords: [
-    "SinAI Document Assistant",
-    "Sinhala LLM",
     "SinAi",
+    "Sinhala LLM",
     "Sinhala Journal LLM",
     "Sinhala NLP",
     "Journalism AI",
@@ -34,17 +38,16 @@ export const metadata: Metadata = {
     apple: "/brand/web-app-manifest-192x192.png",
   },
   openGraph: {
-    title: "SinAI Document Assistant",
-    description:
-      "SinAI Document Assistant is an AI-powered Sinhala writing and editorial intelligence platform for Google Docs and newsrooms. Features real-time grammar checking, headline generation, 5-tone rewriting, and summarization.",
+    title: TITLE,
+    description: DESCRIPTION,
     url: "https://sin-ai.app",
-    siteName: "SinAI Document Assistant",
+    siteName: "SinAi",
     images: [
       {
         url: "/brand/hero.png",
         width: 1200,
         height: 630,
-        alt: "SinAI Document Assistant",
+        alt: "SinAi",
       },
     ],
     locale: "en_US",
@@ -55,11 +58,10 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  name: "SinAI Document Assistant",
+  name: "SinAi",
   applicationCategory: "ProductivityApplication",
-  operatingSystem: "Google Workspace / Google Docs / Web",
-  description:
-    "SinAI Document Assistant is an AI-powered Sinhala writing and editorial intelligence platform for Google Docs and newsrooms. Features real-time grammar checking, headline generation, 5-tone rewriting, and summarization.",
+  operatingSystem: "Web, Google Docs, Chrome",
+  description: DESCRIPTION,
   url: "https://sin-ai.app",
   offers: {
     "@type": "Offer",
@@ -94,6 +96,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased min-h-screen bg-[#FAF9F5] text-[#1B1B1B] selection:bg-[#cd191a] selection:text-white">
+        <SmoothScroll />
         {children}
       </body>
     </html>

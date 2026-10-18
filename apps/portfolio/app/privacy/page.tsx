@@ -24,14 +24,6 @@ export default function PrivacyPolicy() {
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Home</span>
           </Link>
-          <span className="text-[#D9D7D0]">•</span>
-          <Link
-            href="/docs-addon/privacy"
-            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#cd191a] hover:underline"
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>SinAI Document Assistant Specific Policy</span>
-          </Link>
         </div>
 
         {/* Header */}
