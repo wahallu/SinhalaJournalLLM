@@ -1,26 +1,30 @@
 # Grammar demo articles (journal rules layer)
 
-Three news articles seeded with spelling **and** grammar errors for demonstrating the grammar checker. Paste an **Input** block into the Grammar Checker. Every error listed in the answer key is fixed by the deterministic rule layer (`apps/backend-api/app/services/grammar/journal_rules.py`), even if the model changes nothing. `apps/backend-api/tests/test_journal_rules.py` checks that each input becomes exactly the expected text, and that the expected text is returned unchanged.
+Three news articles seeded with spelling **and** grammar errors for demonstrating the grammar checker. Paste an **Input** block into the Grammar Checker. Every error in the answer key is fixed by the deterministic rule layer (`apps/backend-api/app/services/grammar/journal_rules.py`), even if the model changes nothing. `apps/backend-api/tests/test_journal_rules.py` checks that each input becomes exactly the expected text, and that the expected text is returned unchanged.
 
-In the corrected text, grammar edits are highlighted **orange** and spelling edits **yellow**. Hover a highlight to see the rule that made it.
+In the corrected text, grammar edits are highlighted **orange** and spelling edits **yellow**. Hover or click a highlight to see the rule that made it.
+
+How the rules were chosen, how often each one fires on 1M published news sentences, and which rules were rejected: see `grammar-journal-rules.md`.
 
 ## What the layer covers
 
 | Rule ID | Grammar concept | Example |
 |---|---|---|
 | `GRAM_CASE_DATIVE_001` | Case marking (විභක්ති): warn/advise/inform → dative -ට | ජනතාවගෙන් අනතුරු ඇඟවීය → ජනතාවට අනතුරු ඇඟවීය |
-| `GRAM_CASE_ABLATIVE_001` | Case marking (විභක්ති): request/question → ablative -ගෙන් | ප්‍රදේශවාසීන්ට ඉල්ලා සිටියහ → ප්‍රදේශවාසීන්ගෙන් ඉල්ලා සිටියහ |
-| `GRAM_AGR_001` | Subject–verb agreement (උක්ත–ආඛ්‍යාත): number and gender | නිලධාරීහු … කළේය → කළහ; නීතිඥවරිය … සිටියේය → සිටියාය |
+| `GRAM_CASE_ABLATIVE_001` | Case marking (විභක්ති): request/question → ablative -ගෙන් | ප්‍රදේශවාසීන්ට ඉල්ලා සිටියේය → ප්‍රදේශවාසීන්ගෙන් ඉල්ලා සිටියේය |
+| `GRAM_CASE_ATTACH_001` | Case suffix (විභක්ති ප්‍රත්‍ය) is bound to its noun | පාසල් වල → පාසල්වල; ජාතිකයන් ගේ → ජාතිකයන්ගේ |
+| `GRAM_AGR_001` | Subject–verb agreement (උක්ත–ආඛ්‍යාත): number and gender, past and present | නිලධාරීහු … කළේය → කළහ; නීතිඥවරිය … සිටියේය → සිටියාය; ගුරුවරු … දෙයි → දෙති |
+| `GRAM_REGISTER_001` | Register (ලිඛිත ව්‍යවහාරය): written plural subject + spoken verb | ප්‍රදේශවාසීහු පැවසුවා → ප්‍රදේශවාසීහු පැවසූහ |
 | `GRAM_VOICE_001` | Voice (කර්ම කාරක): විසින් agent needs a passive verb | … විසින් අත්අඩංගුවට ගත්තේය → ගන්නා ලදී |
 | `GRAM_VOICE_002` | Voice (කර්තෘ කාරක): active speech verb takes no විසින් | … දෙපාර්තමේන්තුව විසින් පැවසීය → දෙපාර්තමේන්තුව පැවසීය |
 | `GRAM_TENSE_001` | Tense (කාල භේදය): time word sets tense | ඊයේ … කරනු ඇත → කළේය; හෙට … විය → වනු ඇත |
+| `GRAM_CLEFT_FOCUS_001` | Focus sentence (අවධාරණ වාක්‍ය): closing participle takes -මිනි | මේ බව පැවසුවේ … මෙහෙයවමින් → මෙහෙයවමිනි |
 | `GRAM_CLAUSE_001` | Reported clause (වාර්තා වාක්‍ය): focused reporting verb closes with බවයි | අවධාරණය කළේ … වගකීමක් → … වගකීමක් බවයි |
-| `GRAM_NUM_CLASS_001` | Numeral classifier (සංඛ්‍යා): people take දෙනා | සැකකරුවන් 4ක් → සැකකරුවන් 4 දෙනෙක් |
 | `SPELL_JOURNAL_001` | Spelling: a short curated list | බරපතල → බරපතළ, අධිකරනය → අධිකරණය |
 
 ## Article 1: අධිකරණ පුවත — මාධ්‍යවේදියා අතුරුදන් කිරීමේ නඩුව
 
-**10 errors: 8 grammar, 2 spelling.**
+**11 errors: 9 grammar, 2 spelling.**
 
 ### Input (paste this)
 
@@ -33,11 +37,13 @@ In the corrected text, grammar edits are highlighted **orange** and spelling edi
 
 සාක්ෂිකරු අධිකරණයෙන් පිටව යද්දී ඔහුගෙන් මාධ්‍යවේදීන් කිහිප දෙනෙක් ප්‍රශ්න කළහ.
 
-පසුගිය වසරේ මෙම නඩුවට අදාළ සැකකරුවන් 4ක් අපරාධ පරීක්ෂණ දෙපාර්තමේන්තුව විසින් අත්අඩංගුවට ගත්තේය.
+පසුගිය වසරේ මෙම නඩුවට අදාළ සැකකරුවන් හතර දෙනෙකු අපරාධ පරීක්ෂණ දෙපාර්තමේන්තුව විසින් අත්අඩංගුවට ගත්තේය.
 
-විත්තියේ නීතිඥවරිය අවධාරණය කළේ සාක්ෂිකරුගේ ප්‍රකාෂය පරස්පර විරෝධතාවලින් පිරි සාක්ෂියක්.
+විත්තියේ නීතිඥවරිය අවධාරණය කළේ සාක්ෂිකරුගේ ප්‍රකාෂය පරස්පර විරෝධතා වලින් පිරි සාක්ෂියක්.
 
 එබැවින් සාක්ෂිකරුගේ සාක්ෂි නැවත සලකා බලන ලෙස විත්තියේ නීතිඥවරිය අධිකරණයෙන් ඉල්ලා සිටියේය.
+
+නියෝජ්‍ය සොලිසිටර් ජනරාල්වරයා මේ බව පැවසුවේ ප්‍රධාන සාක්ෂිකරුගේ සාක්ෂි මෙහෙයවමින්.
 
 විනිසුරුවරු නඩුව ලබන සතියේ නැවත කැඳවීමට නියෝග කළේය.
 ```
@@ -53,11 +59,13 @@ In the corrected text, grammar edits are highlighted **orange** and spelling edi
 
 සාක්ෂිකරු අධිකරණයෙන් පිටව යද්දී ඔහුගෙන් මාධ්‍යවේදීන් කිහිප දෙනෙක් ප්‍රශ්න කළහ.
 
-පසුගිය වසරේ මෙම නඩුවට අදාළ සැකකරුවන් 4 දෙනෙක් අපරාධ පරීක්ෂණ දෙපාර්තමේන්තුව විසින් අත්අඩංගුවට ගන්නා ලදී.
+පසුගිය වසරේ මෙම නඩුවට අදාළ සැකකරුවන් හතර දෙනෙකු අපරාධ පරීක්ෂණ දෙපාර්තමේන්තුව විසින් අත්අඩංගුවට ගන්නා ලදී.
 
 විත්තියේ නීතිඥවරිය අවධාරණය කළේ සාක්ෂිකරුගේ ප්‍රකාශය පරස්පර විරෝධතාවලින් පිරි සාක්ෂියක් බවයි.
 
 එබැවින් සාක්ෂිකරුගේ සාක්ෂි නැවත සලකා බලන ලෙස විත්තියේ නීතිඥවරිය අධිකරණයෙන් ඉල්ලා සිටියාය.
+
+නියෝජ්‍ය සොලිසිටර් ජනරාල්වරයා මේ බව පැවසුවේ ප්‍රධාන සාක්ෂිකරුගේ සාක්ෂි මෙහෙයවමිනි.
 
 විනිසුරුවරු නඩුව ලබන සතියේ නැවත කැඳවීමට නියෝග කළහ.
 ```
@@ -70,31 +78,32 @@ In the corrected text, grammar edits are highlighted **orange** and spelling edi
 | 2 | `GRAM_VOICE_002` | සාක්ෂිකරු විසින් … පැවසීය | සාක්ෂිකරු … පැවසීය | විසින් marks the agent of a passive verb; පැවසීය is active, so the subject takes no marker. |
 | 3 | `SPELL_JOURNAL_001` | අධිකරනයේදී | අධිකරණයේදී | Spelling: මූර්ධජ ණ. |
 | 4 | `GRAM_CASE_ABLATIVE_001` | සාක්ෂිකරුට ප්‍රශ්න කළේ | සාක්ෂිකරුගෙන් ප්‍රශ්න කළේ | Questioning someone takes the ablative -ගෙන් (asked from), not the dative -ට. |
-| 5 | `GRAM_NUM_CLASS_001` | සැකකරුවන් 4ක් | සැකකරුවන් 4 දෙනෙක් | People are counted with the classifier දෙනා; -ක් is for things. |
-| 6 | `GRAM_VOICE_001` | දෙපාර්තමේන්තුව විසින් … ගත්තේය | දෙපාර්තමේන්තුව විසින් … ගන්නා ලදී | An agent marked with විසින් requires a passive predicate (ගන්නා ලදී). |
-| 7 | `SPELL_JOURNAL_001` | ප්‍රකාෂය | ප්‍රකාශය | Spelling: තාලුජ ශ. |
+| 5 | `GRAM_VOICE_001` | සැකකරුවන් හතර දෙනෙකු … විසින් අත්අඩංගුවට ගත්තේය | … විසින් අත්අඩංගුවට ගන්නා ලදී | An agent marked with විසින් requires a passive predicate (ගන්නා ලදී). |
+| 6 | `SPELL_JOURNAL_001` | ප්‍රකාෂය | ප්‍රකාශය | Spelling: තාලුජ ශ. |
+| 7 | `GRAM_CASE_ATTACH_001` | විරෝධතා වලින් | විරෝධතාවලින් | -වලින් is a bound case ending (plural instrumental), written joined to its noun. |
 | 8 | `GRAM_CLAUSE_001` | අවධාරණය කළේ … සාක්ෂියක්. | අවධාරණය කළේ … සාක්ෂියක් බවයි. | The focused reporting verb කළේ opens a reported clause that must be closed with බවයි. |
 | 9 | `GRAM_AGR_001` | නීතිඥවරිය … ඉල්ලා සිටියේය | නීතිඥවරිය … ඉල්ලා සිටියාය | Gender agreement: a feminine subject takes the feminine ending -ාය. |
-| 10 | `GRAM_AGR_001` | විනිසුරුවරු … නියෝග කළේය | විනිසුරුවරු … නියෝග කළහ | Number agreement: a plural subject takes the plural ending -හ. ලබන සතියේ belongs to කැඳවීමට, so the past tense stays. |
+| 10 | `GRAM_CLEFT_FOCUS_001` | මේ බව පැවසුවේ … මෙහෙයවමින්. | මේ බව පැවසුවේ … මෙහෙයවමිනි. | In a focus (cleft) sentence the focused closing participle takes the emphatic ending -මිනි. No බවයි is added, because මේ බව already names what was said. |
+| 11 | `GRAM_AGR_001` | විනිසුරුවරු … නියෝග කළේය | විනිසුරුවරු … නියෝග කළහ | Number agreement: a plural subject takes the plural ending -හ. ලබන සතියේ belongs to කැඳවීමට, so the past tense stays. |
 
 **Control sentences (correct as written; nothing changes):** සාක්ෂිකරු අධිකරණයෙන් පිටව යද්දී ඔහුගෙන් මාධ්‍යවේදීන් කිහිප දෙනෙක් ප්‍රශ්න කළහ.
 
 ## Article 2: කාලගුණ පුවත — අධික වර්ෂාව සහ ගංවතුර අවදානම
 
-**11 errors: 9 grammar, 2 spelling.**
+**12 errors: 10 grammar, 2 spelling.**
 
 ### Input (paste this)
 
 ```text
 නිරිතදිග මෝසම් තත්ත්වය හේතුවෙන් රටේ ප්‍රදේශ කිහිපයකට හෙට සිට අධික වර්ෂාපතනයක් ඇති විය.
 
-ආපදා කළමනාකරණ මධ්‍යස්ථානය ගංගා ආශ්‍රිත පහත් බිම්වල ජීවත් වන ජනතාවගෙන් අනතුරු ඇඟවීය.
+ආපදා කළමනාකරණ මධ්‍යස්ථානය ගංගා ආශ්‍රිත පහත් බිම් වල ජීවත් වන ජනතාවගෙන් අනතුරු ඇඟවීය.
 
 නායයෑමේ අවදානම පිළිබඳව ජාතික ගොඩනැගිලි පර්යේෂණ සංවිධානයේ නිලධාරීහු ද අවධානය යොමු කළේය.
 
 පසුගිය පැය 24 තුළ පමණක් නිවාස 120කට බරපතල හානි සිදු වූ අතර, පවුල් 3000කට අධික ප්‍රමාණයක් අවතැන් වී ඇත.
 
-අවතැන් වූ පුද්ගලයන් 450ක් ප්‍රදේශයේ පාසල් හතරක තාවකාලිකව නවාතැන් ගෙන සිටිති.
+අවතැන් වූ පවුල් සඳහා ප්‍රදේශයේ පාසල් හතරක තාවකාලික නවාතැන් සපයා ඇති බව ප්‍රදේශවාසීහු පැවසුවා.
 
 අවතැන් වූවන්ට අවශ්‍ය වියළි ආහාර සලාක ප්‍රාදේශීය ලේකම් කාර්යාලය විසින් ලබා දුන්හ.
 
@@ -116,7 +125,7 @@ In the corrected text, grammar edits are highlighted **orange** and spelling edi
 
 පසුගිය පැය 24 තුළ පමණක් නිවාස 120කට බරපතළ හානි සිදු වූ අතර, පවුල් 3000කට අධික ප්‍රමාණයක් අවතැන් වී ඇත.
 
-අවතැන් වූ පුද්ගලයන් 450 දෙනෙක් ප්‍රදේශයේ පාසල් හතරක තාවකාලිකව නවාතැන් ගෙන සිටිති.
+අවතැන් වූ පවුල් සඳහා ප්‍රදේශයේ පාසල් හතරක තාවකාලික නවාතැන් සපයා ඇති බව ප්‍රදේශවාසීහු පැවසූහ.
 
 අවතැන් වූවන්ට අවශ්‍ය වියළි ආහාර සලාක ප්‍රාදේශීය ලේකම් කාර්යාලය විසින් ලබා දෙන ලදී.
 
@@ -132,22 +141,23 @@ In the corrected text, grammar edits are highlighted **orange** and spelling edi
 | # | Rule | Error | Correction | Why |
 |---|---|---|---|---|
 | 1 | `GRAM_TENSE_001` | හෙට සිට … ඇති විය | හෙට සිට … ඇති වනු ඇත | හෙට (tomorrow) needs a future verb, not the past විය. |
-| 2 | `GRAM_CASE_DATIVE_001` | ජනතාවගෙන් අනතුරු ඇඟවීය | ජනතාවට අනතුරු ඇඟවීය | The person warned is dative (-ට); -ගෙන් would mean warned from the people. |
-| 3 | `GRAM_AGR_001` | නිලධාරීහු ද … යොමු කළේය | නිලධාරීහු ද … යොමු කළහ | Number agreement: plural subject නිලධාරීහු takes -හ. |
-| 4 | `SPELL_JOURNAL_001` | බරපතල | බරපතළ | Spelling: මූර්ධජ ළ. |
-| 5 | `GRAM_NUM_CLASS_001` | පුද්ගලයන් 450ක් | පුද්ගලයන් 450 දෙනෙක් | People are counted with දෙනා. Compare නිවාස 120කට and පවුල් 3000කට, which are things and correctly keep -ක. |
-| 6 | `GRAM_VOICE_001` | කාර්යාලය විසින් ලබා දුන්හ | කාර්යාලය විසින් ලබා දෙන ලදී | An agent marked with විසින් requires a passive predicate. |
-| 7 | `GRAM_CASE_ABLATIVE_001` | ප්‍රදේශවාසීන්ට ඉල්ලා සිටියේය | ප්‍රදේශවාසීන්ගෙන් ඉල්ලා සිටියහ | Requesting from someone takes the ablative -ගෙන්. |
-| 8 | `GRAM_AGR_001` | නිලධාරීහු … ඉල්ලා සිටියේය | නිලධාරීහු … ඉල්ලා සිටියහ | Number agreement in the same sentence: plural subject takes -හ. |
-| 9 | `GRAM_VOICE_002` | දෙපාර්තමේන්තුව විසින් පැවසීය | දෙපාර්තමේන්තුව පැවසීය | An active speech verb takes a plain subject, not the passive agent marker විසින්. |
-| 10 | `SPELL_JOURNAL_001` | අමාත්‍යාන්ශය | අමාත්‍යාංශය | Spelling: අනුස්වාරය (ං). |
-| 11 | `GRAM_TENSE_001` | ලබන සතියේ … ආරම්භ කළේය | ලබන සතියේ … ආරම්භ කරනු ඇත | ලබන සතියේ (next week) needs a future verb. |
+| 2 | `GRAM_CASE_ATTACH_001` | බිම් වල | බිම්වල | -වල is a bound plural case ending, written joined to its noun. |
+| 3 | `GRAM_CASE_DATIVE_001` | ජනතාවගෙන් අනතුරු ඇඟවීය | ජනතාවට අනතුරු ඇඟවීය | The person warned is dative (-ට); -ගෙන් would mean warned from the people. |
+| 4 | `GRAM_AGR_001` | නිලධාරීහු ද … යොමු කළේය | නිලධාරීහු ද … යොමු කළහ | Number agreement: plural subject නිලධාරීහු takes -හ. |
+| 5 | `SPELL_JOURNAL_001` | බරපතල | බරපතළ | Spelling: මූර්ධජ ළ. |
+| 6 | `GRAM_REGISTER_001` | ප්‍රදේශවාසීහු පැවසුවා | ප්‍රදේශවාසීහු පැවසූහ | The written plural subject (-හු) needs the written plural verb; පැවසුවා is the spoken form. |
+| 7 | `GRAM_VOICE_001` | කාර්යාලය විසින් ලබා දුන්හ | කාර්යාලය විසින් ලබා දෙන ලදී | An agent marked with විසින් requires a passive predicate. |
+| 8 | `GRAM_CASE_ABLATIVE_001` | ප්‍රදේශවාසීන්ට ඉල්ලා සිටියේය | ප්‍රදේශවාසීන්ගෙන් ඉල්ලා සිටියහ | Requesting from someone takes the ablative -ගෙන්. |
+| 9 | `GRAM_AGR_001` | නිලධාරීහු … ඉල්ලා සිටියේය | නිලධාරීහු … ඉල්ලා සිටියහ | Number agreement in the same sentence: plural subject takes -හ. |
+| 10 | `GRAM_VOICE_002` | දෙපාර්තමේන්තුව විසින් පැවසීය | දෙපාර්තමේන්තුව පැවසීය | An active speech verb takes a plain subject, not the passive agent marker විසින්. |
+| 11 | `SPELL_JOURNAL_001` | අමාත්‍යාන්ශය | අමාත්‍යාංශය | Spelling: අනුස්වාරය (ං). |
+| 12 | `GRAM_TENSE_001` | ලබන සතියේ … ආරම්භ කළේය | ලබන සතියේ … ආරම්භ කරනු ඇත | ලබන සතියේ (next week) needs a future verb. |
 
-**Control sentences (correct as written; nothing changes):** පසුගිය පැය 24 තුළ පමණක් නිවාස 120කට … පවුල් 3000කට අධික ප්‍රමාණයක් අවතැන් වී ඇත. (only the spelling of බරපතල changes; the counts of things keep -ක)
+**Control sentences (correct as written; nothing changes):** පසුගිය පැය 24 තුළ පමණක් නිවාස 120කට … පවුල් 3000කට අධික ප්‍රමාණයක් අවතැන් වී ඇත. (only බරපතල changes)
 
 ## Article 3: සෞඛ්‍ය පුවත — ඩෙංගු රෝගීන් ඉහළ යාම
 
-**10 errors: 8 grammar, 2 spelling.**
+**12 errors: 10 grammar, 2 spelling.**
 
 ### Input (paste this)
 
@@ -160,7 +170,9 @@ In the corrected text, grammar edits are highlighted **orange** and spelling edi
 
 පසුගිය දින කිහිපය තුළ සිදු කළ පරීක්ෂණවලදී මදුරුවන් බෝවන ස්ථාන තබාගෙන සිටි නිවැසියන්ගෙන් සෞඛ්‍ය නිලධාරීහු අවවාද කළේය.
 
-ඩෙංගු මර්දන වැඩසටහනට සහාය දෙන ලෙස සෞඛ්‍ය අමාත්‍යාංශය සියලු පාසල් ප්‍රධානීන්ට ඉල්ලා සිටියේය.
+ඩෙංගු මර්දන වැඩසටහනට සහාය දෙන ලෙස සෞඛ්‍ය අමාත්‍යාංශය සියලු පාසල් වල ප්‍රධානීන්ට ඉල්ලා සිටියේය.
+
+ඩෙංගු මර්දන කටයුතු සඳහා ප්‍රදේශයේ ගුරුවරු ද සහාය දෙයි.
 
 උණ රෝග ලක්ෂණ දින දෙකකට වඩා පවතී නම් වහාම වෛද්‍ය උපදෙස් ලබා ගන්නා ලෙස සෞඛ්‍ය ප්‍රවර්ධන කාර්යාංශය මහජනතාවට දැනුම් දෙයි.
 
@@ -180,7 +192,9 @@ In the corrected text, grammar edits are highlighted **orange** and spelling edi
 
 පසුගිය දින කිහිපය තුළ සිදු කළ පරීක්ෂණවලදී මදුරුවන් බෝවන ස්ථාන තබාගෙන සිටි නිවැසියන්ට සෞඛ්‍ය නිලධාරීහු අවවාද කළහ.
 
-ඩෙංගු මර්දන වැඩසටහනට සහාය දෙන ලෙස සෞඛ්‍ය අමාත්‍යාංශය සියලු පාසල් ප්‍රධානීන්ගෙන් ඉල්ලා සිටියේය.
+ඩෙංගු මර්දන වැඩසටහනට සහාය දෙන ලෙස සෞඛ්‍ය අමාත්‍යාංශය සියලු පාසල්වල ප්‍රධානීන්ගෙන් ඉල්ලා සිටියේය.
+
+ඩෙංගු මර්දන කටයුතු සඳහා ප්‍රදේශයේ ගුරුවරු ද සහාය දෙති.
 
 උණ රෝග ලක්ෂණ දින දෙකකට වඩා පවතී නම් වහාම වෛද්‍ය උපදෙස් ලබා ගන්නා ලෙස සෞඛ්‍ය ප්‍රවර්ධන කාර්යාංශය මහජනතාවට දැනුම් දෙයි.
 
@@ -199,13 +213,17 @@ In the corrected text, grammar edits are highlighted **orange** and spelling edi
 | 4 | `GRAM_TENSE_001` | ලබන සතියේ … ආරම්භ කළේය | ලබන සතියේ … ආරම්භ කරනු ඇත | ලබන සතියේ (next week) needs a future verb. |
 | 5 | `GRAM_CASE_DATIVE_001` | නිවැසියන්ගෙන් … අවවාද | නිවැසියන්ට … අවවාද | The person advised/warned is dative -ට. |
 | 6 | `GRAM_AGR_001` | නිලධාරීහු අවවාද කළේය | නිලධාරීහු අවවාද කළහ | Number agreement: plural subject takes -හ. |
-| 7 | `GRAM_CASE_ABLATIVE_001` | ප්‍රධානීන්ට ඉල්ලා සිටියේය | ප්‍රධානීන්ගෙන් ඉල්ලා සිටියේය | Requesting from someone takes the ablative -ගෙන්. The verb stays -ේය because the subject is අමාත්‍යාංශය (singular). |
-| 8 | `SPELL_JOURNAL_001` | රෝගන්ගේ | රෝගීන්ගේ | Spelling/word form: රෝගී + න්. |
-| 9 | `GRAM_VOICE_002` | අමාත්‍යාංශය විසින් කියා සිටියේය | අමාත්‍යාංශය කියා සිටියේය | An active speech verb takes a plain subject, not විසින්. |
-| 10 | `GRAM_CLAUSE_001` | අවධාරණය කළේ … වගකීමක්. | අවධාරණය කළේ … වගකීමක් බවයි. | The focused reporting verb කළේ must close its reported clause with බවයි. |
+| 7 | `GRAM_CASE_ATTACH_001` | පාසල් වල | පාසල්වල | -වල is a bound plural case ending, written joined to its noun. |
+| 8 | `GRAM_CASE_ABLATIVE_001` | ප්‍රධානීන්ට ඉල්ලා සිටියේය | ප්‍රධානීන්ගෙන් ඉල්ලා සිටියේය | Requesting from someone takes the ablative -ගෙන්. The verb stays -ේය because the subject is අමාත්‍යාංශය (singular). |
+| 9 | `GRAM_AGR_001` | ගුරුවරු ද සහාය දෙයි | ගුරුවරු ද සහාය දෙති | Present-tense number agreement: a plural subject takes -ති, a singular one -යි. |
+| 10 | `SPELL_JOURNAL_001` | රෝගන්ගේ | රෝගීන්ගේ | Spelling/word form: රෝගී + න්. |
+| 11 | `GRAM_VOICE_002` | අමාත්‍යාංශය විසින් කියා සිටියේය | අමාත්‍යාංශය කියා සිටියේය | An active speech verb takes a plain subject, not විසින්. |
+| 12 | `GRAM_CLAUSE_001` | අවධාරණය කළේ … වගකීමක්. | අවධාරණය කළේ … වගකීමක් බවයි. | The focused reporting verb කළේ must close its reported clause with බවයි. |
 
 **Control sentences (correct as written; nothing changes):** උණ රෝග ලක්ෂණ … සෞඛ්‍ය ප්‍රවර්ධන කාර්යාංශය මහජනතාවට දැනුම් දෙයි. · රෝගීන් 1,200කට අධික සංඛ්‍යාවක් (a comparison of quantity, so no දෙනා)
 
-## Limits
+## Notes for the demo
 
-Each rule is triggered by a specific governing word: the verb that requires a case, the time word that sets the tense, or the subject that sets the verb ending. It is also kept inside one clause. The rules are precise on the constructions listed above and do nothing to anything else. This is a curated rule layer, not a general Sinhala grammar. It was built and checked on these demo articles and a short list of correct sentences. It has not been evaluated on the Stage 6 benchmark, so its results should not be reported as a measured accuracy figure. An admin can turn it off with the `grammar.journal_rules_enabled` setting (Grammar Advanced). Turn it off when running research evaluations of the model.
+- In article 1, `සාක්ෂිකරු විසින් අධිකරනයේදී` holds two errors next to each other. The corrections list shows them as one grammar correction.
+- Deleting විසින් leaves nothing to highlight, so that fix appears only in the corrections count and list.
+- The rules cover the constructions listed above and nothing else. See `grammar-journal-rules.md` for the measured firing rates and the limits. An admin can turn the layer off with `grammar.journal_rules_enabled` (Grammar Advanced). Turn it off for model-only evaluations.
