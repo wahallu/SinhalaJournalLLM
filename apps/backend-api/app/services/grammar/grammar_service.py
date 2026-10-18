@@ -44,7 +44,7 @@ from app.services.grammar.rule_validator import get_rule_validator
 from app.services.grammar.safety_gate import tokenize as safety_tokenize
 from app.services.grammar import sentence_final
 from app.services.grammar.substitution_guard import inspect_substitution, is_probable_name
-from app.services.grammar import lexicon
+from app.services.grammar import journal_rules, lexicon
 from app.services.grammar.chunking import chunk_text
 
 if TYPE_CHECKING:
@@ -74,6 +74,30 @@ def _tokenize_with_offsets(text: str) -> tuple[list[str], list[int]]:
     return tokens, offsets
 
 
+# Case suffixes and finite-verb endings. Swapping one for another on the same
+# stem (ජනතාවගෙන් -> ජනතාවට, කළේය -> කළහ) changes a grammatical relation, but
+# the two strings are still >=60% similar, so without this check the ratio
+# test below labelled every such edit "spelling".
+_INFLECTION_TAILS = frozenset({
+    "ට", "ගෙන්", "ගේ", "ෙන්", "ින්", "යෙන්", "යට", "යේ", "යේදී", "ේදී", "දී", "හි",
+    "වලට", "වලින්", "වල", "ාට", "ාගේ", "ාගෙන්",
+    "ේය", "ාය", "හ", "ූහ", "ීය", "ුවාය", "ුවේය", "යි", "ති",
+})
+
+
+def _is_inflection_swap(original: str, corrected: str) -> bool:
+    stem = 0
+    while stem < min(len(original), len(corrected)) and original[stem] == corrected[stem]:
+        stem += 1
+    old_tail, new_tail = original[stem:].rstrip(".,;:!?"), corrected[stem:].rstrip(".,;:!?")
+    return (
+        stem >= 2
+        and old_tail != new_tail
+        and old_tail in _INFLECTION_TAILS
+        and new_tail in _INFLECTION_TAILS
+    )
+
+
 def _classify(original: str, corrected: str) -> tuple[str, str]:
     """Return (type, rule description) for one correction."""
     orig_set = set(original)
@@ -90,6 +114,8 @@ def _classify(original: str, corrected: str) -> tuple[str, str]:
         ratio = SequenceMatcher(None, original, corrected).ratio()
         if corrected.startswith(original) or original.startswith(corrected):
             return "grammar", "Word form correction (වචන රූප නිවැරදි කිරීම)"
+        if _is_inflection_swap(original, corrected):
+            return "grammar", "Case/verb ending correction (විභක්ති / ක්‍රියා ප්‍රත්‍ය නිවැරදි කිරීම)"
         if ratio >= 0.6:
             return "spelling", "Spelling correction (අක්ෂර වින්‍යාස නිවැරදි කිරීම)"
     return "grammar", "Grammar correction (ව්‍යාකරණ නිවැරදි කිරීම)"
@@ -100,15 +126,18 @@ def derive_corrections(
     corrected: str,
     *,
     validation_edits: list[ValidationEdit] | None = None,
+    rule_hits: list[journal_rules.RuleHit] | None = None,
 ) -> list[CorrectionDetail]:
     """
     Word-level diff between input and model output.
 
     The grammar adapter returns only the corrected text, so the individual
-    corrections shown in every client UI are reconstructed here.
+    corrections shown in every client UI are reconstructed here. `rule_hits`
+    are journal_rules applications located in `corrected`; a diff fragment
+    that contains one is labelled with that rule instead of being guessed at.
     """
     orig_tokens, orig_offsets = _tokenize_with_offsets(original)
-    corr_tokens, _ = _tokenize_with_offsets(corrected)
+    corr_tokens, corr_offsets = _tokenize_with_offsets(corrected)
 
     corrections: list[CorrectionDetail] = []
     matcher = SequenceMatcher(None, orig_tokens, corr_tokens, autojunk=False)
@@ -146,6 +175,12 @@ def derive_corrections(
         if validation_edit and any("TENSE" in rule_id for rule_id in validation_edit.rule_ids):
             kind = "grammar"
             rule = "Tense consistency warning (කාල භේදය පරීක්ෂා කිරීම)"
+        rule_hit = _rule_hit_for(rule_hits, corr_tokens, corr_offsets, j1, j2, len(corrected))
+        if rule_hit:
+            # A deterministic rule made this edit, so its label is known, not
+            # inferred from string similarity — and it is never a name swap.
+            kind, rule = rule_hit.category, rule_hit.label
+            suspicious, suspicious_reason = False, None
         corrections.append(
             CorrectionDetail(
                 position=position,
@@ -155,7 +190,10 @@ def derive_corrections(
                 type=kind,
                 suspicious=suspicious,
                 suspicious_reason=suspicious_reason,
-                rule_ids=list(validation_edit.rule_ids) if validation_edit else [],
+                rule_ids=(
+                    [rule_hit.rule_id] if rule_hit
+                    else list(validation_edit.rule_ids) if validation_edit else []
+                ),
                 confidence=validation_edit.confidence if validation_edit else None,
                 confidence_level=(
                     validation_edit.confidence_level.value if validation_edit else None
@@ -164,6 +202,29 @@ def derive_corrections(
             )
         )
     return corrections
+
+
+def _rule_hit_for(
+    rule_hits: list[journal_rules.RuleHit] | None,
+    corr_tokens: list[str],
+    corr_offsets: list[int],
+    j1: int,
+    j2: int,
+    corrected_length: int,
+) -> journal_rules.RuleHit | None:
+    """The rule hit whose changed characters fall inside corrected tokens j1:j2."""
+    if not rule_hits:
+        return None
+    if j1 < j2:
+        start, end = corr_offsets[j1], corr_offsets[j2 - 1] + len(corr_tokens[j2 - 1])
+    else:  # pure deletion: a point just before the next surviving token
+        start = end = corr_offsets[j1] if j1 < len(corr_offsets) else corrected_length
+    for hit in rule_hits:
+        # A deletion hit has no width; allow it the separating space.
+        lo, hi = (hit.start - 1, hit.end + 1) if hit.start == hit.end else (hit.start, hit.end)
+        if lo <= end and start <= hi:
+            return hit
+    return None
 
 
 async def _validation_config() -> ValidationConfig:
@@ -358,6 +419,7 @@ async def check_grammar(
     max_chars = await runtime_settings.get("grammar.chunk_chars")
     spell_ratio = await runtime_settings.get("grammar.spellcheck_ratio")
     validation_config = await _validation_config()
+    journal_rules_enabled = bool(await runtime_settings.get("grammar.journal_rules_enabled"))
 
     chunks = chunk_text(text, max_chars)
     if not chunks:
@@ -412,6 +474,13 @@ async def check_grammar(
         validation_results.append(validation)
         corrected_chunk = validation.final_text
 
+        # The model and validator above only ever repair what the model chose
+        # to change; this deterministic layer proposes the grammar edits the
+        # model leaves alone (case, agreement, voice, tense, reported clause).
+        rule_hits: list[journal_rules.RuleHit] = []
+        if journal_rules_enabled:
+            corrected_chunk, rule_hits = journal_rules.apply(corrected_chunk)
+
         local_edits = validation.edits
         for edit in local_edits:
             validation_edits.append(edit.rebased(chunk.start, candidate_start))
@@ -426,6 +495,7 @@ async def check_grammar(
             chunk.text,
             corrected_chunk,
             validation_edits=local_edits,
+            rule_hits=rule_hits,
         ):
             corrections.append(
                 correction.model_copy(update={"position": correction.position + chunk.start})

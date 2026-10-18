@@ -63,6 +63,17 @@ function resolveRule(correction = {}) {
 const MARK_CLASS =
   'bg-yellow-200/85 text-yellow-950 font-medium px-1 py-0.5 rounded-[3px] border border-yellow-300/70';
 
+/* The one exception to the single highlight: an applied grammar edit (case
+   ending, agreement, voice, tense, clause) is tinted orange so it cannot be
+   mistaken for a spelling fix at a glance — the two were indistinguishable
+   in the corrected text, which made every grammar edit read as spelling. */
+const GRAMMAR_MARK_CLASS =
+  'bg-orange-200/85 text-orange-950 font-medium px-1 py-0.5 rounded-[3px] border border-orange-300/70';
+
+function isGrammarMeta(meta) {
+  return meta !== RULE_META.spelling && meta !== RULE_META.punctuation;
+}
+
 /**
  * Corrected text with every applied edit highlighted, and every dictionary
  * suggestion actionable — a single visual treatment for both, so hovering or
@@ -92,19 +103,28 @@ export function CorrectedText({ marks = [], text = '', className = '', onToggle 
       nodes.push(mark.term);
     } else if (mark.kind === 'correction') {
       // Informational only: nothing to accept or undo, just what changed.
+      const meta = resolveRule(mark.correction);
       nodes.push(
         <WordPopover
           key={`c-${i}`}
-          ariaLabel={`Changed: ${mark.correction?.original || '—'} to ${mark.term}`}
+          ariaLabel={`${meta.label}: ${mark.correction?.original || '—'} changed to ${mark.term}`}
           panel={
-            <p className="text-[13px] font-sinhala">
-              <span className="text-ink-400 line-through">{mark.correction?.original || '—'}</span>
-              <span className="text-ink-300 mx-1.5">→</span>
-              <span className="font-semibold text-ink-900">{mark.term}</span>
-            </p>
+            <div className="space-y-1.5 max-w-xs">
+              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-ink-500 flex items-center gap-1.5">
+                <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} /> {meta.label}
+              </p>
+              <p className="text-[13px] font-sinhala">
+                <span className="text-ink-400 line-through">{mark.correction?.original || '—'}</span>
+                <span className="text-ink-300 mx-1.5">→</span>
+                <span className="font-semibold text-ink-900">{mark.term}</span>
+              </p>
+              {mark.correction?.rule && (
+                <p className="text-[11.5px] leading-snug text-ink-600 font-sinhala">{mark.correction.rule}</p>
+              )}
+            </div>
           }
         >
-          <mark className={`${MARK_CLASS} ${className}`}>{mark.term}</mark>
+          <mark className={`${isGrammarMeta(meta) ? GRAMMAR_MARK_CLASS : MARK_CLASS} ${className}`}>{mark.term}</mark>
         </WordPopover>
       );
     } else {
@@ -327,6 +347,9 @@ export function CorrectionsList({ corrections = [], className = '' }) {
                     <span className="font-sinhala text-[12px] font-semibold text-ink-800">{c.corrected}</span>
                   </div>
                   <p className="text-[10px] text-ink-500 mt-0.5 uppercase tracking-wide">{meta.label}</p>
+                  {c.rule && (
+                    <p className="text-[11px] text-ink-500 mt-0.5 leading-snug font-sinhala">{c.rule}</p>
+                  )}
                 </div>
               </div>
             );

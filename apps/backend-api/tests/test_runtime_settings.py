@@ -47,6 +47,7 @@ def test_registry_covers_the_documented_keys():
         "grammar.protect_quotes",
         "grammar.agreement_validation",
         "grammar.contextual_rules",
+        "grammar.journal_rules_enabled",
         "limits.anon_per_hour",
         "image.model",
     }
