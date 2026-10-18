@@ -162,7 +162,10 @@ class VisualPromptRequest(BaseModel):
     headline: str = Field(
         default="",
         max_length=300,
-        description="The selected headline (used to sharpen the prompt)",
+        description=(
+            "The selected headline. Only sets the focus; ignored when it "
+            "isn't grounded in the article"
+        ),
     )
     history_id: str | None = Field(
         default=None,
