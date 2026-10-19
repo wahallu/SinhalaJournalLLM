@@ -17,6 +17,7 @@ import {
   SpellCheck,
   Sun,
   Tags,
+  UserRound,
   Users,
 } from 'lucide-react';
 
@@ -26,6 +27,7 @@ const NAV = [
   { to: '/admin/chats', end: false, label: 'Chats', icon: MessagesSquare },
   { to: '/admin/categories', end: false, label: 'Categories', icon: Tags },
   { to: '/admin/portfolio-documents', end: false, label: 'Portfolio Docs', icon: FileText },
+  { to: '/admin/team-contacts', end: false, label: 'Team Contacts', icon: UserRound },
   { to: '/admin/plans', end: false, label: 'Plans', icon: CreditCard },
   { to: '/admin/upgrades', end: false, label: 'Upgrades', icon: BadgeDollarSign },
   { to: '/admin/activity', end: false, label: 'Activity', icon: ScrollText },

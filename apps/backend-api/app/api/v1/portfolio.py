@@ -1,4 +1,4 @@
-"""Public portfolio endpoints: the document listing and the contact form."""
+"""Public portfolio endpoints: documents, team contact links and the contact form."""
 
 import time
 from collections import defaultdict, deque
@@ -8,9 +8,10 @@ from fastapi import APIRouter, HTTPException, Request, status
 from app.core.config import get_settings
 from app.core.email import EmailDeliveryError, send_contact_email
 from app.core.rate_limit import client_ip, hash_ip
-from app.repositories import portfolio_document_repository
+from app.repositories import portfolio_document_repository, team_contact_repository
 from app.schemas.contact import ContactMessage
 from app.schemas.portfolio_document import PortfolioDocument
+from app.schemas.team_contact import TeamContact
 
 router = APIRouter(prefix="/portfolio", tags=["Portfolio"])
 
@@ -25,6 +26,12 @@ _contact_sends: dict[str, deque[float]] = defaultdict(deque)
 async def list_documents() -> list[PortfolioDocument]:
     rows = await portfolio_document_repository.list_public()
     return [PortfolioDocument(**row) for row in rows]
+
+
+@router.get("/team-contacts", response_model=list[TeamContact])
+async def list_team_contacts() -> list[TeamContact]:
+    rows = await team_contact_repository.list_all()
+    return [TeamContact(**row) for row in rows]
 
 
 def _check_contact_limit(request: Request) -> None:

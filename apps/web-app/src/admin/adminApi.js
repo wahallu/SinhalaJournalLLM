@@ -111,6 +111,15 @@ export function deletePortfolioDocument(documentId) {
   return request(`/admin/portfolio-documents/${documentId}`, { method: 'DELETE' });
 }
 
+// ── Portfolio team contacts ──
+export function listTeamContacts() {
+  return request('/admin/portfolio-team');
+}
+
+export function updateTeamContact(studentId, changes) {
+  return request(`/admin/portfolio-team/${encodeURIComponent(studentId)}`, { method: 'PATCH', body: changes });
+}
+
 // ── Settings ──
 export function getSettings() {
   return request('/admin/settings');

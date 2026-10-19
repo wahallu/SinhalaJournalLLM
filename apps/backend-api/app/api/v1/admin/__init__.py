@@ -17,6 +17,7 @@ from app.api.v1.admin.overview import router as overview_router
 from app.api.v1.admin.plans import router as plans_router
 from app.api.v1.admin.portfolio_documents import router as portfolio_documents_router
 from app.api.v1.admin.settings import router as settings_router
+from app.api.v1.admin.team_contacts import router as team_contacts_router
 from app.api.v1.admin.upgrades import router as upgrades_router
 from app.api.v1.admin.users import router as users_router
 
@@ -27,6 +28,7 @@ router.include_router(users_router)
 router.include_router(categories_router)
 router.include_router(plans_router)
 router.include_router(portfolio_documents_router)
+router.include_router(team_contacts_router)
 router.include_router(upgrades_router)
 router.include_router(settings_router)
 router.include_router(analytics_router)

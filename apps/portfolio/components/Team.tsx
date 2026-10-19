@@ -4,6 +4,7 @@ import { ArrowUpRight, Mail, GraduationCap, Users } from "lucide-react";
 import { SUPERVISORS, TEAM } from "@/content/team";
 import { SITE } from "@/content/site";
 import { TOOL_ICONS } from "@/components/toolIcons";
+import MemberContactLinks from "@/components/MemberContactLinks";
 import { Section, SectionHeader, TextLink } from "@/components/ui";
 
 const TOOL_LINKS: Record<string, string> = {
@@ -168,15 +169,7 @@ export default function Team() {
                       <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
                     </Link>
 
-                    {m.email && (
-                      <a
-                        href={`mailto:${m.email}`}
-                        title={`Email ${m.name}`}
-                        className="rounded-lg p-1 text-[#8C8880] transition-colors hover:bg-stone-100 hover:text-crimson"
-                      >
-                        <Mail className="h-3.5 w-3.5" />
-                      </a>
-                    )}
+                    <MemberContactLinks studentId={m.studentId} name={m.name} email={m.email} />
                   </div>
                 </li>
               );
