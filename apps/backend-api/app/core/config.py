@@ -57,6 +57,10 @@ class Settings(BaseSettings):
     SMTP_FROM: str = ""
     # Base URL of the web app, used to build links in those emails.
     APP_BASE_URL: str = "http://localhost:5173"
+    # Inbox that receives messages sent from the portfolio contact form.
+    CONTACT_EMAIL_TO: str = "nisalfonseka@gmail.com"
+    # Contact-form messages accepted per hour per client IP.
+    CONTACT_MESSAGES_PER_HOUR: int = 5
 
     # Anonymous requests allowed per hour per client IP. Anonymous use means
     # unauthenticated GPU inference, so this is a cost control, not a nicety.

@@ -244,6 +244,328 @@
         "උණ රෝග ලක්ෂණ … සෞඛ්‍ය ප්‍රවර්ධන කාර්යාංශය මහජනතාවට දැනුම් දෙයි.",
         "රෝගීන් 1,200කට අධික සංඛ්‍යාවක් (a comparison of quantity, so no දෙනා)"
       ]
+    },
+    {
+      "id": "parliament",
+      "title": "දේශපාලන පුවත — පාර්ලිමේන්තු විවාදය",
+      "input": "පාර්ලිමේන්තුව හෙට පෙරවරු 9.30ට රැස් විය.\n\nඅය වැය විවාදය සඳහා කාලය වෙන් කිරීම පක්ෂ නායක රැස්වීම් වලදී තීරණය කෙරිණි.\n\nවිපක්ෂයේ මන්ත්‍රීවරු සභාවේ කටයුතු වලට බාධා කළේය.\n\nකථානායකවරයා විසින් සභාවේ සාමය රැකීමට උපදෙස් දුන්නේය.\n\nසභාවේ කටයුතු කඩාකප්පල් කිරීම පාර්ලිමෙන්තු සම්ප්‍රදායට පටහැනි බව අගමැතිවරිය පැවසීය.\n\nඅය වැය ලේඛනය පිළිබඳ ඡන්ද විමසීම ලබන සතියේ පැවැත්විණි.\n\nආණ්ඩු පක්ෂයේ මන්ත්‍රීවරු එම යෝජනාවට සහාය දෙයි.\n\nවිපක්ෂ නායකවරයා ප්‍රකාෂ කළේ එම යෝජනාව රටේ ආර්ථිකයට හානිකර යෝජනාවක්.\n\nසභාවෙන් පිටව යද්දී විපක්ෂ මන්ත්‍රීහු මාධ්‍යවේදීන්ට අදහස් පළ කළා.",
+      "expected": "පාර්ලිමේන්තුව හෙට පෙරවරු 9.30ට රැස් වනු ඇත.\n\nඅය වැය විවාදය සඳහා කාලය වෙන් කිරීම පක්ෂ නායක රැස්වීම්වලදී තීරණය කෙරිණි.\n\nවිපක්ෂයේ මන්ත්‍රීවරු සභාවේ කටයුතුවලට බාධා කළහ.\n\nකථානායකවරයා විසින් සභාවේ සාමය රැකීමට උපදෙස් දෙන ලදී.\n\nසභාවේ කටයුතු කඩාකප්පල් කිරීම පාර්ලිමේන්තු සම්ප්‍රදායට පටහැනි බව අගමැතිවරිය පැවසුවාය.\n\nඅය වැය ලේඛනය පිළිබඳ ඡන්ද විමසීම ලබන සතියේ පැවැත්වෙනු ඇත.\n\nආණ්ඩු පක්ෂයේ මන්ත්‍රීවරු එම යෝජනාවට සහාය දෙති.\n\nවිපක්ෂ නායකවරයා ප්‍රකාශ කළේ එම යෝජනාව රටේ ආර්ථිකයට හානිකර යෝජනාවක් බවයි.\n\nසභාවෙන් පිටව යද්දී විපක්ෂ මන්ත්‍රීහු මාධ්‍යවේදීන්ට අදහස් පළ කළහ.",
+      "errors": [
+        {
+          "rule_id": "GRAM_TENSE_001",
+          "original": "විය",
+          "corrected": "වනු ඇත",
+          "why": "The time word in the sentence (ඊයේ / හෙට / ලබන සතියේ / පසුගිය …) fixes the tense of the main verb."
+        },
+        {
+          "rule_id": "GRAM_CASE_ATTACH_001",
+          "original": "රැස්වීම් වලදී",
+          "corrected": "රැස්වීම්වලදී",
+          "why": "The case ending (-වල / -වලට / -වලදී) is bound to its noun and is written joined."
+        },
+        {
+          "rule_id": "GRAM_CASE_ATTACH_001",
+          "original": "කටයුතු වලට",
+          "corrected": "කටයුතුවලට",
+          "why": "The case ending (-වල / -වලට / -වලදී) is bound to its noun and is written joined."
+        },
+        {
+          "rule_id": "GRAM_AGR_001",
+          "original": "කළේය",
+          "corrected": "කළහ",
+          "why": "Subject–verb agreement: the verb ending must match the subject's number (-හ / -ති) and gender (-ාය)."
+        },
+        {
+          "rule_id": "GRAM_VOICE_001",
+          "original": "දුන්නේය",
+          "corrected": "දෙන ලදී",
+          "why": "An agent marked with විසින් requires a passive predicate (… ලදී)."
+        },
+        {
+          "rule_id": "SPELL_JOURNAL_001",
+          "original": "පාර්ලිමෙන්තු",
+          "corrected": "පාර්ලිමේන්තු",
+          "why": "Spelling."
+        },
+        {
+          "rule_id": "GRAM_AGR_001",
+          "original": "පැවසීය",
+          "corrected": "පැවසුවාය",
+          "why": "Subject–verb agreement: the verb ending must match the subject's number (-හ / -ති) and gender (-ාය)."
+        },
+        {
+          "rule_id": "GRAM_TENSE_001",
+          "original": "පැවැත්විණි",
+          "corrected": "පැවැත්වෙනු ඇත",
+          "why": "The time word in the sentence (ඊයේ / හෙට / ලබන සතියේ / පසුගිය …) fixes the tense of the main verb."
+        },
+        {
+          "rule_id": "GRAM_AGR_001",
+          "original": "දෙයි",
+          "corrected": "දෙති",
+          "why": "Subject–verb agreement: the verb ending must match the subject's number (-හ / -ති) and gender (-ාය)."
+        },
+        {
+          "rule_id": "SPELL_JOURNAL_001",
+          "original": "ප්‍රකාෂ",
+          "corrected": "ප්‍රකාශ",
+          "why": "Spelling."
+        },
+        {
+          "rule_id": "GRAM_CLAUSE_001",
+          "original": "යෝජනාවක්",
+          "corrected": "යෝජනාවක් බවයි",
+          "why": "The focused reporting verb (… කළේ) opens a reported clause that must close with බවයි."
+        },
+        {
+          "rule_id": "GRAM_REGISTER_001",
+          "original": "කළා",
+          "corrected": "කළහ",
+          "why": "A written plural subject (-හු) needs the written plural verb, not the spoken form."
+        }
+      ],
+      "controls": []
+    },
+    {
+      "id": "education",
+      "title": "අධ්‍යාපන පුවත — සාමාන්‍ය පෙළ ප්‍රතිඵල",
+      "input": "විභාග දෙපාර්තමේන්තුව 2026 අපොස සාමාන්‍ය පෙළ විභාගයේ ප්‍රතිඵල ඊයේ (17) නිකුත් කරනු ඇත.\n\nමෙවර විභාගයට අපේක්ෂකයන් 300,000කට ආසන්න පිරිසක් පෙනී සිටියේය.\n\nගණිත විෂයයේ සමත් ප්‍රතිශතය ඉහළ ගොස් ඇති බව විභාග කොමසාරිස් ජනරාල්වරයා විසින් පැවසීය.\n\nදිවයිනේ පාසල් වල ප්‍රධානීන්ට ප්‍රතිඵල පරීක්ෂා කිරීමට අවස්ථාව ලබා දී ඇත.\n\nප්‍රතිඵල පිළිබඳ ගැටලු ඇත්නම් 1911 අංකයට අමතන ලෙස විභාග දෙපාර්තමේන්තුව දෙමාපියන්ගෙන් දැනුම් දුන්නේය.\n\nසමත් වූ සිසුහු සිය පාසල් වෙත පැමිණ ගුරුවරුන්ට ස්තුති කළා.\n\nවිභාගයට පෙනී සිටි සියලු සිසුන්ට අධ්‍යාපන ඇමතිවරිය සුබ පැතුම් පළ කළේය.\n\nඅධ්‍යාපන ඇමතිවරිය අවධාරණය කළේ සෑම දරුවකුටම සමාන අධ්‍යාපන අවස්ථා ලබා දීම රජයේ වගකීමක්.\n\nවිභාග කොමසාරිස් ජනරාල්වරයා මේ බව සඳහන් කළේ ඊයේ පැවති මාධ්‍ය හමුවක් අමතමින්.\n\nප්‍රතිඵල නැවත සමීක්ෂණය සඳහා අයදුම්පත් භාර ගැනීම හෙට සිට ආරම්භ විය.\n\nඑම තොරතුරු අධ්‍යාපන අමාත්‍යාන්ශයේ වෙබ් අඩවියේ පළ කර ඇත.",
+      "expected": "විභාග දෙපාර්තමේන්තුව 2026 අපොස සාමාන්‍ය පෙළ විභාගයේ ප්‍රතිඵල ඊයේ (17) නිකුත් කළේය.\n\nමෙවර විභාගයට අපේක්ෂකයන් 300,000කට ආසන්න පිරිසක් පෙනී සිටියේය.\n\nගණිත විෂයයේ සමත් ප්‍රතිශතය ඉහළ ගොස් ඇති බව විභාග කොමසාරිස් ජනරාල්වරයා පැවසීය.\n\nදිවයිනේ පාසල්වල ප්‍රධානීන්ට ප්‍රතිඵල පරීක්ෂා කිරීමට අවස්ථාව ලබා දී ඇත.\n\nප්‍රතිඵල පිළිබඳ ගැටලු ඇත්නම් 1911 අංකයට අමතන ලෙස විභාග දෙපාර්තමේන්තුව දෙමාපියන්ට දැනුම් දුන්නේය.\n\nසමත් වූ සිසුහු සිය පාසල් වෙත පැමිණ ගුරුවරුන්ට ස්තුති කළහ.\n\nවිභාගයට පෙනී සිටි සියලු සිසුන්ට අධ්‍යාපන ඇමතිවරිය සුබ පැතුම් පළ කළාය.\n\nඅධ්‍යාපන ඇමතිවරිය අවධාරණය කළේ සෑම දරුවකුටම සමාන අධ්‍යාපන අවස්ථා ලබා දීම රජයේ වගකීමක් බවයි.\n\nවිභාග කොමසාරිස් ජනරාල්වරයා මේ බව සඳහන් කළේ ඊයේ පැවති මාධ්‍ය හමුවක් අමතමිනි.\n\nප්‍රතිඵල නැවත සමීක්ෂණය සඳහා අයදුම්පත් භාර ගැනීම හෙට සිට ආරම්භ වනු ඇත.\n\nඑම තොරතුරු අධ්‍යාපන අමාත්‍යාංශයේ වෙබ් අඩවියේ පළ කර ඇත.",
+      "errors": [
+        {
+          "rule_id": "GRAM_TENSE_001",
+          "original": "කරනු ඇත",
+          "corrected": "කළේය",
+          "why": "The time word in the sentence (ඊයේ / හෙට / ලබන සතියේ / පසුගිය …) fixes the tense of the main verb."
+        },
+        {
+          "rule_id": "GRAM_VOICE_002",
+          "original": "විසින්",
+          "corrected": "(removed)",
+          "why": "විසින් marks the agent of a passive verb; පැවසීය is active, so the subject takes no marker."
+        },
+        {
+          "rule_id": "GRAM_CASE_ATTACH_001",
+          "original": "පාසල් වල",
+          "corrected": "පාසල්වල",
+          "why": "The case ending (-වල / -වලට / -වලදී) is bound to its noun and is written joined."
+        },
+        {
+          "rule_id": "GRAM_CASE_DATIVE_001",
+          "original": "දෙමාපියන්ගෙන්",
+          "corrected": "දෙමාපියන්ට",
+          "why": "The person warned, advised or informed is dative (-ට); -ගෙන් would mean 'from'."
+        },
+        {
+          "rule_id": "GRAM_REGISTER_001",
+          "original": "කළා",
+          "corrected": "කළහ",
+          "why": "A written plural subject (-හු) needs the written plural verb, not the spoken form."
+        },
+        {
+          "rule_id": "GRAM_AGR_001",
+          "original": "කළේය",
+          "corrected": "කළාය",
+          "why": "Subject–verb agreement: the verb ending must match the subject's number (-හ / -ති) and gender (-ාය)."
+        },
+        {
+          "rule_id": "GRAM_CLAUSE_001",
+          "original": "වගකීමක්",
+          "corrected": "වගකීමක් බවයි",
+          "why": "The focused reporting verb (… කළේ) opens a reported clause that must close with බවයි."
+        },
+        {
+          "rule_id": "GRAM_CLEFT_FOCUS_001",
+          "original": "අමතමින්",
+          "corrected": "අමතමිනි",
+          "why": "In a focus (cleft) sentence the closing participle takes the emphatic ending -මිනි."
+        },
+        {
+          "rule_id": "GRAM_TENSE_001",
+          "original": "විය",
+          "corrected": "වනු ඇත",
+          "why": "The time word in the sentence (ඊයේ / හෙට / ලබන සතියේ / පසුගිය …) fixes the tense of the main verb."
+        },
+        {
+          "rule_id": "SPELL_JOURNAL_001",
+          "original": "අමාත්‍යාන්ශයේ",
+          "corrected": "අමාත්‍යාංශයේ",
+          "why": "Spelling."
+        }
+      ],
+      "controls": [
+        "මෙවර විභාගයට අපේක්ෂකයන් 300,000කට ආසන්න පිරිසක් පෙනී සිටියේය."
+      ]
+    },
+    {
+      "id": "accident",
+      "title": "අපරාධ හා අනතුරු පුවත — බස් අනතුර",
+      "input": "කොළඹ මහනුවර ප්‍රධාන මාර්ගයේ ඊයේ (17) රාත්‍රී සිදු වූ බස් අනතුරකින් පුද්ගලයන් 12ක් තුවාල ලැබීය.\n\nබස් රථය පාලනය කර ගැනීමට රියදුරුට නොහැකි වූ බව පොලීසිය විසින් පැවසීය.\n\nබස් රථයේ රියදුරු අධික වේගයෙන් ධාවනය කර ඇති බව ප්‍රදේශවාසීහු පැවසුවා.\n\nඅනතුරෙන් පසු පොලිස් නිලධාරීහු බස් රථයේ රියදුරු අත්අඩංගුවට ගත්තේය.\n\nඅනතුර සිදු වූ ආකාරය පිළිබඳව පොලීසිය ප්‍රදේශවාසීන්ට ප්‍රශ්න කළේය.\n\nඅධික වේගයෙන් ධාවනය නොකරන ලෙස පොලීසිය සියලු රියදුරන්ගෙන් අවවාද කළේය.\n\nඅනතුරේදී බරපතල තුවාල ලැබූ දෙදෙනෙකු කොළඹ ජාතික රෝහලට මාරු කර ඇති බව රෝහල් අධ්‍යක්ෂවරිය පැවසීය.\n\nපසුගිය සතියේ ද එම ස්ථානයේ අනතුරු දෙකක් සිදු වනු ඇත.\n\nඅනතුර දුටු සාක්ෂීකරුවන් කිහිප දෙනෙකුගේ ප්‍රකාශ ද පොලීසිය විසින් සටහන් කර ගත්තේය.\n\nඅනතුර සම්බන්ධ පරීක්ෂණ කටයුතු ගලිගමුව පොලීසිය පවත්වති.\n\nපොලිස් මාධ්‍ය ප්‍රකාෂකවරයා මේ බව පැවසුවේ ඊයේ පැවති මාධ්‍ය හමුවකට එක්වෙමින්.",
+      "expected": "කොළඹ මහනුවර ප්‍රධාන මාර්ගයේ ඊයේ (17) රාත්‍රී සිදු වූ බස් අනතුරකින් පුද්ගලයන් 12ක් තුවාල ලැබීය.\n\nබස් රථය පාලනය කර ගැනීමට රියදුරුට නොහැකි වූ බව පොලීසිය පැවසීය.\n\nබස් රථයේ රියදුරු අධික වේගයෙන් ධාවනය කර ඇති බව ප්‍රදේශවාසීහු පැවසූහ.\n\nඅනතුරෙන් පසු පොලිස් නිලධාරීහු බස් රථයේ රියදුරු අත්අඩංගුවට ගත්හ.\n\nඅනතුර සිදු වූ ආකාරය පිළිබඳව පොලීසිය ප්‍රදේශවාසීන්ගෙන් ප්‍රශ්න කළේය.\n\nඅධික වේගයෙන් ධාවනය නොකරන ලෙස පොලීසිය සියලු රියදුරන්ට අවවාද කළේය.\n\nඅනතුරේදී බරපතළ තුවාල ලැබූ දෙදෙනෙකු කොළඹ ජාතික රෝහලට මාරු කර ඇති බව රෝහල් අධ්‍යක්ෂවරිය පැවසුවාය.\n\nපසුගිය සතියේ ද එම ස්ථානයේ අනතුරු දෙකක් සිදු විය.\n\nඅනතුර දුටු සාක්ෂිකරුවන් කිහිප දෙනෙකුගේ ප්‍රකාශ ද පොලීසිය විසින් සටහන් කර ගන්නා ලදී.\n\nඅනතුර සම්බන්ධ පරීක්ෂණ කටයුතු ගලිගමුව පොලීසිය පවත්වයි.\n\nපොලිස් මාධ්‍ය ප්‍රකාශකවරයා මේ බව පැවසුවේ ඊයේ පැවති මාධ්‍ය හමුවකට එක්වෙමිනි.",
+      "errors": [
+        {
+          "rule_id": "GRAM_VOICE_002",
+          "original": "විසින්",
+          "corrected": "(removed)",
+          "why": "විසින් marks the agent of a passive verb; පැවසීය is active, so the subject takes no marker."
+        },
+        {
+          "rule_id": "GRAM_REGISTER_001",
+          "original": "පැවසුවා",
+          "corrected": "පැවසූහ",
+          "why": "A written plural subject (-හු) needs the written plural verb, not the spoken form."
+        },
+        {
+          "rule_id": "GRAM_AGR_001",
+          "original": "ගත්තේය",
+          "corrected": "ගත්හ",
+          "why": "Subject–verb agreement: the verb ending must match the subject's number (-හ / -ති) and gender (-ාය)."
+        },
+        {
+          "rule_id": "GRAM_CASE_ABLATIVE_001",
+          "original": "ප්‍රදේශවාසීන්ට",
+          "corrected": "ප්‍රදේශවාසීන්ගෙන්",
+          "why": "Questioning or requesting from someone takes the ablative -ගෙන් (asked from), not the dative -ට."
+        },
+        {
+          "rule_id": "GRAM_CASE_DATIVE_001",
+          "original": "රියදුරන්ගෙන්",
+          "corrected": "රියදුරන්ට",
+          "why": "The person warned, advised or informed is dative (-ට); -ගෙන් would mean 'from'."
+        },
+        {
+          "rule_id": "SPELL_JOURNAL_001",
+          "original": "බරපතල",
+          "corrected": "බරපතළ",
+          "why": "Spelling."
+        },
+        {
+          "rule_id": "GRAM_AGR_001",
+          "original": "පැවසීය",
+          "corrected": "පැවසුවාය",
+          "why": "Subject–verb agreement: the verb ending must match the subject's number (-හ / -ති) and gender (-ාය)."
+        },
+        {
+          "rule_id": "GRAM_TENSE_001",
+          "original": "වනු ඇත",
+          "corrected": "විය",
+          "why": "The time word in the sentence (ඊයේ / හෙට / ලබන සතියේ / පසුගිය …) fixes the tense of the main verb."
+        },
+        {
+          "rule_id": "SPELL_JOURNAL_001",
+          "original": "සාක්ෂීකරුවන්",
+          "corrected": "සාක්ෂිකරුවන්",
+          "why": "Spelling."
+        },
+        {
+          "rule_id": "GRAM_VOICE_001",
+          "original": "ගත්තේය",
+          "corrected": "ගන්නා ලදී",
+          "why": "An agent marked with විසින් requires a passive predicate (… ලදී)."
+        },
+        {
+          "rule_id": "GRAM_AGR_001",
+          "original": "පවත්වති",
+          "corrected": "පවත්වයි",
+          "why": "Subject–verb agreement: the verb ending must match the subject's number (-හ / -ති) and gender (-ාය)."
+        },
+        {
+          "rule_id": "SPELL_JOURNAL_001",
+          "original": "ප්‍රකාෂකවරයා",
+          "corrected": "ප්‍රකාශකවරයා",
+          "why": "Spelling."
+        },
+        {
+          "rule_id": "GRAM_CLEFT_FOCUS_001",
+          "original": "එක්වෙමින්",
+          "corrected": "එක්වෙමිනි",
+          "why": "In a focus (cleft) sentence the closing participle takes the emphatic ending -මිනි."
+        }
+      ],
+      "controls": [
+        "කොළඹ මහනුවර ප්‍රධාන මාර්ගයේ ඊයේ (17) රාත්‍රී සිදු වූ බස් අනතුරකින් පුද්ගලයන් 12ක් තුවාල ලැබීය."
+      ]
+    },
+    {
+      "id": "fuel",
+      "title": "ආර්ථික පුවත — ඉන්ධන මිල අඩු කිරීම",
+      "input": "ඛනිජ තෙල් නීතිගත සංස්ථාව ඉන්ධන මිල සංශෝධනය හෙට මධ්‍යම රාත්‍රියේ සිට ක්‍රියාත්මක කළේය.\n\nලීටරයක් රුපියල් 15කින් අඩු කිරීමට තීරණය කළ බව සංස්ථාවේ සභාපතිවරයා විසින් පැවසීය.\n\nමිල අඩු කිරීම නිසා බස් ගාස්තු වල ද වෙනසක් සිදු විය හැකි බව ප්‍රවාහන ඇමතිවරිය සඳහන් කළේය.\n\nගාස්තු අඩු කිරීමට ප්‍රමාණවත් තරම් මිල අඩු වී නොමැති බව පෞද්ගලික බස් සංගම් නායකයෝ පෙන්වා දුන්නේය.\n\nඉන්ධන මිල අඩු වීමත් සමඟ භාණ්ඩ මිල ද අඩු විය යුතු බව වෙළෙඳ සංගම් නායකයෝ පවසයි.\n\nපොහොර මිල ද අඩු කළ යුතු බව ගොවීහු ඉල්ලා සිටියා.\n\nමහ බැංකුව ප්‍රකාශ කළේ උද්ධමනය පාලනය කිරීමට මෙම මිල අඩු කිරීම උපකාරී වන පියවරක්.\n\nමුදල් අමාත්‍යාන්ශය විසින් මිල සූත්‍රය අනුව මාසිකව මිල සංශෝධනය කළේය.\n\nනව මිල වහාම ක්‍රියාත්මක කරන ලෙස සංස්ථාව පිරවුම්හල් හිමියන්ගෙන් දැනුම් දුන්නේය.\n\nපසුගිය මාසයේ ද ඉන්ධන මිල සංශෝධනය කෙරෙනු ඇත.",
+      "expected": "ඛනිජ තෙල් නීතිගත සංස්ථාව ඉන්ධන මිල සංශෝධනය හෙට මධ්‍යම රාත්‍රියේ සිට ක්‍රියාත්මක කරනු ඇත.\n\nලීටරයක් රුපියල් 15කින් අඩු කිරීමට තීරණය කළ බව සංස්ථාවේ සභාපතිවරයා පැවසීය.\n\nමිල අඩු කිරීම නිසා බස් ගාස්තුවල ද වෙනසක් සිදු විය හැකි බව ප්‍රවාහන ඇමතිවරිය සඳහන් කළාය.\n\nගාස්තු අඩු කිරීමට ප්‍රමාණවත් තරම් මිල අඩු වී නොමැති බව පෞද්ගලික බස් සංගම් නායකයෝ පෙන්වා දුන්හ.\n\nඉන්ධන මිල අඩු වීමත් සමඟ භාණ්ඩ මිල ද අඩු විය යුතු බව වෙළෙඳ සංගම් නායකයෝ පවසති.\n\nපොහොර මිල ද අඩු කළ යුතු බව ගොවීහු ඉල්ලා සිටියහ.\n\nමහ බැංකුව ප්‍රකාශ කළේ උද්ධමනය පාලනය කිරීමට මෙම මිල අඩු කිරීම උපකාරී වන පියවරක් බවයි.\n\nමුදල් අමාත්‍යාංශය විසින් මිල සූත්‍රය අනුව මාසිකව මිල සංශෝධනය කරන ලදී.\n\nනව මිල වහාම ක්‍රියාත්මක කරන ලෙස සංස්ථාව පිරවුම්හල් හිමියන්ට දැනුම් දුන්නේය.\n\nපසුගිය මාසයේ ද ඉන්ධන මිල සංශෝධනය කෙරිණි.",
+      "errors": [
+        {
+          "rule_id": "GRAM_TENSE_001",
+          "original": "කළේය",
+          "corrected": "කරනු ඇත",
+          "why": "The time word in the sentence (ඊයේ / හෙට / ලබන සතියේ / පසුගිය …) fixes the tense of the main verb."
+        },
+        {
+          "rule_id": "GRAM_VOICE_002",
+          "original": "විසින්",
+          "corrected": "(removed)",
+          "why": "විසින් marks the agent of a passive verb; පැවසීය is active, so the subject takes no marker."
+        },
+        {
+          "rule_id": "GRAM_CASE_ATTACH_001",
+          "original": "ගාස්තු වල",
+          "corrected": "ගාස්තුවල",
+          "why": "The case ending (-වල / -වලට / -වලදී) is bound to its noun and is written joined."
+        },
+        {
+          "rule_id": "GRAM_AGR_001",
+          "original": "කළේය",
+          "corrected": "කළාය",
+          "why": "Subject–verb agreement: the verb ending must match the subject's number (-හ / -ති) and gender (-ාය)."
+        },
+        {
+          "rule_id": "GRAM_AGR_001",
+          "original": "දුන්නේය",
+          "corrected": "දුන්හ",
+          "why": "Subject–verb agreement: the verb ending must match the subject's number (-හ / -ති) and gender (-ාය)."
+        },
+        {
+          "rule_id": "GRAM_AGR_001",
+          "original": "පවසයි",
+          "corrected": "පවසති",
+          "why": "Subject–verb agreement: the verb ending must match the subject's number (-හ / -ති) and gender (-ාය)."
+        },
+        {
+          "rule_id": "GRAM_REGISTER_001",
+          "original": "සිටියා",
+          "corrected": "සිටියහ",
+          "why": "A written plural subject (-හු) needs the written plural verb, not the spoken form."
+        },
+        {
+          "rule_id": "GRAM_CLAUSE_001",
+          "original": "පියවරක්",
+          "corrected": "පියවරක් බවයි",
+          "why": "The focused reporting verb (… කළේ) opens a reported clause that must close with බවයි."
+        },
+        {
+          "rule_id": "SPELL_JOURNAL_001",
+          "original": "අමාත්‍යාන්ශය",
+          "corrected": "අමාත්‍යාංශය",
+          "why": "Spelling."
+        },
+        {
+          "rule_id": "GRAM_VOICE_001",
+          "original": "කළේය",
+          "corrected": "කරන ලදී",
+          "why": "An agent marked with විසින් requires a passive predicate (… ලදී)."
+        },
+        {
+          "rule_id": "GRAM_CASE_DATIVE_001",
+          "original": "හිමියන්ගෙන්",
+          "corrected": "හිමියන්ට",
+          "why": "The person warned, advised or informed is dative (-ට); -ගෙන් would mean 'from'."
+        },
+        {
+          "rule_id": "GRAM_TENSE_001",
+          "original": "කෙරෙනු ඇත",
+          "corrected": "කෙරිණි",
+          "why": "The time word in the sentence (ඊයේ / හෙට / ලබන සතියේ / පසුගිය …) fixes the tense of the main verb."
+        }
+      ],
+      "controls": []
     }
   ]
 }

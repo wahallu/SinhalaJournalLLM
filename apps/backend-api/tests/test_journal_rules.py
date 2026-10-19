@@ -123,6 +123,26 @@ def test_case_suffix_swap_is_labelled_grammar_not_spelling():
     assert spelling.type == "spelling"
 
 
+@pytest.mark.parametrize(
+    "original, corrected, kind",
+    [
+        # grammar: the word's grammatical form changes (case, number, register, tense)
+        ("නිලධාරීන් පැමිණියහ.", "නිලධාරීහු පැමිණියහ.", "grammar"),
+        ("ඔවුන් පරීක්ෂණ පවත්වනවා.", "ඔවුන් පරීක්ෂණ පවත්වති.", "grammar"),
+        ("ඔවුහු සහාය ලබා ගත්තා.", "ඔවුහු සහාය ලබා ගත්හ.", "grammar"),
+        ("ඔහු නිවස හැදුවා.", "ඔහු නිවස හදනවා.", "grammar"),
+        # spelling: the same word, different letters
+        ("සමුළුව පිලිබද", "සමුළුව පිළිබඳ", "spelling"),
+        ("ප්‍රධානින්ගේ රැස්වීම", "ප්‍රධානීන්ගේ රැස්වීම", "spelling"),
+        # two neighbouring spelling fixes merged by the diff stay spelling
+        ("සංඛා ලේකන", "සංඛ්‍යා ලේඛන", "spelling"),
+    ],
+)
+def test_model_edits_are_labelled_by_what_changed(original, corrected, kind):
+    corrections = derive_corrections(original, corrected)
+    assert {c.type for c in corrections} == {kind}
+
+
 @pytest.mark.asyncio
 async def test_pipeline_applies_and_labels_rule_corrections(monkeypatch):
     article = next(a for a in _DEMO if a["id"] == "weather")

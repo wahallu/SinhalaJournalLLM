@@ -82,6 +82,11 @@ _INFLECTION_TAILS = frozenset({
     "ට", "ගෙන්", "ගේ", "ෙන්", "ින්", "යෙන්", "යට", "යේ", "යේදී", "ේදී", "දී", "හි",
     "වලට", "වලින්", "වල", "ාට", "ාගේ", "ාගෙන්",
     "ේය", "ාය", "හ", "ූහ", "ීය", "ුවාය", "ුවේය", "යි", "ති",
+    "ා",  # spoken past (සිටියා) -> written plural (සිටියහ) is grammar, not spelling
+    # Plural subject forms (නිලධාරීන් -> නිලධාරීහු, විද්‍යාඥයන් -> විද්‍යාඥයෝ) and the
+    # spoken present (පවත්වනවා -> පවත්වති) — both measured as grammar edits in
+    # the team's plural.jsonl / verb.jsonl that this check used to call spelling.
+    "න්", "හු", "ෝ", "නවා",
 })
 
 
@@ -98,6 +103,24 @@ def _is_inflection_swap(original: str, corrected: str) -> bool:
     )
 
 
+# A spoken verb form rewritten as its written counterpart changes the verb's
+# grammatical form (register, number, tense), not its spelling: ගත්තා -> ගත්හ,
+# කරනවා -> කරයි, කරපු -> කළ. The stems often differ, so the tail check misses them.
+_SPOKEN_ENDINGS = ("ා", "නවා", "පු")
+_WRITTEN_ENDINGS = ("හ", "ේය", "ාය", "ීය", "ූහ", "ෝය", "ති", "යි", "ූ", "ේ", "ණි", "ිණි")
+_WRITTEN_RELATIVES = frozenset({"කළ", "දුන්", "ගත්", "ගිය", "ආ", "වූ", "කළේ"})
+
+
+def _is_register_swap(original: str, corrected: str) -> bool:
+    old, new = original.rstrip(".,;:!?"), corrected.rstrip(".,;:!?")
+    # Past <-> present within the spoken register (හැදුවා -> හදනවා) is a tense edit.
+    if old.endswith("නවා") != new.endswith("නවා") and old.endswith("ා") and new.endswith("ා"):
+        return True
+    return old.endswith(_SPOKEN_ENDINGS) and (
+        new.endswith(_WRITTEN_ENDINGS) or new in _WRITTEN_RELATIVES
+    ) and not new.endswith(_SPOKEN_ENDINGS)
+
+
 def _classify(original: str, corrected: str) -> tuple[str, str]:
     """Return (type, rule description) for one correction."""
     orig_set = set(original)
@@ -109,6 +132,12 @@ def _classify(original: str, corrected: str) -> tuple[str, str]:
 
     orig_words = original.split()
     corr_words = corrected.split()
+    if len(orig_words) == len(corr_words) > 1:
+        # Two neighbouring edits the diff merged into one (සංඛා ලේකන -> සංඛ්‍යා ලේඛන):
+        # judge each word pair, and call it grammar only if one of them is.
+        kinds = [_classify(o, c) for o, c in zip(orig_words, corr_words) if o != c]
+        grammar = next((k for k in kinds if k[0] == "grammar"), None)
+        return grammar or kinds[0]
     if len(orig_words) == 1 and len(corr_words) == 1:
         # Single-token change: suffix-style edits are morphology, the rest spelling.
         ratio = SequenceMatcher(None, original, corrected).ratio()
@@ -116,6 +145,8 @@ def _classify(original: str, corrected: str) -> tuple[str, str]:
             return "grammar", "Word form correction (වචන රූප නිවැරදි කිරීම)"
         if _is_inflection_swap(original, corrected):
             return "grammar", "Case/verb ending correction (විභක්ති / ක්‍රියා ප්‍රත්‍ය නිවැරදි කිරීම)"
+        if _is_register_swap(original, corrected):
+            return "grammar", "Spoken to written verb form (කථන -> ලිඛිත ක්‍රියා රූප)"
         if ratio >= 0.6:
             return "spelling", "Spelling correction (අක්ෂර වින්‍යාස නිවැරදි කිරීම)"
     return "grammar", "Grammar correction (ව්‍යාකරණ නිවැරදි කිරීම)"

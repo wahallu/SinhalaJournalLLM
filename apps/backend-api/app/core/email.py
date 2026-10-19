@@ -10,6 +10,7 @@ local development and the test suite want: signup and reset still complete,
 and the link is visible in the log.
 """
 
+import html
 import logging
 from email.message import EmailMessage
 
@@ -24,12 +25,16 @@ class EmailDeliveryError(Exception):
     """The message could not be handed to the SMTP server."""
 
 
-def _build(to: str, subject: str, text_body: str, html_body: str) -> EmailMessage:
+def _build(
+    to: str, subject: str, text_body: str, html_body: str, reply_to: str | None = None
+) -> EmailMessage:
     settings = get_settings()
     message = EmailMessage()
     message["From"] = settings.SMTP_FROM or settings.SMTP_USER
     message["To"] = to
     message["Subject"] = subject
+    if reply_to:
+        message["Reply-To"] = reply_to
     # set_content() + add_alternative() makes this multipart/alternative:
     # the plain-text part stays as a fallback (old clients, spam filters
     # that weight HTML-only mail worse) while HTML-capable clients render
@@ -39,7 +44,9 @@ def _build(to: str, subject: str, text_body: str, html_body: str) -> EmailMessag
     return message
 
 
-async def send_email(to: str, subject: str, text_body: str, html_body: str) -> None:
+async def send_email(
+    to: str, subject: str, text_body: str, html_body: str, reply_to: str | None = None
+) -> None:
     """
     Deliver one message.
 
@@ -61,7 +68,7 @@ async def send_email(to: str, subject: str, text_body: str, html_body: str) -> N
 
     try:
         await aiosmtplib.send(
-            _build(to, subject, text_body, html_body),
+            _build(to, subject, text_body, html_body, reply_to),
             hostname=settings.SMTP_HOST,
             port=settings.SMTP_PORT,
             username=settings.SMTP_USER or None,
@@ -215,3 +222,48 @@ async def send_password_reset_email(to: str, token: str) -> None:
         "has not changed.\n"
     )
     await send_email(to, "Reset your SinAi password", text, html)
+
+
+async def send_contact_email(name: str, email: str, message: str) -> None:
+    """
+    Forward a portfolio contact-form message to CONTACT_EMAIL_TO.
+
+    Sent From our own verified sender (SMTP providers reject mail "from" an
+    address they cannot vouch for), with Reply-To set to the visitor so
+    replying in the inbox goes straight back to them. Everything the visitor
+    typed is HTML-escaped: it is untrusted input rendered in our inbox.
+    """
+    safe_name = html.escape(name)
+    safe_email = html.escape(email)
+    safe_message = html.escape(message).replace("\n", "<br />")
+    html_body = f"""\
+<!DOCTYPE html>
+<html lang="en">
+  <body style="margin:0;padding:24px;background-color:{_CANVAS};font-family:{_FONT_STACK};">
+    <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background-color:#ffffff;border-radius:12px;">
+      <tr>
+        <td style="padding:28px 32px;">
+          <h1 style="margin:0 0 16px;font-size:18px;color:{_INK_900};">New message from the SinAi portfolio</h1>
+          <p style="margin:0 0 4px;font-size:14px;color:{_INK_600};"><strong>Name:</strong> {safe_name}</p>
+          <p style="margin:0 0 20px;font-size:14px;color:{_INK_600};"><strong>Email:</strong> <a href="mailto:{safe_email}" style="color:{_BRAND_600};">{safe_email}</a></p>
+          <div style="padding:16px;border:1px solid {_INK_200};border-radius:8px;font-size:15px;line-height:1.6;color:{_INK_900};">{safe_message}</div>
+          <p style="margin:20px 0 0;font-size:12px;color:{_INK_400};">Reply to this email to answer {safe_name} directly.</p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+"""
+    text_body = (
+        "New message from the SinAi portfolio contact form.\n\n"
+        f"Name: {name}\n"
+        f"Email: {email}\n\n"
+        f"{message}\n"
+    )
+    await send_email(
+        get_settings().CONTACT_EMAIL_TO,
+        f"Portfolio contact: {name}",
+        text_body,
+        html_body,
+        reply_to=email,
+    )
