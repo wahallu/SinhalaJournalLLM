@@ -6,8 +6,20 @@ import { Container, Section, SectionHeader } from "@/components/ui";
 import { TOOL_ICONS } from "@/components/toolIcons";
 import { TOOL_BY_ID } from "@/content/tools";
 import {
+  ADOPTION_PRINCIPLES,
+  ADVANTAGES,
   APPROACH,
+  COMMERCIAL_SUMMARY,
   COMPONENT_GAPS,
+  COST_CONTROL,
+  COST_DRIVERS,
+  CUSTOMER_PERSONA,
+  IMPLEMENTED_PLANS,
+  IMPLEMENTED_PLANS_NOTE,
+  PROPOSED_PRICING,
+  REVENUE_STREAMS,
+  TARGET_MARKETS,
+  VALUE_POINTS,
   GAP_SUMMARY,
   LITERATURE,
   MAIN_OBJECTIVE,
@@ -21,7 +33,7 @@ import {
 export const metadata: Metadata = {
   title: "Project scope | SinAi",
   description:
-    "Literature survey, research gap, problem and solution, objectives and methodology of the SinhalaJournal-LLM research project (R26-SE-037).",
+    "Literature survey, research gap, problem and solution, objectives, methodology and commercialization plan of the SinhalaJournal-LLM research project (R26-SE-037).",
 };
 
 const toolIds = Object.keys(COMPONENT_GAPS) as (keyof typeof COMPONENT_GAPS)[];
@@ -190,6 +202,132 @@ export default function ProjectScopePage() {
               </li>
             ))}
           </ol>
+        </Section>
+
+        {/* Commercialization plan */}
+        <Section id="commercialization">
+          <SectionHeader title="Commercialization plan" />
+          <p className="-mt-6 mb-12 max-w-3xl text-xl leading-relaxed text-[#3d3b37] sm:-mt-8 sm:text-2xl">
+            {COMMERCIAL_SUMMARY}
+          </p>
+
+          <h3 className="mb-5 font-display text-2xl font-bold text-black-main">Target market</h3>
+          <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {TARGET_MARKETS.map((m) => (
+              <li
+                key={m.segment}
+                className={`rounded-3xl border p-6 ${m.primary ? "border-crimson/40 bg-crimson-tint" : "border-line bg-white"}`}
+              >
+                {m.primary && (
+                  <span className="mb-3 inline-block rounded-full bg-crimson px-2.5 py-0.5 text-xs font-semibold text-white">
+                    Primary
+                  </span>
+                )}
+                <h4 className="font-display text-lg font-bold text-black-main">{m.segment}</h4>
+                <p className="mt-2 text-base leading-relaxed text-[#5f5c56]">{m.detail}</p>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-5 max-w-3xl text-base leading-relaxed text-[#3d3b37]">
+            <span className="font-semibold text-black-main">Customer persona: </span>
+            {CUSTOMER_PERSONA}
+          </p>
+
+          <div className="mt-16 grid gap-5 lg:grid-cols-2">
+            <div className="rounded-3xl border border-line bg-white p-7 sm:p-8">
+              <h3 className="font-display text-2xl font-bold text-black-main">Value proposition</h3>
+              <ul className="mt-6 space-y-4">
+                {VALUE_POINTS.map((v) => (
+                  <li key={v} className="flex gap-3 text-base leading-relaxed text-[#3d3b37]">
+                    <Check aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-crimson" />
+                    {v}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-3xl border border-line bg-white p-7 sm:p-8">
+              <h3 className="font-display text-2xl font-bold text-black-main">Revenue model</h3>
+              <ul className="mt-6 grid gap-5 sm:grid-cols-2">
+                {REVENUE_STREAMS.map((r) => (
+                  <li key={r.title}>
+                    <h4 className="text-base font-bold text-black-main">{r.title}</h4>
+                    <p className="mt-1 text-base leading-relaxed text-[#5f5c56]">{r.body}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-16 grid gap-5 lg:grid-cols-2">
+            <div className="rounded-3xl bg-black-main p-7 text-white sm:p-8">
+              <h3 className="font-display text-2xl font-bold">Plans built into SinAi</h3>
+              <ul className="mt-6 grid gap-3 sm:grid-cols-3">
+                {IMPLEMENTED_PLANS.map((plan) => (
+                  <li key={plan.name} className="rounded-2xl bg-white/10 p-4 ring-1 ring-white/15">
+                    <p className="text-lg font-bold">{plan.name}</p>
+                    <p className="mt-1 text-sm text-white/75">{plan.quota}</p>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-5 text-sm leading-relaxed text-white/70">{IMPLEMENTED_PLANS_NOTE}</p>
+            </div>
+            <div className="rounded-3xl border border-line bg-white p-7 sm:p-8">
+              <h3 className="font-display text-2xl font-bold text-black-main">Proposed newsroom pricing</h3>
+              <ul className="mt-6 grid gap-3 sm:grid-cols-3">
+                {PROPOSED_PRICING.map((tier) => (
+                  <li key={tier.tier} className="rounded-2xl border border-line p-4">
+                    <p className="text-lg font-bold text-black-main">{tier.tier}</p>
+                    <p className="mt-1 text-sm font-semibold text-crimson">{tier.price}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-[#5f5c56]">{tier.detail}</p>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-5 text-sm leading-relaxed text-text-muted">
+                Proposed in the March 2026 project proposal, with academic discounts and per-request API
+                billing. Not a published price list.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-16 grid gap-5 lg:grid-cols-3">
+            <div className="rounded-3xl border border-line bg-white p-7">
+              <h3 className="font-display text-xl font-bold text-black-main">Cost structure</h3>
+              <ul className="mt-5 space-y-3">
+                {COST_DRIVERS.map((c) => (
+                  <li key={c} className="flex gap-3 text-base leading-relaxed text-[#5f5c56]">
+                    <span aria-hidden="true" className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-crimson" />
+                    {c}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-5 border-t border-line pt-5 text-sm leading-relaxed text-[#3d3b37]">{COST_CONTROL}</p>
+            </div>
+            <div className="rounded-3xl border border-line bg-white p-7">
+              <h3 className="font-display text-xl font-bold text-black-main">Competitive advantage</h3>
+              <ul className="mt-5 space-y-3">
+                {ADVANTAGES.map((a) => (
+                  <li key={a} className="flex gap-3 text-base leading-relaxed text-[#5f5c56]">
+                    <Check aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-crimson" />
+                    {a}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-3xl border border-line bg-white p-7">
+              <h3 className="font-display text-xl font-bold text-black-main">Responsible adoption</h3>
+              <ul className="mt-5 space-y-3">
+                {ADOPTION_PRINCIPLES.map((a) => (
+                  <li key={a} className="flex gap-3 text-base leading-relaxed text-[#5f5c56]">
+                    <Check aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-emerald-700" />
+                    {a}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <p className="mt-6 text-sm text-text-muted">
+            From the proposal (March 2026) and the group thesis, chapter 7 (October 2026).
+          </p>
         </Section>
       </main>
       <Footer />

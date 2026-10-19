@@ -5,6 +5,9 @@ import type { ToolId } from "./tools";
  *   Paper    = Research/paper.tex (Introduction, Related Work, Corpus,
  *              Model Adaptation, Evaluation, System Integration)
  *   Proposal = public/documents/proposal-presentation.pdf (16 March 2026)
+ *   Thesis   = Final group thesis, chapter 7 "Commercialisation, sustainability
+ *              and responsible innovation" (October 2026)
+ *   Report   = Individual proposal reports, chapter 6 "Commercialization plan"
  * Keep wording close to those documents; do not add claims they do not make.
  */
 
@@ -14,6 +17,7 @@ export const SCOPE_SECTIONS = [
   { id: "problem-solution", label: "Research problem & solution" },
   { id: "objectives", label: "Research objectives" },
   { id: "methodology", label: "Methodology" },
+  { id: "commercialization", label: "Commercialization plan" },
 ] as const;
 
 // ── Literature survey (Paper, Related Work) ─────────────────────────────────
@@ -201,4 +205,101 @@ export const METHOD_STEPS: { title: string; body: string }[] = [
     title: "Integrate and test",
     body: "A FastAPI backend serves the adapters to the web app, Chrome extension and Google Docs add-on, followed by a small pilot with newsroom users.",
   },
+];
+
+// ── Commercialization plan (Proposal slide; Report ch. 6; Thesis ch. 7) ─────
+// The proposal reports also claimed a "30–50% reduction in proofreading time".
+// It was never measured (Thesis 7.2), so it is deliberately left out.
+
+export const COMMERCIAL_SUMMARY =
+  "SinAi is planned as a Software-as-a-Service product for Sinhala newsrooms: free individual use with paid tiers for heavier and institutional use, plus API and academic licensing.";
+
+export const TARGET_MARKETS: { segment: string; detail: string; primary?: boolean }[] = [
+  {
+    segment: "News organisations",
+    detail: "Sri Lankan newspapers, broadcasters and online news portals that publish a high volume of Sinhala copy every day.",
+    primary: true,
+  },
+  {
+    segment: "Journalism education",
+    detail: "Universities, journalism schools and media training institutes, for teaching editing, summary length and style.",
+  },
+  {
+    segment: "Communications teams",
+    detail: "Government communication departments and corporate or agency teams that write public Sinhala content.",
+  },
+  {
+    segment: "Independent creators",
+    detail: "Freelance journalists, bloggers and Sinhala content creators working without an editor.",
+  },
+];
+
+export const CUSTOMER_PERSONA =
+  "A newsroom editor managing several daily publications, who needs help preparing Sinhala copy faster without lowering its language quality.";
+
+export const VALUE_POINTS = [
+  "Four Sinhala editorial tasks in one place: grammar, headlines, summaries and style.",
+  "Works where journalists already write: the web app, a Chrome extension and a Google Docs add-on.",
+  "Every output stays editable and the journalist reviews it. SinAi drafts; people publish.",
+  "Built on a Sinhala-adapted model (SinLlama) with Sinhala-specific cleaning and evaluation.",
+];
+
+export const REVENUE_STREAMS: { title: string; body: string }[] = [
+  {
+    title: "Freemium",
+    body: "Individual journalists and students use SinAi free within a daily limit, and upgrade when they need more.",
+  },
+  {
+    title: "Subscriptions",
+    body: "Tiered monthly or discounted annual plans for newsrooms, with higher limits, priority processing and support.",
+  },
+  {
+    title: "API access",
+    body: "Content management systems and news apps integrate SinAi through its API, billed per request or by enterprise agreement.",
+  },
+  {
+    title: "Academic licensing",
+    body: "Discounted licences for universities and journalism institutes for teaching and research.",
+  },
+];
+
+/** Implemented in the application today (Thesis 7.3). */
+export const IMPLEMENTED_PLANS: { name: string; quota: string }[] = [
+  { name: "Free", quota: "50 requests a day" },
+  { name: "Plus", quota: "500 requests a day" },
+  { name: "Pro", quota: "Unlimited requests" },
+];
+
+export const IMPLEMENTED_PLANS_NOTE =
+  "Plans, daily quotas, bank-transfer upgrade requests and admin plan controls are built into the application. They show the plan system works; they are not revenue evidence.";
+
+/** Proposed institutional pricing (Report 6.5). A proposal, not a price list. */
+export const PROPOSED_PRICING: { tier: string; price: string; detail: string }[] = [
+  { tier: "Basic", price: "LKR 8,000 / month", detail: "Limited monthly corrections and summaries." },
+  { tier: "Professional", price: "LKR 25,000 / month", detail: "Higher request limits with priority processing." },
+  { tier: "Enterprise", price: "Custom", detail: "Unlimited use, API access, analytics and dedicated support." },
+];
+
+export const COST_DRIVERS = [
+  "GPU compute for model inference (the largest recurring cost)",
+  "Web, API and database hosting",
+  "Email delivery, monitoring and backups",
+  "Maintenance, support and Sinhala language evaluation",
+];
+
+export const COST_CONTROL =
+  "One shared 4-bit base model with small task adapters avoids running four full models, and per-plan daily quotas cap request volume.";
+
+export const ADVANTAGES = [
+  "Dedicated to Sinhala, where general assistants are not tuned for one newsroom workflow.",
+  "Four connected editorial tools rather than a single spell checker.",
+  "Editorial controls for headline length, summary length and five publication styles.",
+  "Transparent evaluation that reports data leakage and factual risks.",
+];
+
+export const ADOPTION_PRINCIPLES = [
+  "Marketing claims are tied to measured pilot results, not assumed time savings.",
+  "Publisher copyright is respected: research artefacts keep URLs, hashes and metadata, not republished articles.",
+  "Accounts and histories are protected with authenticated access, row-level policies and deletion paths.",
+  "Institutional deployments go through privacy and procurement review first.",
 ];
