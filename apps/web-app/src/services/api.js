@@ -305,6 +305,11 @@ export function rewriteStyle(text, tone = 'formal') {
   return request('/rewrite', { text, tone });
 }
 
+/** Is sports a central subject of this article? -> { label, reason, classifier } */
+export function classifySportsRelevance(text) {
+  return request('/rewrite/classify-sports', { text });
+}
+
 export function getStyleHistory(page = 1, pageSize = 20) {
   return request(`/rewrite/history?page=${page}&page_size=${pageSize}`, null, 'GET');
 }

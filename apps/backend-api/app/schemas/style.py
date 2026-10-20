@@ -4,6 +4,8 @@ Defines request/response shapes for style rewriting.
 """
 
 from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -61,3 +63,17 @@ class StyleHistoryResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class SportsClassifyRequest(BaseModel):
+    """Source article to check against the Sports target style."""
+    text: str = Field(..., min_length=1, max_length=10000)
+
+
+class SportsClassification(BaseModel):
+    """Whether sports is a central subject of the source article."""
+    label: Literal["SPORTS_RELATED", "NOT_SPORTS_RELATED", "UNCERTAIN"]
+    reason: str | None = Field(default=None, description="One-sentence rationale")
+    classifier: Literal["llm", "unavailable"] = Field(
+        description="unavailable means no provider answered and label is a placeholder",
+    )

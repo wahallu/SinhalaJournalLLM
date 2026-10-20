@@ -10,6 +10,8 @@ import OptimizeResults from './OptimizeResults';
 import { LENGTHS, TONES } from '../../lib/toolOptions';
 import { useAuth } from '../../auth/useAuth';
 import { useOptimize } from '../../hooks/useOptimize';
+import { useStyleGuard } from '../../hooks/useStyleGuard';
+import StyleCheckNotice from '../StyleCheckNotice';
 
 const PLACEHOLDER = "fuys iïmQrK ,smsh we;=<;a lrkak'''";
 
@@ -99,7 +101,15 @@ export default function OptimizePage({ settings, setSettings }) {
   const restyle = settings.optimizeRestyle ?? false;
   const summarize = settings.optimizeSummarize ?? false;
 
-  const handleRun = useCallback(() => {
+  // The restyle stage can target Sports, so it is classified like the main
+  // rewriter. With restyle off the tone is unused and nothing is checked.
+  const { authorize, checking, noticeFor } = useStyleGuard();
+  const restyleTone = restyle ? settings.tone : null;
+  const styleCheck = noticeFor(text.trim(), restyleTone);
+
+  const start = useCallback(async (force) => {
+    if (!text.trim()) return;
+    if (!(await authorize(text.trim(), restyleTone, { force }))) return;
     run(text, {
       restyle,
       tone: settings.tone,
@@ -109,7 +119,11 @@ export default function OptimizePage({ settings, setSettings }) {
       headlineCategory: settings.category || 'General',
       headlineLength: settings.headlineLength,
     });
-  }, [run, text, restyle, summarize, settings]);
+  }, [run, authorize, text, restyle, restyleTone, summarize, settings]);
+
+  // Editor passes its click event to onRun; keep it out of `force`.
+  const handleRun = useCallback(() => start(false), [start]);
+  const handleRunAnyway = useCallback(() => start(true), [start]);
 
   const handleClear = useCallback(() => {
     setText('');
@@ -186,7 +200,7 @@ export default function OptimizePage({ settings, setSettings }) {
           onChange={setText}
           onRun={handleRun}
           onClear={handleClear}
-          loading={running}
+          loading={running || checking}
           settings={settings}
           onSettingsChange={setSettings}
         />
@@ -203,6 +217,9 @@ export default function OptimizePage({ settings, setSettings }) {
             )
           }
         >
+          {styleCheck ? (
+            <StyleCheckNotice check={styleCheck} onProceed={handleRunAnyway} loading={running || checking} />
+          ) : (
           <OptimizeResults
             stages={stages}
             result={result}
@@ -212,6 +229,7 @@ export default function OptimizePage({ settings, setSettings }) {
             onApply={setText}
             onUseHeadline={handleUseHeadline}
           />
+          )}
 
           {!user && result && !running && (
             <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 px-4 py-3

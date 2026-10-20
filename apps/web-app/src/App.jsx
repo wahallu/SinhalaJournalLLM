@@ -1,6 +1,8 @@
 import { useState, useCallback, useDeferredValue, useEffect, useMemo, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, ArrowDownToLine } from 'lucide-react';
+import { useStyleGuard } from './hooks/useStyleGuard';
+import StyleCheckNotice from './components/StyleCheckNotice';
 import Sidebar from './components/Sidebar';
 import { TOOL_META } from './lib/toolMeta';
 import { SUMMARY_VIEWS, DEFAULT_HEADLINE_MODEL } from './lib/toolOptions';
@@ -220,8 +222,16 @@ function ToolRunner({ activeTool, settings, setSettings }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.key, activeTool, location.pathname, navigate, restore]);
 
-  const handleRun = useCallback(() => {
+  // Sports rewrites are classified before they are sent; a held request leaves
+  // a notice that lapses as soon as the article or style changes.
+  const { authorize, checking, noticeFor } = useStyleGuard();
+  const styleCheck = activeTool === 'rewriter' ? noticeFor(input.trim(), settings.tone) : null;
+
+  const run = useCallback(async (force) => {
     if (!input.trim()) return;
+    if (activeTool === 'rewriter' && !(await authorize(input.trim(), settings.tone, { force }))) {
+      return;
+    }
     const wrappedProcess = async (apiCall) => {
       await process(async (text) => {
         // The backend persists every authenticated run itself, so there is
@@ -251,7 +261,11 @@ function ToolRunner({ activeTool, settings, setSettings }) {
         wrappedProcess((text) => summarizeNews(text, settings.length));
         break;
     }
-  }, [activeTool, input, settings, process]);
+  }, [activeTool, input, settings, process, authorize]);
+
+  // The Editor passes its click event to onRun, so keep the force flag out of reach.
+  const handleRun = useCallback(() => run(false), [run]);
+  const handleRunAnyway = useCallback(() => run(true), [run]);
 
   if (!config) return null;
 
@@ -300,7 +314,7 @@ function ToolRunner({ activeTool, settings, setSettings }) {
             onChange={setInput}
             onRun={handleRun}
             onClear={clear}
-            loading={loading}
+            loading={loading || checking}
             settings={settings}
             onSettingsChange={setSettings}
           />
@@ -315,6 +329,8 @@ function ToolRunner({ activeTool, settings, setSettings }) {
               error={error}
               articleText={deferredInput}
             />
+          ) : styleCheck ? (
+            <StyleCheckNotice check={styleCheck} onProceed={handleRunAnyway} loading={loading || checking} />
           ) : (
             <OutputPanel
               output={output}
