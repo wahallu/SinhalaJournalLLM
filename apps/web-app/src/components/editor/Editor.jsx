@@ -17,7 +17,7 @@ export const MAX_CHARS = 10000;
 
 export default function Editor({
   tool, title, icon, placeholder, actionLabel = 'Run', helper,
-  value, onChange, onRun, onClear, loading = false, hasResult = false,
+  value, onChange, onRun, onClear, loading = false,
   settings, onSettingsChange,
 }) {
   const [focused, setFocused] = useState(false);
@@ -83,7 +83,6 @@ export default function Editor({
         maxChars={MAX_CHARS}
         isOverLimit={isOverLimit}
         isNearLimit={isNearLimit}
-        hasResult={hasResult}
         settings={settings}
         onSettingsChange={onSettingsChange}
         encoding={encoding}
