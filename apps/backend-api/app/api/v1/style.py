@@ -19,9 +19,12 @@ from app.schemas.auth import AuthUser
 from app.schemas.style import (
     StyleHistoryItem,
     StyleHistoryResponse,
+    SportsClassification,
+    SportsClassifyRequest,
     StyleRewriteRequest,
     StyleRewriteResponse,
 )
+from app.services.style.sports_classifier import classify_sports_relevance
 from app.services.style.style_service import rewrite_style
 
 router = APIRouter(tags=["Style"])
@@ -64,6 +67,22 @@ async def rewrite_style_endpoint(
         ip_hash=hash_ip(client_ip(request)),
     )
     return result
+
+
+@router.post("/rewrite/classify-sports", response_model=SportsClassification)
+async def classify_sports_endpoint(
+    request: Request,
+    payload: SportsClassifyRequest,
+    user: AuthUser | None = Depends(optional_user),
+    _enabled: None = require_tool_enabled("rewriter"),
+):
+    """
+    Is sports a central subject of this article? Called by the web app before
+    it submits a rewrite with the Sports target style. Not recorded in
+    telemetry, so it does not count against the anonymous rewrite quota.
+    """
+    await enforce_anonymous_limit(request, user)
+    return await classify_sports_relevance(payload.text)
 
 
 @router.get("/rewrite/history", response_model=StyleHistoryResponse)
