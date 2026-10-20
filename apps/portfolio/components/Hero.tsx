@@ -67,10 +67,16 @@ export default function Hero() {
         ref={contentRef}
         className="mx-auto w-full max-w-7xl px-6 pb-12 pt-[28vh] sm:pt-[30vh]"
       >
-        <div className="mx-auto max-w-3xl text-center">
-          <h1 className="animate-fade-slide-in-1 font-sans text-4xl font-semibold leading-tight tracking-tight text-white sm:text-5xl md:text-6xl lg:text-7xl">
-            <span className="sm:block">AI Writing Assistant</span>{" "}
-            <span className="sm:block">for Sinhala Journalism</span>
+        <div className="mx-auto max-w-4xl text-center">
+          <h1 className="animate-fade-slide-in-1 font-sans font-semibold tracking-tight text-white">
+            <span className="block text-[2rem] leading-tight sm:text-5xl md:text-6xl lg:text-7xl">
+              SinhalaJournal-LLM
+              <span className="sr-only">:</span>
+            </span>
+            <span className="mt-4 block text-xl font-medium leading-snug text-white/90 sm:text-2xl md:text-3xl">
+              A Style-Controlled Large Language Model for Diverse Sri Lankan
+              Newspaper Writing
+            </span>
           </h1>
 
           <p className="animate-fade-slide-in-2 mx-auto mt-6 max-w-2xl text-base text-white/80 sm:text-lg">
